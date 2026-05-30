@@ -121,6 +121,36 @@ class TeamWorkflowModelTests(unittest.TestCase):
             },
         )
 
+    def test_workflow_request_nested_metadata_is_stable_after_source_mutation(self) -> None:
+        metadata = {
+            "source": {
+                "name": "founder-call",
+                "tags": ["landing", "threads"],
+            }
+        }
+        request = WorkflowRequest(
+            hypothesis="Founders will pay for an AI validation team",
+            audience="early-stage SaaS founders",
+            offer="48 hour landing page validation",
+            constraints="No paid ads in the first pass",
+            channels=("landing_page", "threads"),
+            success_criteria="10 qualified waitlist signups",
+            metadata=metadata,
+        )
+
+        metadata["source"]["name"] = "changed"
+        metadata["source"]["tags"].append("changed")
+
+        self.assertEqual(
+            request.to_payload()["metadata"],
+            {
+                "source": {
+                    "name": "founder-call",
+                    "tags": ["landing", "threads"],
+                }
+            },
+        )
+
     def test_workflow_request_rejects_blank_required_fields(self) -> None:
         with self.assertRaisesRegex(WorkroomModelError, "hypothesis is required"):
             WorkflowRequest(
@@ -184,6 +214,36 @@ class TeamWorkflowModelTests(unittest.TestCase):
         self.assertEqual("custom_category", draft.metadata["category"])
         self.assertEqual("custom_priority", draft.metadata["priority"])
         self.assertEqual("custom_status", draft.metadata["status"])
+
+    def test_workflow_task_payload_metadata_mutation_does_not_affect_future_payloads(self) -> None:
+        task = WorkflowTask(
+            role_id="landing_builder",
+            category="landing_page",
+            title="Draft landing page",
+            summary="Create the page structure and copy",
+            metadata={"draft": {"sections": ["hero", "proof"]}},
+        )
+
+        payload = task.to_payload()
+        payload["metadata"]["draft"]["sections"].append("changed")
+
+        self.assertEqual(
+            task.to_payload()["metadata"],
+            {"draft": {"sections": ["hero", "proof"]}},
+        )
+
+    def test_metadata_rejects_unsupported_values(self) -> None:
+        with self.assertRaisesRegex(
+            WorkroomModelError,
+            "metadata values must be JSON-compatible",
+        ):
+            WorkflowTask(
+                role_id="landing_builder",
+                category="landing_page",
+                title="Draft landing page",
+                summary="Create the page structure and copy",
+                metadata={"bad": object()},
+            )
 
     def test_workflow_plan_rejects_empty_tasks(self) -> None:
         request = WorkflowRequest(

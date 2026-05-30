@@ -19,10 +19,45 @@ def _required_text(name: str, value: str) -> str:
 def _metadata_copy(metadata: Mapping[str, object]) -> MappingProxyType[str, object]:
     if not isinstance(metadata, Mapping):
         raise WorkroomModelError("metadata must be a mapping")
-    copied = dict(metadata)
-    if any(not isinstance(key, str) or not key.strip() for key in copied):
-        raise WorkroomModelError("metadata keys must be non-empty strings")
+    copied = _freeze_metadata_mapping(metadata)
     return MappingProxyType(copied)
+
+
+def _freeze_metadata_mapping(metadata: Mapping[str, object]) -> dict[str, object]:
+    copied: dict[str, object] = {}
+    for key, value in metadata.items():
+        if not isinstance(key, str) or not key.strip():
+            raise WorkroomModelError("metadata keys must be non-empty strings")
+        copied[key] = _freeze_metadata_value(value)
+    return copied
+
+
+def _freeze_metadata_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return MappingProxyType(_freeze_metadata_mapping(value))
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_metadata_value(item) for item in value)
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    raise WorkroomModelError("metadata values must be JSON-compatible")
+
+
+def _metadata_payload_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {
+            key: _metadata_payload_value(nested_value)
+            for key, nested_value in value.items()
+        }
+    if isinstance(value, tuple):
+        return [_metadata_payload_value(item) for item in value]
+    return value
+
+
+def _metadata_payload(metadata: Mapping[str, object]) -> dict[str, object]:
+    return {
+        key: _metadata_payload_value(value)
+        for key, value in metadata.items()
+    }
 
 
 def _required_sequence(name: str, values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
@@ -120,7 +155,7 @@ class WorkflowRequest:
             "constraints": self.constraints,
             "channels": list(self.channels),
             "success_criteria": self.success_criteria,
-            "metadata": dict(self.metadata),
+            "metadata": _metadata_payload(self.metadata),
         }
 
 
@@ -151,7 +186,7 @@ class WorkflowTask:
             "summary": self.summary,
             "priority": self.priority,
             "status": self.status,
-            "metadata": dict(self.metadata),
+            "metadata": _metadata_payload(self.metadata),
         }
 
     def to_work_item_draft(self, *, department: str) -> "WorkItemDraft":
@@ -159,7 +194,7 @@ class WorkflowTask:
             "category": self.category,
             "priority": self.priority,
             "status": self.status,
-            **dict(self.metadata),
+            **_metadata_payload(self.metadata),
         }
         return WorkItemDraft(
             department=department,
@@ -215,7 +250,7 @@ class WorkItemDraft:
             "agent_role": self.agent_role,
             "title": self.title,
             "summary": self.summary,
-            "metadata": dict(self.metadata),
+            "metadata": _metadata_payload(self.metadata),
         }
 
 
