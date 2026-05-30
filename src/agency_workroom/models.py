@@ -154,15 +154,13 @@ class WorkflowTask:
             "metadata": dict(self.metadata),
         }
 
-    def to_work_item_draft(self, department: str) -> "WorkItemDraft":
-        metadata = dict(self.metadata)
-        metadata.update(
-            {
-                "category": self.category,
-                "priority": self.priority,
-                "status": self.status,
-            }
-        )
+    def to_work_item_draft(self, *, department: str) -> "WorkItemDraft":
+        metadata = {
+            "category": self.category,
+            "priority": self.priority,
+            "status": self.status,
+            **dict(self.metadata),
+        }
         return WorkItemDraft(
             department=department,
             agent_role=self.role_id,

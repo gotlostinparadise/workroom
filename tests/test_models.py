@@ -153,6 +153,38 @@ class TeamWorkflowModelTests(unittest.TestCase):
         self.assertEqual("planned", draft.metadata["status"])
         self.assertEqual("github_pages", draft.metadata["channel"])
 
+    def test_workflow_task_requires_keyword_department_for_draft_conversion(self) -> None:
+        task = WorkflowTask(
+            role_id="landing_builder",
+            category="landing_page",
+            title="Draft landing page",
+            summary="Create the page structure and copy",
+        )
+
+        with self.assertRaises(TypeError):
+            task.to_work_item_draft("validation_team")
+
+    def test_workflow_task_metadata_wins_when_converting_to_work_item_draft(self) -> None:
+        task = WorkflowTask(
+            role_id="landing_builder",
+            category="landing_page",
+            title="Draft landing page",
+            summary="Create the page structure and copy",
+            priority="high",
+            status="planned",
+            metadata={
+                "category": "custom_category",
+                "priority": "custom_priority",
+                "status": "custom_status",
+            },
+        )
+
+        draft = task.to_work_item_draft(department="validation_team")
+
+        self.assertEqual("custom_category", draft.metadata["category"])
+        self.assertEqual("custom_priority", draft.metadata["priority"])
+        self.assertEqual("custom_status", draft.metadata["status"])
+
     def test_workflow_plan_rejects_empty_tasks(self) -> None:
         request = WorkflowRequest(
             hypothesis="A",
