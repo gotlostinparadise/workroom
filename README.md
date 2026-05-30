@@ -19,5 +19,20 @@ Verified Kernel commit:
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
-PYTHONPATH=src python -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
+
+For source-tree development without installing first:
+
+```bash
+PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
+```
+
+The core integration path is covered by
+`tests/test_workroom_integration.py`. It exercises the real Kernel sequence:
+
+```text
+intent -> capability -> proposal -> preview -> grant -> sandbox -> redeem
+```
+
+The Kernel repository must remain unchanged by Workroom development.
