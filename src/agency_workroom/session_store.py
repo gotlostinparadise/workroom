@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from .models import CompanyGoalRun, TaskState, WorkroomModelError
@@ -26,19 +27,27 @@ def run_state_path(workspace_path: str | Path, run_id: str) -> Path:
 
 def save_company_goal_run(workspace_path: str | Path, run: CompanyGoalRun) -> Path:
     path = run_state_path(workspace_path, run.run_id)
-    tmp_path = path.with_name(f"{path.name}.tmp")
+    tmp_path: Path | None = None
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        tmp_path.write_text(
-            json.dumps(run.to_payload(), sort_keys=True, indent=2),
+        payload = json.dumps(run.to_payload(), sort_keys=True, indent=2)
+        with tempfile.NamedTemporaryFile(
+            "w",
+            delete=False,
+            dir=path.parent,
             encoding="utf-8",
-        )
+            prefix=f"{path.name}.",
+            suffix=".tmp",
+        ) as tmp_file:
+            tmp_path = Path(tmp_file.name)
+            tmp_file.write(payload)
         os.replace(tmp_path, path)
-    except OSError as exc:
-        try:
-            tmp_path.unlink()
-        except OSError:
-            pass
+    except Exception as exc:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
         raise WorkroomStateError(f"run state write failed: {run.run_id}") from exc
     return path
 

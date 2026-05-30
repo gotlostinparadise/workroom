@@ -118,6 +118,26 @@ class SessionStoreTests(unittest.TestCase):
         loaded = load_company_goal_run(root, existing.run_id)
         self.assertEqual(existing.to_payload(), loaded.to_payload())
 
+    def test_save_does_not_follow_old_predictable_temp_symlink(self) -> None:
+        root = self.temp_root()
+        existing = self.sample_run(goal="Original goal")
+        replacement = self.sample_run(goal="Replacement goal")
+        state_path = save_company_goal_run(root, existing)
+        outside_path = root / "outside.txt"
+        outside_path.write_text("outside original", encoding="utf-8")
+        old_predictable_tmp_path = state_path.with_name("state.json.tmp")
+        try:
+            old_predictable_tmp_path.symlink_to(outside_path)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink unsupported: {exc}")
+
+        save_company_goal_run(root, replacement)
+
+        self.assertEqual("outside original", outside_path.read_text(encoding="utf-8"))
+        self.assertFalse(state_path.is_symlink())
+        loaded = load_company_goal_run(root, replacement.run_id)
+        self.assertEqual(replacement.to_payload(), loaded.to_payload())
+
 
 if __name__ == "__main__":
     unittest.main()
