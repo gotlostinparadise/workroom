@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import kernel
 from agency_workroom import WorkItemDraft, WorkroomKernelGateway
 from kernel.ledger import JsonlLedger
 from kernel.supervisor import BootMode, boot_kernel_from_ledger
+from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
 class WorkroomIntegrationTests(unittest.TestCase):
@@ -17,11 +17,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         return Path(temp_dir.name)
 
     def test_workroom_creates_work_item_through_external_kernel_authority_path(self) -> None:
-        kernel_file = Path(kernel.__file__).resolve()
-        self.assertIn(
-            Path("/home/bm/Work/Projects/AGENTS/Agency/Kernel/src/kernel").resolve(),
-            [kernel_file.parent, *kernel_file.parents],
-        )
+        assert_external_kernel_dependency(self)
         root = self.temp_root()
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
