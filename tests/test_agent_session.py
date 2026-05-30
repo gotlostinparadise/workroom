@@ -38,6 +38,34 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
 
+    def test_start_company_goal_is_idempotent_for_same_goal(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        first = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        ledger_line_count = len(ledger_path.read_text(encoding="utf-8").splitlines())
+
+        second = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(first["run_id"], second["run_id"])
+        self.assertEqual("existing", second["status"])
+        self.assertEqual(
+            ledger_line_count,
+            len(ledger_path.read_text(encoding="utf-8").splitlines()),
+        )
+        self.assertEqual(first["commits"], second["commits"])
+
     def test_state_and_next_actions_reload_from_workspace(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -88,6 +116,45 @@ class AgentSessionTests(unittest.TestCase):
             "private result summary payload",
             ledger_path.read_text(encoding="utf-8"),
         )
+
+    def test_record_work_result_is_idempotent_for_completed_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        task_ref = started["tasks"][0]["task_ref"]
+
+        first = record_work_result(
+            run_id=started["run_id"],
+            task_ref=task_ref,
+            result_summary="first private result summary",
+            workspace_path=str(workspace_path),
+        )
+        second = record_work_result(
+            run_id=started["run_id"],
+            task_ref=task_ref,
+            result_summary="second private result summary",
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(1, len(second["task"]["result_refs"]))
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        result_ref = second["task"]["result_refs"][0]
+        filename = result_ref.rsplit("/", maxsplit=1)[-1]
+        result_path = workspace_path / "runs" / started["run_id"] / "results" / filename
+        self.assertEqual(
+            "first private result summary",
+            result_path.read_text(encoding="utf-8"),
+        )
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn("first private result summary", ledger_text)
+        self.assertNotIn("second private result summary", ledger_text)
 
     def test_summarize_run_counts_statuses(self) -> None:
         assert_external_kernel_dependency(self)

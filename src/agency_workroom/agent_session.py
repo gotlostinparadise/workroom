@@ -12,7 +12,12 @@ from .models import (
     WorkflowRequest,
     WorkroomModelError,
 )
-from .session_store import WorkroomStateError, load_company_goal_run, save_company_goal_run
+from .session_store import (
+    WorkroomStateError,
+    load_company_goal_run,
+    run_state_path,
+    save_company_goal_run,
+)
 from .workflow import run_business_validation_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
@@ -45,6 +50,11 @@ def start_company_goal(
     workspace_path: str,
 ) -> dict[str, object]:
     run_id = _run_id_for(user_id, goal)
+    existing_run = _load_existing_run(workspace_path, run_id)
+    if existing_run is not None:
+        payload = existing_run.to_payload()
+        payload["status"] = "existing"
+        return payload
     gateway = WorkroomKernelGateway.open(ledger_path, workspace_path)
     result = run_business_validation_workflow(
         gateway=gateway,
@@ -108,13 +118,16 @@ def record_work_result(
     run = load_company_goal_run(workspace_path, run_id)
     clean_task_ref = _required_text("task_ref", task_ref)
     task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.status == "completed" and current_task.result_refs:
+        return {"run_id": run.run_id, "task": current_task.to_payload()}
     result_dir = Path(workspace_path) / "runs" / run.run_id / "results"
     result_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{hashlib.sha256(clean_task_ref.encode('utf-8')).hexdigest()[:16]}.txt"
     result_path = result_dir / filename
     result_path.write_text(summary, encoding="utf-8")
     result_ref = f"workroom-result://runs/{run.run_id}/{filename}"
-    updated_task = _complete_task_with_result(run.tasks[task_index], result_ref)
+    updated_task = _complete_task_with_result(current_task, result_ref)
     updated_tasks = (
         *run.tasks[:task_index],
         updated_task,
@@ -159,6 +172,12 @@ def _task_index_for(run: CompanyGoalRun, task_ref: str) -> int:
         if task.task_ref == task_ref:
             return index
     raise WorkroomStateError(f"task state not found: {task_ref}")
+
+
+def _load_existing_run(workspace_path: str, run_id: str) -> CompanyGoalRun | None:
+    if not run_state_path(workspace_path, run_id).exists():
+        return None
+    return load_company_goal_run(workspace_path, run_id)
 
 
 def _complete_task_with_result(task: TaskState, result_ref: str) -> TaskState:
