@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib.metadata import version
 import unittest
 
 import agency_workroom
@@ -15,6 +16,10 @@ class PackageImportTests(unittest.TestCase):
         from mcp.server.fastmcp import FastMCP
 
         self.assertIsNotNone(FastMCP)
+
+    def test_mcp_sdk_dependency_uses_supported_major_version(self) -> None:
+        major = int(version("mcp").split(".", 1)[0])
+        self.assertEqual(1, major)
 
 
 if __name__ == "__main__":
