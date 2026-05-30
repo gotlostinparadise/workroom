@@ -233,6 +233,121 @@ class WorkflowPlan:
 
 
 @dataclass(frozen=True)
+class TaskState:
+    task_ref: str
+    role_id: str
+    category: str
+    title: str
+    status: str
+    result_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    blocker_summary: str = ""
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
+        object.__setattr__(self, "category", _required_text("category", self.category))
+        object.__setattr__(self, "title", _required_text("title", self.title))
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(
+            self,
+            "result_refs",
+            tuple(_required_text("result_ref", ref) for ref in self.result_refs),
+        )
+        object.__setattr__(
+            self,
+            "blocker_summary",
+            self.blocker_summary.strip()
+            if isinstance(self.blocker_summary, str)
+            else "",
+        )
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "task_ref": self.task_ref,
+            "role_id": self.role_id,
+            "category": self.category,
+            "title": self.title,
+            "status": self.status,
+            "result_refs": list(self.result_refs),
+            "blocker_summary": self.blocker_summary,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class NextAction:
+    task_ref: str
+    role_id: str
+    category: str
+    title: str
+    status: str
+    requires_capability_module: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
+        object.__setattr__(self, "category", _required_text("category", self.category))
+        object.__setattr__(self, "title", _required_text("title", self.title))
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(
+            self,
+            "requires_capability_module",
+            bool(self.requires_capability_module),
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "task_ref": self.task_ref,
+            "role_id": self.role_id,
+            "category": self.category,
+            "title": self.title,
+            "status": self.status,
+            "requires_capability_module": self.requires_capability_module,
+        }
+
+
+@dataclass(frozen=True)
+class CompanyGoalRun:
+    run_id: str
+    user_id: str
+    goal: str
+    team: Mapping[str, object]
+    plan: Mapping[str, object]
+    commits: tuple[Mapping[str, object], ...] | list[Mapping[str, object]]
+    tasks: tuple[TaskState, ...] | list[TaskState]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "user_id", _required_text("user_id", self.user_id))
+        object.__setattr__(self, "goal", _required_text("goal", self.goal))
+        object.__setattr__(self, "team", _metadata_copy(self.team))
+        object.__setattr__(self, "plan", _metadata_copy(self.plan))
+        object.__setattr__(
+            self,
+            "commits",
+            tuple(_metadata_copy(commit) for commit in self.commits),
+        )
+        if not isinstance(self.tasks, (tuple, list)) or not self.tasks:
+            raise WorkroomModelError("tasks are required")
+        if any(not isinstance(task, TaskState) for task in self.tasks):
+            raise WorkroomModelError("tasks must be TaskState instances")
+        object.__setattr__(self, "tasks", tuple(self.tasks))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "user_id": self.user_id,
+            "goal": self.goal,
+            "team": _metadata_payload(self.team),
+            "plan": _metadata_payload(self.plan),
+            "commits": [_metadata_payload(commit) for commit in self.commits],
+            "tasks": [task.to_payload() for task in self.tasks],
+        }
+
+
+@dataclass(frozen=True)
 class WorkItemDraft:
     department: str
     agent_role: str
@@ -286,8 +401,11 @@ class WorkItemCommit:
 
 
 __all__ = [
+    "CompanyGoalRun",
+    "NextAction",
     "TeamBlueprint",
     "TeamRole",
+    "TaskState",
     "WorkflowPlan",
     "WorkflowRequest",
     "WorkflowTask",

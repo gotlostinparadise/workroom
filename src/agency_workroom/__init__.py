@@ -2,8 +2,11 @@
 
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .models import (
+    CompanyGoalRun,
+    NextAction,
     TeamBlueprint,
     TeamRole,
+    TaskState,
     WorkflowPlan,
     WorkflowRequest,
     WorkflowTask,
@@ -17,9 +20,12 @@ from .workflow import BusinessValidationWorkflowResult, run_business_validation_
 
 __all__ = [
     "BusinessValidationWorkflowResult",
+    "CompanyGoalRun",
+    "NextAction",
     "REQUIRED_VALIDATION_ROLES",
     "TeamBlueprint",
     "TeamRole",
+    "TaskState",
     "WorkflowPlan",
     "WorkflowRequest",
     "WorkflowTask",

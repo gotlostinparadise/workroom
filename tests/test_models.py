@@ -4,8 +4,11 @@ import math
 import unittest
 
 from agency_workroom.models import (
+    CompanyGoalRun,
+    NextAction,
     TeamBlueprint,
     TeamRole,
+    TaskState,
     WorkflowPlan,
     WorkflowRequest,
     WorkflowTask,
@@ -71,6 +74,84 @@ class WorkItemCommitTests(unittest.TestCase):
         self.assertEqual(commit.to_dict()["work_item_ref"], "workroom-item://items/task.json")
         self.assertNotIn("summary", commit.to_dict())
         self.assertNotIn("metadata", commit.to_dict())
+
+
+class AgentSessionModelTests(unittest.TestCase):
+    def test_task_state_payload_is_stable(self) -> None:
+        metadata = {"tags": ["landing", "threads"]}
+        task = TaskState(
+            task_ref="workroom-item://items/task.json",
+            role_id="landing_builder",
+            category="landing_page",
+            title="Create landing page plan",
+            status="planned",
+            metadata=metadata,
+        )
+        metadata["tags"].append("changed")
+
+        self.assertEqual(
+            task.to_payload(),
+            {
+                "task_ref": "workroom-item://items/task.json",
+                "role_id": "landing_builder",
+                "category": "landing_page",
+                "title": "Create landing page plan",
+                "status": "planned",
+                "result_refs": [],
+                "blocker_summary": "",
+                "metadata": {"tags": ["landing", "threads"]},
+            },
+        )
+
+    def test_next_action_marks_external_capability_requirement(self) -> None:
+        action = NextAction(
+            task_ref="workroom-item://items/deploy.json",
+            role_id="landing_builder",
+            category="github_pages",
+            title="Plan GitHub Pages deployment",
+            status="planned",
+            requires_capability_module=True,
+        )
+
+        self.assertTrue(action.to_payload()["requires_capability_module"])
+
+    def test_company_goal_run_payload_is_structured(self) -> None:
+        run = CompanyGoalRun(
+            run_id="run_abc123",
+            user_id="usr_1",
+            goal="Validate a business hypothesis",
+            team={"name": "business_validation_team", "roles": []},
+            plan={"summary": "Plan", "tasks": []},
+            commits=[{"work_item_ref": "workroom-item://items/task.json"}],
+            tasks=[
+                TaskState(
+                    task_ref="workroom-item://items/task.json",
+                    role_id="strategy_lead",
+                    category="strategy",
+                    title="Define validation strategy",
+                    status="planned",
+                )
+            ],
+        )
+
+        payload = run.to_payload()
+
+        self.assertEqual("run_abc123", payload["run_id"])
+        self.assertEqual("Validate a business hypothesis", payload["goal"])
+        self.assertEqual(1, len(payload["tasks"]))
+        self.assertEqual(1, len(payload["commits"]))
+
+    def test_company_goal_run_rejects_empty_tasks(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "tasks are required"):
+            CompanyGoalRun(
+                run_id="run_abc123",
+                user_id="usr_1",
+                goal="Validate a business hypothesis",
+                team={"name": "business_validation_team", "roles": []},
+                plan={"summary": "Plan", "tasks": []},
+                commits=[],
+                tasks=[],
+            )
 
 
 class TeamWorkflowModelTests(unittest.TestCase):
