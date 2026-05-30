@@ -103,6 +103,28 @@ class AgentSessionModelTests(unittest.TestCase):
             },
         )
 
+    def test_task_state_rejects_scalar_result_refs(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "result_refs"):
+            TaskState(
+                task_ref="workroom-item://items/task.json",
+                role_id="landing_builder",
+                category="landing_page",
+                title="Create landing page plan",
+                status="planned",
+                result_refs="abc",
+            )
+
+    def test_task_state_rejects_non_string_blocker_summary(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "blocker_summary"):
+            TaskState(
+                task_ref="workroom-item://items/task.json",
+                role_id="landing_builder",
+                category="landing_page",
+                title="Create landing page plan",
+                status="blocked",
+                blocker_summary=object(),
+            )
+
     def test_next_action_marks_external_capability_requirement(self) -> None:
         action = NextAction(
             task_ref="workroom-item://items/deploy.json",
@@ -114,6 +136,17 @@ class AgentSessionModelTests(unittest.TestCase):
         )
 
         self.assertTrue(action.to_payload()["requires_capability_module"])
+
+    def test_next_action_rejects_non_bool_capability_requirement(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "requires_capability_module"):
+            NextAction(
+                task_ref="workroom-item://items/deploy.json",
+                role_id="landing_builder",
+                category="github_pages",
+                title="Plan GitHub Pages deployment",
+                status="planned",
+                requires_capability_module="false",
+            )
 
     def test_company_goal_run_payload_is_structured(self) -> None:
         run = CompanyGoalRun(
@@ -140,6 +173,43 @@ class AgentSessionModelTests(unittest.TestCase):
         self.assertEqual("Validate a business hypothesis", payload["goal"])
         self.assertEqual(1, len(payload["tasks"]))
         self.assertEqual(1, len(payload["commits"]))
+
+    def test_company_goal_run_redacts_path_fields_from_commits(self) -> None:
+        run = CompanyGoalRun(
+            run_id="run_abc123",
+            user_id="usr_1",
+            goal="Validate a business hypothesis",
+            team={"name": "business_validation_team", "roles": []},
+            plan={"summary": "Plan", "tasks": []},
+            commits=[
+                {
+                    "ledger_path": "/tmp/kernel.jsonl",
+                    "work_item_path": "/tmp/work/items/task.json",
+                    "work_item_ref": "workroom-item://items/task.json",
+                    "status": "success",
+                    "grant_id": "grant_1",
+                    "result_hash": "hash_result",
+                }
+            ],
+            tasks=[
+                TaskState(
+                    task_ref="workroom-item://items/task.json",
+                    role_id="strategy_lead",
+                    category="strategy",
+                    title="Define validation strategy",
+                    status="planned",
+                )
+            ],
+        )
+
+        commit_payload = run.to_payload()["commits"][0]
+
+        self.assertNotIn("ledger_path", commit_payload)
+        self.assertNotIn("work_item_path", commit_payload)
+        self.assertEqual("workroom-item://items/task.json", commit_payload["work_item_ref"])
+        self.assertEqual("success", commit_payload["status"])
+        self.assertEqual("grant_1", commit_payload["grant_id"])
+        self.assertEqual("hash_result", commit_payload["result_hash"])
 
     def test_company_goal_run_rejects_empty_tasks(self) -> None:
         with self.assertRaisesRegex(WorkroomModelError, "tasks are required"):

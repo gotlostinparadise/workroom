@@ -11,6 +11,9 @@ class WorkroomModelError(ValueError):
     pass
 
 
+_COMMIT_PATH_FIELDS = frozenset({"ledger_path", "work_item_path"})
+
+
 def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WorkroomModelError(f"{name} is required")
@@ -67,6 +70,16 @@ def _required_sequence(name: str, values: tuple[str, ...] | list[str]) -> tuple[
     if not isinstance(values, (tuple, list)) or not values:
         raise WorkroomModelError(f"{name} are required")
     return tuple(_required_text(name, value) for value in values)
+
+
+def _commit_metadata_without_paths(commit: Mapping[str, object]) -> dict[str, object]:
+    if not isinstance(commit, Mapping):
+        raise WorkroomModelError("commits must be mappings")
+    return {
+        key: value
+        for key, value in commit.items()
+        if key not in _COMMIT_PATH_FIELDS
+    }
 
 
 @dataclass(frozen=True)
@@ -249,17 +262,19 @@ class TaskState:
         object.__setattr__(self, "category", _required_text("category", self.category))
         object.__setattr__(self, "title", _required_text("title", self.title))
         object.__setattr__(self, "status", _required_text("status", self.status))
+        if not isinstance(self.result_refs, (tuple, list)):
+            raise WorkroomModelError("result_refs must be a tuple or list")
         object.__setattr__(
             self,
             "result_refs",
             tuple(_required_text("result_ref", ref) for ref in self.result_refs),
         )
+        if not isinstance(self.blocker_summary, str):
+            raise WorkroomModelError("blocker_summary must be a string")
         object.__setattr__(
             self,
             "blocker_summary",
-            self.blocker_summary.strip()
-            if isinstance(self.blocker_summary, str)
-            else "",
+            self.blocker_summary.strip(),
         )
         object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
 
@@ -291,10 +306,12 @@ class NextAction:
         object.__setattr__(self, "category", _required_text("category", self.category))
         object.__setattr__(self, "title", _required_text("title", self.title))
         object.__setattr__(self, "status", _required_text("status", self.status))
+        if not isinstance(self.requires_capability_module, bool):
+            raise WorkroomModelError("requires_capability_module must be a bool")
         object.__setattr__(
             self,
             "requires_capability_module",
-            bool(self.requires_capability_module),
+            self.requires_capability_module,
         )
 
     def to_payload(self) -> dict[str, object]:
@@ -327,7 +344,10 @@ class CompanyGoalRun:
         object.__setattr__(
             self,
             "commits",
-            tuple(_metadata_copy(commit) for commit in self.commits),
+            tuple(
+                _metadata_copy(_commit_metadata_without_paths(commit))
+                for commit in self.commits
+            ),
         )
         if not isinstance(self.tasks, (tuple, list)) or not self.tasks:
             raise WorkroomModelError("tasks are required")
