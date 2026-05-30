@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from .models import CompanyGoalRun, TaskState, WorkroomModelError
@@ -25,20 +26,32 @@ def run_state_path(workspace_path: str | Path, run_id: str) -> Path:
 
 def save_company_goal_run(workspace_path: str | Path, run: CompanyGoalRun) -> Path:
     path = run_state_path(workspace_path, run.run_id)
+    tmp_path = path.with_name(f"{path.name}.tmp")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(run.to_payload(), sort_keys=True, indent=2),
-        encoding="utf-8",
-    )
+    try:
+        tmp_path.write_text(
+            json.dumps(run.to_payload(), sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+        os.replace(tmp_path, path)
+    except OSError as exc:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise WorkroomStateError(f"run state write failed: {run.run_id}") from exc
     return path
 
 
 def load_company_goal_run(workspace_path: str | Path, run_id: str) -> CompanyGoalRun:
-    path = run_state_path(workspace_path, run_id)
+    safe_run_id = _safe_run_id(run_id)
+    path = Path(workspace_path) / "runs" / safe_run_id / "state.json"
     if not path.exists():
         raise WorkroomStateError(f"run state not found: {run_id}")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload["run_id"] != safe_run_id:
+            raise WorkroomModelError("run_id does not match requested run_id")
         tasks = tuple(TaskState(**task) for task in payload["tasks"])
         return CompanyGoalRun(
             run_id=payload["run_id"],
@@ -49,7 +62,14 @@ def load_company_goal_run(workspace_path: str | Path, run_id: str) -> CompanyGoa
             commits=payload["commits"],
             tasks=tasks,
         )
-    except (KeyError, TypeError, json.JSONDecodeError, WorkroomModelError) as exc:
+    except (
+        KeyError,
+        TypeError,
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        WorkroomModelError,
+    ) as exc:
         raise WorkroomStateError(f"run state is corrupt: {run_id}") from exc
 
 
