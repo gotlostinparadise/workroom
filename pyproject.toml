@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agency-workroom"
+version = "0.1.0"
+description = "External Workroom workflow layer consuming the standalone Kernel authority package"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "kernel @ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel",
+]
+authors = [
+    { name = "Mandate maintainers" },
+]
+license = "LicenseRef-Proprietary"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["agency_workroom*"]
+namespaces = false
