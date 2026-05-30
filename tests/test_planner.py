@@ -69,6 +69,55 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing required roles"):
             plan_business_validation_workflow(request=request, team=reduced_team)
 
+    def test_planner_uses_exact_reviewed_task_summaries(self) -> None:
+        request = WorkflowRequest(
+            hypothesis="Founders will pay for a 48 hour AI validation sprint",
+            audience="early-stage SaaS founders",
+            offer="landing page plus Threads validation",
+            constraints="No paid ads and no external posting in the first pass",
+            channels=("landing_page", "threads", "github_pages"),
+            success_criteria="10 qualified waitlist signups",
+            metadata={"request_id": "req_1"},
+        )
+
+        plan = plan_business_validation_workflow(
+            request=request,
+            team=default_validation_team(),
+        )
+
+        summaries_by_category = {
+            task.category: task.summary
+            for task in plan.tasks
+        }
+        self.assertEqual(
+            (
+                "Draft the landing-page structure, core promise, sections, CTA, "
+                "and copy needed to validate the offer."
+            ),
+            summaries_by_category["landing_page"],
+        )
+        self.assertEqual(
+            (
+                "Prepare the planned GitHub Pages deployment task. Do not deploy until "
+                "a separate capability-backed deploy module is approved."
+            ),
+            summaries_by_category["github_pages"],
+        )
+        self.assertEqual(
+            (
+                "Draft Threads posts, cadence, and response-handling plan. Do not post "
+                "until a separate capability-backed Threads module is approved."
+            ),
+            summaries_by_category["threads"],
+        )
+        self.assertEqual(
+            (
+                "Sequence the work, track blockers, and prepare a final decision record "
+                "for whether the hypothesis should continue."
+            ),
+            summaries_by_category["team_management"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

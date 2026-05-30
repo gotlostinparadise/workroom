@@ -62,8 +62,8 @@ def plan_business_validation_workflow(
             category="landing_page",
             title="Create landing page plan",
             summary=(
-                "Create the planned external-local landing-page summary, structure, "
-                "core promise, sections, CTA, and copy needed to validate the offer."
+                "Draft the landing-page structure, core promise, sections, CTA, "
+                "and copy needed to validate the offer."
             ),
             priority="high",
             metadata=common_metadata,
@@ -73,8 +73,8 @@ def plan_business_validation_workflow(
             category="github_pages",
             title="Plan GitHub Pages deployment",
             summary=(
-                "Prepare the planned GitHub Pages deployment task; do not deploy until "
-                "separate capability-backed deploy module approved."
+                "Prepare the planned GitHub Pages deployment task. Do not deploy until "
+                "a separate capability-backed deploy module is approved."
             ),
             priority="normal",
             metadata=common_metadata,
@@ -95,8 +95,8 @@ def plan_business_validation_workflow(
             category="threads",
             title="Prepare Threads campaign",
             summary=(
-                "Draft Threads posts, cadence, and response-handling plan; do not post "
-                "until separate capability-backed Threads module approved."
+                "Draft Threads posts, cadence, and response-handling plan. Do not post "
+                "until a separate capability-backed Threads module is approved."
             ),
             priority="normal",
             metadata=common_metadata,
@@ -117,7 +117,7 @@ def plan_business_validation_workflow(
             category="team_management",
             title="Coordinate validation sprint",
             summary=(
-                "Sequence the work, track blockers, and prepare a final decision summary "
+                "Sequence the work, track blockers, and prepare a final decision record "
                 "for whether the hypothesis should continue."
             ),
             priority="normal",
