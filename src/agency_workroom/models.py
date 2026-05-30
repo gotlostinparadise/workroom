@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import math
 from types import MappingProxyType
 from typing import Any
 
@@ -37,6 +38,8 @@ def _freeze_metadata_value(value: object) -> object:
         return MappingProxyType(_freeze_metadata_mapping(value))
     if isinstance(value, (list, tuple)):
         return tuple(_freeze_metadata_value(item) for item in value)
+    if isinstance(value, float) and not math.isfinite(value):
+        raise WorkroomModelError("metadata values must be JSON-compatible")
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     raise WorkroomModelError("metadata values must be JSON-compatible")

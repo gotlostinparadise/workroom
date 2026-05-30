@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import unittest
 
 from agency_workroom.models import (
@@ -244,6 +245,21 @@ class TeamWorkflowModelTests(unittest.TestCase):
                 summary="Create the page structure and copy",
                 metadata={"bad": object()},
             )
+
+    def test_metadata_rejects_non_finite_float_values(self) -> None:
+        for value in (math.nan, math.inf, -math.inf):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(
+                    WorkroomModelError,
+                    "metadata values must be JSON-compatible",
+                ):
+                    WorkflowTask(
+                        role_id="landing_builder",
+                        category="landing_page",
+                        title="Draft landing page",
+                        summary="Create the page structure and copy",
+                        metadata={"nested": {"bad": value}},
+                    )
 
     def test_workflow_plan_rejects_empty_tasks(self) -> None:
         request = WorkflowRequest(
