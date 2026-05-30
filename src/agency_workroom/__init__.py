@@ -11,6 +11,7 @@ from .models import (
     WorkItemDraft,
     WorkroomModelError,
 )
+from .team import default_validation_team
 
 __all__ = [
     "TeamBlueprint",
@@ -23,4 +24,5 @@ __all__ = [
     "WorkroomGatewayError",
     "WorkroomKernelGateway",
     "WorkroomModelError",
+    "default_validation_team",
 ]
