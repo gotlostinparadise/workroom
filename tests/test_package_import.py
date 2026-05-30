@@ -11,6 +11,11 @@ class PackageImportTests(unittest.TestCase):
         self.assertEqual("agency_workroom", agency_workroom.__name__)
         assert_external_kernel_dependency(self)
 
+    def test_mcp_sdk_dependency_is_available(self) -> None:
+        from mcp.server.fastmcp import FastMCP
+
+        self.assertIsNotNone(FastMCP)
+
 
 if __name__ == "__main__":
     unittest.main()
