@@ -1,3 +1,9 @@
 """External Workroom workflow package."""
 
-__all__ = []
+from .models import WorkItemCommit, WorkItemDraft, WorkroomModelError
+
+__all__ = [
+    "WorkItemCommit",
+    "WorkItemDraft",
+    "WorkroomModelError",
+]
