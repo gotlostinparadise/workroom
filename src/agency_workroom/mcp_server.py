@@ -22,6 +22,7 @@ def start_company_goal(
     ledger_path: str,
     workspace_path: str,
 ) -> dict[str, object]:
+    """Start a local Workroom company run for a Codex goal."""
     return agent_session.start_company_goal(
         goal=goal,
         user_id=user_id,
@@ -32,6 +33,7 @@ def start_company_goal(
 
 @mcp.tool()
 def get_company_state(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Return persisted Workroom state for an existing company run."""
     return agent_session.get_company_state(
         run_id=run_id,
         workspace_path=workspace_path,
@@ -40,6 +42,7 @@ def get_company_state(run_id: str, workspace_path: str) -> dict[str, object]:
 
 @mcp.tool()
 def list_next_actions(run_id: str, workspace_path: str) -> dict[str, object]:
+    """List planned or in-progress actions Codex can drive next."""
     return agent_session.list_next_actions(
         run_id=run_id,
         workspace_path=workspace_path,
@@ -53,6 +56,7 @@ def record_work_result(
     result_summary: str,
     workspace_path: str,
 ) -> dict[str, object]:
+    """Record a local result for a Workroom task without writing it to the ledger."""
     return agent_session.record_work_result(
         run_id=run_id,
         task_ref=task_ref,
@@ -63,6 +67,7 @@ def record_work_result(
 
 @mcp.tool()
 def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Summarize completion and capability-module status for a company run."""
     return agent_session.summarize_run(
         run_id=run_id,
         workspace_path=workspace_path,

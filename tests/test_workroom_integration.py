@@ -4,7 +4,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agency_workroom import WorkItemDraft, WorkroomKernelGateway
+from agency_workroom import (
+    WorkItemDraft,
+    WorkroomKernelGateway,
+    get_company_state,
+    record_work_result,
+    start_company_goal,
+)
 from agency_workroom.models import WorkflowRequest
 from agency_workroom.workflow import run_business_validation_workflow
 from kernel.ledger import JsonlLedger
@@ -108,6 +114,37 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.assertNotIn("private workflow offer", ledger_text)
         self.assertNotIn("private workflow constraints", ledger_text)
         self.assertNotIn("private workflow success criteria", ledger_text)
+
+    def test_agent_tool_flow_preserves_private_payloads_outside_kernel_ledger(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+
+        started = start_company_goal(
+            goal="private agent goal payload",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        task_ref = started["tasks"][0]["task_ref"]
+
+        record_work_result(
+            run_id=started["run_id"],
+            task_ref=task_ref,
+            result_summary="private agent result payload",
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", state["tasks"][0]["status"])
+        self.assertTrue(state["tasks"][0]["result_refs"])
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn("private agent goal payload", ledger_text)
+        self.assertNotIn("private agent result payload", ledger_text)
 
 
 if __name__ == "__main__":

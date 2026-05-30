@@ -35,6 +35,27 @@ The core integration path is covered by
 intent -> capability -> proposal -> preview -> grant -> sandbox -> redeem
 ```
 
+## MCP Agent Tool Interface
+
+Workroom can be exposed to Codex as a local stdio MCP tool server:
+
+```bash
+python -m agency_workroom.mcp_server
+```
+
+The MCP tools are agent-facing:
+
+- `start_company_goal`
+- `get_company_state`
+- `list_next_actions`
+- `record_work_result`
+- `summarize_run`
+
+This interface is local and stdio-based. This slice does not run background
+agents, deploy GitHub Pages, post to Threads, or call external services.
+External effects require separate capability-backed modules and current
+API/CLI verification before they are added.
+
 ## First Validation Team
 
 Workroom includes a local business-validation team workflow. It accepts a
