@@ -35,4 +35,16 @@ The core integration path is covered by
 intent -> capability -> proposal -> preview -> grant -> sandbox -> redeem
 ```
 
+## First Validation Team
+
+Workroom includes a local business-validation team workflow. It accepts a
+structured hypothesis request and creates planned work items for hypothesis
+research, strategy, landing-page work, GitHub Pages deployment planning, QA,
+Threads operations, promotion, and team coordination.
+
+The first slice is local. It does not deploy to GitHub Pages, post to Threads,
+or run background agents. Those external effects require separate
+capability-backed modules and current API/CLI verification before they are
+added.
+
 The Kernel repository must remain unchanged by Workroom development.

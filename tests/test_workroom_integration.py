@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 
 from agency_workroom import WorkItemDraft, WorkroomKernelGateway
+from agency_workroom.models import WorkflowRequest
+from agency_workroom.workflow import run_business_validation_workflow
 from kernel.ledger import JsonlLedger
 from kernel.supervisor import BootMode, boot_kernel_from_ledger
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
@@ -67,6 +69,45 @@ class WorkroomIntegrationTests(unittest.TestCase):
         boot = boot_kernel_from_ledger(ledger)
         self.assertEqual(BootMode.OPERATIONAL, boot.mode)
         self.assertIsNotNone(boot.kernel)
+
+    def test_business_validation_workflow_uses_existing_kernel_authority_path(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        gateway = WorkroomKernelGateway.open(ledger_path, workspace_path)
+        request = WorkflowRequest(
+            hypothesis="private workflow hypothesis",
+            audience="private workflow audience",
+            offer="private workflow offer",
+            constraints="private workflow constraints",
+            channels=("landing_page", "threads", "github_pages"),
+            success_criteria="private workflow success criteria",
+        )
+
+        result = run_business_validation_workflow(
+            gateway=gateway,
+            declared_by_user_id="usr_integration",
+            request=request,
+        )
+
+        self.assertEqual(8, len(result.commits))
+        self.assertTrue(
+            all(
+                commit.work_item_ref.startswith("workroom-item://")
+                for commit in result.commits
+            )
+        )
+        ledger = JsonlLedger(ledger_path)
+        self.assertEqual(1 + (13 * 8), len(ledger.all()))
+
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertIn("workroom-item://", ledger_text)
+        self.assertNotIn("private workflow hypothesis", ledger_text)
+        self.assertNotIn("private workflow audience", ledger_text)
+        self.assertNotIn("private workflow offer", ledger_text)
+        self.assertNotIn("private workflow constraints", ledger_text)
+        self.assertNotIn("private workflow success criteria", ledger_text)
 
 
 if __name__ == "__main__":
