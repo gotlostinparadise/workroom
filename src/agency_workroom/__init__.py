@@ -1,5 +1,13 @@
 """External Workroom workflow package."""
 
+from .agent_session import (
+    EXTERNAL_CAPABILITY_CATEGORIES,
+    get_company_state,
+    list_next_actions,
+    record_work_result,
+    start_company_goal,
+    summarize_run,
+)
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .models import (
     CompanyGoalRun,
@@ -27,6 +35,7 @@ from .workflow import BusinessValidationWorkflowResult, run_business_validation_
 __all__ = [
     "BusinessValidationWorkflowResult",
     "CompanyGoalRun",
+    "EXTERNAL_CAPABILITY_CATEGORIES",
     "NextAction",
     "REQUIRED_VALIDATION_ROLES",
     "TeamBlueprint",
@@ -42,9 +51,14 @@ __all__ = [
     "WorkroomModelError",
     "WorkroomStateError",
     "default_validation_team",
+    "get_company_state",
+    "list_next_actions",
     "load_company_goal_run",
     "plan_business_validation_workflow",
+    "record_work_result",
     "run_state_path",
     "run_business_validation_workflow",
     "save_company_goal_run",
+    "start_company_goal",
+    "summarize_run",
 ]
