@@ -13,6 +13,7 @@ TOOL_NAMES = (
     "record_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "prepare_github_pages_deploy_proposal",
     "summarize_run",
 )
 
@@ -98,6 +99,30 @@ def create_landing_qa_report(
 
 
 @mcp.tool()
+def prepare_github_pages_deploy_proposal(
+    run_id: str,
+    task_ref: str,
+    landing_artifact_ref: str,
+    qa_report_ref: str,
+    workspace_path: str,
+    target_repo_full_name: str = "",
+    target_branch: str = "",
+    publish_path: str = "site",
+) -> dict[str, object]:
+    """Prepare a local GitHub Pages deploy proposal after landing QA."""
+    return agent_session.prepare_github_pages_deploy_proposal(
+        run_id=run_id,
+        task_ref=task_ref,
+        landing_artifact_ref=landing_artifact_ref,
+        qa_report_ref=qa_report_ref,
+        workspace_path=workspace_path,
+        target_repo_full_name=target_repo_full_name,
+        target_branch=target_branch,
+        publish_path=publish_path,
+    )
+
+
+@mcp.tool()
 def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
     """Summarize completion and capability-module status for a company run."""
     return agent_session.summarize_run(
@@ -122,6 +147,7 @@ __all__ = [
     "list_next_actions",
     "main",
     "mcp",
+    "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "start_company_goal",
     "summarize_run",

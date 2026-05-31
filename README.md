@@ -51,12 +51,13 @@ The MCP tools are agent-facing:
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
+- `prepare_github_pages_deploy_proposal`
 - `summarize_run`
 
 This interface is local and stdio-based. This slice does not run background
-agents, deploy GitHub Pages, post to Threads, or call external services.
-External effects require separate capability-backed modules and current
-API/CLI verification before they are added.
+agents, push to GitHub, post to Threads, or call external services. External
+effects require separate capability-backed modules and current API/CLI
+verification before they are added.
 
 The first local capability is `create_landing_artifact`: it writes a landing
 page draft under the run workspace and records a Workroom-local artifact ref
@@ -65,6 +66,13 @@ without deploying it.
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without
 deploying it.
+
+The third local capability is `prepare_github_pages_deploy_proposal`: after a
+passing QA report, it copies the reviewed `index.html` into a local deploy
+bundle, writes `deploy_proposal.json` and `pages-workflow.yml` for review, and
+blocks before any real GitHub Pages deployment. It does not run `git push`,
+call `gh api`, dispatch workflows, or write repository `.github/workflows`
+files.
 
 ## First Validation Team
 
