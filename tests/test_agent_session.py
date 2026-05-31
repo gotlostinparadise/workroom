@@ -6,6 +6,7 @@ from pathlib import Path
 
 from agency_workroom.agent_session import (
     create_landing_artifact,
+    create_landing_qa_report,
     get_company_state,
     list_next_actions,
     record_work_result,
@@ -246,6 +247,105 @@ class AgentSessionTests(unittest.TestCase):
         )
 
         self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+
+    def test_create_landing_qa_report_completes_testing_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        result = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", result["task"]["status"])
+        self.assertTrue(result["report"]["passed"])
+        self.assertIn(result["report"]["report_ref"], result["task"]["result_refs"])
+        self.assertTrue(Path(result["report"]["report_path"]).exists())
+
+    def test_create_landing_qa_report_rejects_non_testing_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        with self.assertRaises(WorkroomStateError):
+            create_landing_qa_report(
+                run_id=started["run_id"],
+                task_ref=landing_task["task_ref"],
+                artifact_ref=artifact["artifact"]["artifact_ref"],
+                workspace_path=str(workspace_path),
+            )
+
+    def test_create_landing_qa_report_is_idempotent(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(first["report"], second["report"])
         self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
 
 
