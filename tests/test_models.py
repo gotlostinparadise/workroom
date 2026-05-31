@@ -5,6 +5,7 @@ import unittest
 
 from agency_workroom.models import (
     CompanyGoalRun,
+    GitHubPagesDeployProposal,
     NextAction,
     TeamBlueprint,
     TeamRole,
@@ -221,6 +222,53 @@ class AgentSessionModelTests(unittest.TestCase):
                 plan={"summary": "Plan", "tasks": []},
                 commits=[],
                 tasks=[],
+            )
+
+
+class GitHubPagesDeployProposalModelTests(unittest.TestCase):
+    def test_github_pages_deploy_proposal_payload_is_stable(self) -> None:
+        proposal = GitHubPagesDeployProposal(
+            run_id="run_abc",
+            task_ref="workroom-item://github-pages",
+            landing_artifact_ref="workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+            qa_report_ref="workroom-artifact://runs/run_abc/landing_qa/bbb/qa_report.json",
+            proposal_ref="workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+            site_entry_ref="workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+            site_entry_sha256="a" * 64,
+            workflow_ref="workroom-artifact://runs/run_abc/github_pages/ccc/pages-workflow.yml",
+            publish_mode="github_actions",
+            target_repo_full_name="",
+            target_branch="",
+            publish_path="site",
+            required_before_execute=("confirm target GitHub repository",),
+            unverified_external_state=("GitHub repository",),
+        )
+
+        payload = proposal.to_payload()
+
+        self.assertEqual("github-pages-deploy-proposal.v1", payload["schema_version"])
+        self.assertTrue(payload["approval_required"])
+        self.assertEqual("proposed_not_executed", payload["execution_status"])
+        self.assertEqual(
+            ["confirm target GitHub repository"],
+            payload["required_before_execute"],
+        )
+
+    def test_github_pages_deploy_proposal_rejects_bad_hash(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "site_entry_sha256"):
+            GitHubPagesDeployProposal(
+                run_id="run_abc",
+                task_ref="workroom-item://github-pages",
+                landing_artifact_ref="workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+                qa_report_ref="workroom-artifact://runs/run_abc/landing_qa/bbb/qa_report.json",
+                proposal_ref="workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+                site_entry_ref="workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+                site_entry_sha256="not-a-sha",
+                workflow_ref="workroom-artifact://runs/run_abc/github_pages/ccc/pages-workflow.yml",
+                publish_mode="github_actions",
+                target_repo_full_name="",
+                target_branch="",
+                publish_path="site",
             )
 
 

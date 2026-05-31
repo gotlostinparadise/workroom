@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 import math
+import re
 from types import MappingProxyType
 from typing import Any
 
@@ -12,6 +13,7 @@ class WorkroomModelError(ValueError):
 
 
 _COMMIT_PATH_FIELDS = frozenset({"ledger_path", "work_item_path"})
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _required_text(name: str, value: str) -> str:
@@ -368,6 +370,119 @@ class CompanyGoalRun:
 
 
 @dataclass(frozen=True)
+class GitHubPagesDeployProposal:
+    run_id: str
+    task_ref: str
+    landing_artifact_ref: str
+    qa_report_ref: str
+    proposal_ref: str
+    site_entry_ref: str
+    site_entry_sha256: str
+    workflow_ref: str
+    publish_mode: str = "github_actions"
+    target_repo_full_name: str = ""
+    target_branch: str = ""
+    publish_path: str = "site"
+    required_before_execute: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    unverified_external_state: tuple[str, ...] | list[str] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(
+            self,
+            "landing_artifact_ref",
+            _required_text("landing_artifact_ref", self.landing_artifact_ref),
+        )
+        object.__setattr__(
+            self,
+            "qa_report_ref",
+            _required_text("qa_report_ref", self.qa_report_ref),
+        )
+        object.__setattr__(
+            self,
+            "proposal_ref",
+            _required_text("proposal_ref", self.proposal_ref),
+        )
+        object.__setattr__(
+            self,
+            "site_entry_ref",
+            _required_text("site_entry_ref", self.site_entry_ref),
+        )
+        site_entry_sha256 = _required_text(
+            "site_entry_sha256",
+            self.site_entry_sha256,
+        )
+        if not _SHA256_RE.fullmatch(site_entry_sha256):
+            raise WorkroomModelError("site_entry_sha256 must be a sha256 hex digest")
+        object.__setattr__(self, "site_entry_sha256", site_entry_sha256)
+        object.__setattr__(
+            self,
+            "workflow_ref",
+            _required_text("workflow_ref", self.workflow_ref),
+        )
+        publish_mode = _required_text("publish_mode", self.publish_mode)
+        if publish_mode != "github_actions":
+            raise WorkroomModelError("publish_mode must be github_actions")
+        object.__setattr__(self, "publish_mode", publish_mode)
+        if not isinstance(self.target_repo_full_name, str):
+            raise WorkroomModelError("target_repo_full_name must be a string")
+        object.__setattr__(
+            self,
+            "target_repo_full_name",
+            self.target_repo_full_name.strip(),
+        )
+        if not isinstance(self.target_branch, str):
+            raise WorkroomModelError("target_branch must be a string")
+        object.__setattr__(self, "target_branch", self.target_branch.strip())
+        object.__setattr__(
+            self,
+            "publish_path",
+            _required_text("publish_path", self.publish_path),
+        )
+        object.__setattr__(
+            self,
+            "required_before_execute",
+            _required_sequence(
+                "required_before_execute",
+                self.required_before_execute
+                or ("confirm target GitHub repository",),
+            ),
+        )
+        object.__setattr__(
+            self,
+            "unverified_external_state",
+            _required_sequence(
+                "unverified_external_state",
+                self.unverified_external_state
+                or ("GitHub repository",),
+            ),
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "github-pages-deploy-proposal.v1",
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "landing_artifact_ref": self.landing_artifact_ref,
+            "qa_report_ref": self.qa_report_ref,
+            "qa_passed": True,
+            "publish_mode": self.publish_mode,
+            "target_repo_full_name": self.target_repo_full_name,
+            "target_branch": self.target_branch,
+            "publish_path": self.publish_path,
+            "proposal_ref": self.proposal_ref,
+            "site_entry_ref": self.site_entry_ref,
+            "site_entry_sha256": self.site_entry_sha256,
+            "workflow_ref": self.workflow_ref,
+            "approval_required": True,
+            "execution_status": "proposed_not_executed",
+            "required_before_execute": list(self.required_before_execute),
+            "unverified_external_state": list(self.unverified_external_state),
+        }
+
+
+@dataclass(frozen=True)
 class WorkItemDraft:
     department: str
     agent_role: str
@@ -422,6 +537,7 @@ class WorkItemCommit:
 
 __all__ = [
     "CompanyGoalRun",
+    "GitHubPagesDeployProposal",
     "NextAction",
     "TeamBlueprint",
     "TeamRole",
