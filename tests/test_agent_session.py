@@ -5,12 +5,14 @@ import unittest
 from pathlib import Path
 
 from agency_workroom.agent_session import (
+    create_landing_artifact,
     get_company_state,
     list_next_actions,
     record_work_result,
     start_company_goal,
     summarize_run,
 )
+from agency_workroom.session_store import WorkroomStateError
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
@@ -174,6 +176,77 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(started["run_id"], summary["run_id"])
         self.assertEqual(8, summary["status_counts"]["planned"])
         self.assertGreaterEqual(summary["requires_capability_module_count"], 2)
+
+    def test_create_landing_artifact_completes_landing_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+
+        result = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", result["task"]["status"])
+        self.assertIn(result["artifact"]["artifact_ref"], result["task"]["result_refs"])
+        self.assertTrue(Path(result["artifact"]["artifact_path"]).exists())
+
+    def test_create_landing_artifact_rejects_non_landing_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        first_task = started["tasks"][0]
+
+        with self.assertRaises(WorkroomStateError):
+            create_landing_artifact(
+                run_id=started["run_id"],
+                task_ref=first_task["task_ref"],
+                workspace_path=str(workspace_path),
+            )
+
+    def test_create_landing_artifact_is_idempotent(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+
+        first = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
 
 
 if __name__ == "__main__":

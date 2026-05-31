@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections import Counter
 import hashlib
+import json
 from pathlib import Path
 
 from .kernel_gateway import WorkroomKernelGateway
+from .landing_artifact import create_landing_artifact_files
 from .models import (
     CompanyGoalRun,
     NextAction,
@@ -21,6 +23,7 @@ from .session_store import (
 from .workflow import run_business_validation_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
+LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
 
 
@@ -146,6 +149,65 @@ def record_work_result(
     return {"run_id": run.run_id, "task": updated_task.to_payload()}
 
 
+def create_landing_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "landing_page":
+        raise WorkroomStateError("task is not a landing_page task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(LANDING_ARTIFACT_PREFIX)
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _landing_artifact_payload_for_existing_ref(
+            workspace_path,
+            existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_landing_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        goal=run.goal,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
 def summarize_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     run = load_company_goal_run(workspace_path, run_id)
     status_counts = Counter(task.status for task in run.tasks)
@@ -193,8 +255,40 @@ def _complete_task_with_result(task: TaskState, result_ref: str) -> TaskState:
     )
 
 
+def _landing_artifact_payload_for_existing_ref(
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/index.html"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("landing artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if len(parts) != 4 or parts[1] != "landing_page" or parts[3] != "index.html":
+        raise WorkroomStateError("landing artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("landing artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError("landing artifact metadata does not match ref")
+    return payload
+
+
 __all__ = [
     "EXTERNAL_CAPABILITY_CATEGORIES",
+    "LANDING_ARTIFACT_PREFIX",
+    "create_landing_artifact",
     "get_company_state",
     "list_next_actions",
     "record_work_result",
