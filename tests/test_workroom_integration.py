@@ -10,6 +10,7 @@ from agency_workroom import (
     create_landing_artifact,
     create_landing_qa_report,
     get_company_state,
+    prepare_github_pages_deploy_proposal,
     record_work_result,
     start_company_goal,
 )
@@ -232,6 +233,80 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.assertIn(qa["report"]["report_ref"], testing_state["result_refs"])
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn(private_goal, ledger_text)
+
+    def test_agent_tool_flow_prepares_github_pages_deploy_proposal_locally(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private GitHub Pages proposal goal payload"
+        repo_workflows_dir = Path.cwd() / ".github" / "workflows"
+        workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        landing = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        qa = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=landing["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        deploy = prepare_github_pages_deploy_proposal(
+            run_id=started["run_id"],
+            task_ref=github_pages_task["task_ref"],
+            landing_artifact_ref=landing["artifact"]["artifact_ref"],
+            qa_report_ref=qa["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        proposal = deploy["deploy_proposal"]
+        self.assertTrue(Path(proposal["proposal_path"]).exists())
+        self.assertTrue(Path(proposal["site_entry_path"]).exists())
+        self.assertTrue(Path(proposal["workflow_path"]).exists())
+        self.assertIn(str(workspace_path), str(proposal["workflow_path"]))
+        github_pages_state = next(
+            task for task in state["tasks"] if task["category"] == "github_pages"
+        )
+        self.assertEqual("blocked", github_pages_state["status"])
+        self.assertIn(proposal["proposal_ref"], github_pages_state["result_refs"])
+        self.assertNotEqual("completed", github_pages_state["status"])
+        self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn(private_goal, ledger_text)
+
+    def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[str, ...]:
+        if not workflows_dir.exists():
+            return ()
+        return tuple(
+            sorted(
+                str(path.relative_to(workflows_dir))
+                for path in workflows_dir.rglob("*")
+                if path.is_file()
+            )
+        )
 
 
 if __name__ == "__main__":
