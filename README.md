@@ -49,12 +49,17 @@ The MCP tools are agent-facing:
 - `get_company_state`
 - `list_next_actions`
 - `record_work_result`
+- `create_landing_artifact`
 - `summarize_run`
 
 This interface is local and stdio-based. This slice does not run background
 agents, deploy GitHub Pages, post to Threads, or call external services.
 External effects require separate capability-backed modules and current
 API/CLI verification before they are added.
+
+The first local capability is `create_landing_artifact`: it writes a landing
+page draft under the run workspace and records a Workroom-local artifact ref
+without deploying it.
 
 ## First Validation Team
 

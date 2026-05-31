@@ -7,6 +7,7 @@ from pathlib import Path
 from agency_workroom import (
     WorkItemDraft,
     WorkroomKernelGateway,
+    create_landing_artifact,
     get_company_state,
     record_work_result,
     start_company_goal,
@@ -145,6 +146,44 @@ class WorkroomIntegrationTests(unittest.TestCase):
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn("private agent goal payload", ledger_text)
         self.assertNotIn("private agent result payload", ledger_text)
+
+    def test_agent_tool_flow_creates_local_landing_artifact(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private landing artifact goal payload"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+
+        result = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        artifact_path = Path(result["artifact"]["artifact_path"])
+        self.assertTrue(artifact_path.exists())
+        self.assertIn("<!doctype html>", artifact_path.read_text(encoding="utf-8"))
+        landing_state = next(
+            task for task in state["tasks"] if task["category"] == "landing_page"
+        )
+        self.assertEqual("completed", landing_state["status"])
+        self.assertIn(result["artifact"]["artifact_ref"], landing_state["result_refs"])
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn(private_goal, ledger_text)
 
 
 if __name__ == "__main__":
