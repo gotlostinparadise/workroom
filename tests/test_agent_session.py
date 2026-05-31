@@ -13,6 +13,8 @@ from agency_workroom.agent_session import (
     start_company_goal,
     summarize_run,
 )
+from agency_workroom.landing_artifact import create_landing_artifact_files
+from agency_workroom.models import TaskState
 from agency_workroom.session_store import WorkroomStateError
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
@@ -309,6 +311,78 @@ class AgentSessionTests(unittest.TestCase):
                 artifact_ref=artifact["artifact"]["artifact_ref"],
                 workspace_path=str(workspace_path),
             )
+
+    def test_create_landing_qa_report_rejects_untracked_artifact_ref(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        untracked_artifact = create_landing_artifact_files(
+            workspace_path=workspace_path,
+            run_id=started["run_id"],
+            goal="Untracked artifact",
+            task=TaskState(
+                task_ref="workroom-item://untracked",
+                role_id="landing_builder",
+                category="landing_page",
+                title="Untracked landing",
+                status="planned",
+            ),
+            plan={"request": {"audience": "technical founders"}},
+        )
+
+        with self.assertRaises(WorkroomStateError):
+            create_landing_qa_report(
+                run_id=started["run_id"],
+                task_ref=testing_task["task_ref"],
+                artifact_ref=untracked_artifact["artifact_ref"],
+                workspace_path=str(workspace_path),
+            )
+
+    def test_create_landing_qa_report_blocks_testing_task_when_report_fails(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        Path(artifact["artifact"]["artifact_path"]).write_text(
+            "<html><body><script>alert(1)</script></body></html>",
+            encoding="utf-8",
+        )
+
+        result = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("blocked", result["task"]["status"])
+        self.assertFalse(result["report"]["passed"])
+        self.assertEqual("landing QA report failed", result["task"]["blocker_summary"])
 
     def test_create_landing_qa_report_is_idempotent(self) -> None:
         assert_external_kernel_dependency(self)

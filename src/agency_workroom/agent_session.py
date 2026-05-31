@@ -224,6 +224,8 @@ def create_landing_qa_report(
     current_task = run.tasks[task_index]
     if current_task.category != "testing":
         raise WorkroomStateError("task is not a testing task")
+    if not _artifact_ref_recorded_in_run(run, clean_artifact_ref):
+        raise WorkroomStateError("landing artifact is not recorded in run state")
     existing_ref = next(
         (
             ref
@@ -304,6 +306,10 @@ def _task_index_for(run: CompanyGoalRun, task_ref: str) -> int:
         if task.task_ref == task_ref:
             return index
     raise WorkroomStateError(f"task state not found: {task_ref}")
+
+
+def _artifact_ref_recorded_in_run(run: CompanyGoalRun, artifact_ref: str) -> bool:
+    return any(artifact_ref in task.result_refs for task in run.tasks)
 
 
 def _load_existing_run(workspace_path: str, run_id: str) -> CompanyGoalRun | None:
