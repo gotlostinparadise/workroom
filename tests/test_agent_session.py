@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +10,7 @@ from agency_workroom.agent_session import (
     create_landing_qa_report,
     get_company_state,
     list_next_actions,
+    prepare_github_pages_deploy_proposal,
     record_work_result,
     start_company_goal,
     summarize_run,
@@ -421,6 +423,200 @@ class AgentSessionTests(unittest.TestCase):
 
         self.assertEqual(first["report"], second["report"])
         self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+
+    def test_prepare_github_pages_deploy_proposal_blocks_task_after_passing_qa(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        private_goal = "Validate deploy path PRIVATE_AGENT_SESSION_MARKER"
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        result = prepare_github_pages_deploy_proposal(
+            run_id=started["run_id"],
+            task_ref=github_pages_task["task_ref"],
+            landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+            qa_report_ref=report["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        proposal = result["deploy_proposal"]
+        self.assertEqual("blocked", result["task"]["status"])
+        self.assertIn(proposal["proposal_ref"], result["task"]["result_refs"])
+        self.assertEqual(
+            (
+                "deploy proposal created; execution requires explicit approval and "
+                "current GitHub repo/auth verification"
+            ),
+            result["task"]["blocker_summary"],
+        )
+        self.assertEqual("proposed_not_executed", proposal["execution_status"])
+        self.assertTrue(Path(proposal["proposal_path"]).exists())
+        saved_proposal = json.loads(
+            Path(proposal["proposal_path"]).read_text(encoding="utf-8")
+        )
+        proposal_text = json.dumps(saved_proposal, sort_keys=True)
+        self.assertIn(proposal["proposal_ref"], proposal_text)
+        forbidden_secret_fields = {"authorization", "headers", "secret", "token"}
+        self.assertTrue(forbidden_secret_fields.isdisjoint(saved_proposal))
+        self.assertNotIn(private_goal, (root / "kernel.jsonl").read_text(encoding="utf-8"))
+
+    def test_prepare_github_pages_deploy_proposal_is_idempotent(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = prepare_github_pages_deploy_proposal(
+            run_id=started["run_id"],
+            task_ref=github_pages_task["task_ref"],
+            landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+            qa_report_ref=report["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = prepare_github_pages_deploy_proposal(
+            run_id=started["run_id"],
+            task_ref=github_pages_task["task_ref"],
+            landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+            qa_report_ref=report["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(first["deploy_proposal"], second["deploy_proposal"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        self.assertEqual(
+            1,
+            first["task"]["result_refs"].count(
+                first["deploy_proposal"]["proposal_ref"],
+            ),
+        )
+
+    def test_prepare_github_pages_deploy_proposal_rejects_before_qa_report(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        with self.assertRaisesRegex(WorkroomStateError, "QA report is not recorded"):
+            prepare_github_pages_deploy_proposal(
+                run_id=started["run_id"],
+                task_ref=github_pages_task["task_ref"],
+                landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+                qa_report_ref=(
+                    f"workroom-artifact://runs/{started['run_id']}/"
+                    "landing_qa/missing/qa_report.json"
+                ),
+                workspace_path=str(workspace_path),
+            )
+
+    def test_prepare_github_pages_deploy_proposal_rejects_failed_qa_report(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        Path(artifact["artifact"]["artifact_path"]).write_text(
+            "<html><body><script>alert(1)</script></body></html>",
+            encoding="utf-8",
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        with self.assertRaisesRegex(WorkroomStateError, "passing landing QA"):
+            prepare_github_pages_deploy_proposal(
+                run_id=started["run_id"],
+                task_ref=github_pages_task["task_ref"],
+                landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+                qa_report_ref=report["report"]["report_ref"],
+                workspace_path=str(workspace_path),
+            )
 
 
 if __name__ == "__main__":

@@ -5,6 +5,10 @@ import hashlib
 import json
 from pathlib import Path
 
+from .github_pages_deploy import (
+    GitHubPagesDeployError,
+    prepare_github_pages_deploy_proposal_files,
+)
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
@@ -24,9 +28,14 @@ from .session_store import (
 from .workflow import run_business_validation_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
+GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
+_GITHUB_PAGES_DEPLOY_BLOCKER = (
+    "deploy proposal created; execution requires explicit approval and "
+    "current GitHub repo/auth verification"
+)
 
 
 def _run_id_for(user_id: str, goal: str) -> str:
@@ -280,6 +289,103 @@ def create_landing_qa_report(
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "report": report}
 
 
+def prepare_github_pages_deploy_proposal(
+    *,
+    run_id: str,
+    task_ref: str,
+    landing_artifact_ref: str,
+    qa_report_ref: str,
+    workspace_path: str,
+    target_repo_full_name: str = "",
+    target_branch: str = "",
+    publish_path: str = "site",
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_landing_artifact_ref = _required_text(
+        "landing_artifact_ref",
+        landing_artifact_ref,
+    )
+    clean_qa_report_ref = _required_text("qa_report_ref", qa_report_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "github_pages":
+        raise WorkroomStateError("task is not a github_pages task")
+    if not _result_ref_recorded_on_category(
+        run,
+        clean_landing_artifact_ref,
+        "landing_page",
+    ):
+        raise WorkroomStateError("landing artifact is not recorded in run state")
+    if not _result_ref_recorded_on_category(run, clean_qa_report_ref, "testing"):
+        raise WorkroomStateError("QA report is not recorded in run state")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX)
+            and "/github_pages/" in ref
+            and ref.endswith("/deploy_proposal.json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        proposal = _github_pages_deploy_proposal_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            proposal_ref=existing_ref,
+            landing_artifact_ref=clean_landing_artifact_ref,
+            qa_report_ref=clean_qa_report_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "deploy_proposal": proposal,
+        }
+    try:
+        proposal = prepare_github_pages_deploy_proposal_files(
+            workspace_path=workspace_path,
+            run_id=run.run_id,
+            github_pages_task=current_task,
+            landing_artifact_ref=clean_landing_artifact_ref,
+            qa_report_ref=clean_qa_report_ref,
+            target_repo_full_name=target_repo_full_name,
+            target_branch=target_branch,
+            publish_path=publish_path,
+        )
+    except GitHubPagesDeployError as exc:
+        if "QA report has not passed" in str(exc):
+            raise WorkroomStateError(
+                "GitHub Pages deploy proposal requires passing landing QA"
+            ) from exc
+        raise WorkroomStateError("GitHub Pages deploy proposal failed") from exc
+    updated_task = _task_with_result(
+        current_task,
+        result_ref=str(proposal["proposal_ref"]),
+        status="blocked",
+        blocker_summary=_GITHUB_PAGES_DEPLOY_BLOCKER,
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {
+        "run_id": run.run_id,
+        "task": updated_task.to_payload(),
+        "deploy_proposal": proposal,
+    }
+
+
 def summarize_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     run = load_company_goal_run(workspace_path, run_id)
     status_counts = Counter(task.status for task in run.tasks)
@@ -310,6 +416,17 @@ def _task_index_for(run: CompanyGoalRun, task_ref: str) -> int:
 
 def _artifact_ref_recorded_in_run(run: CompanyGoalRun, artifact_ref: str) -> bool:
     return any(artifact_ref in task.result_refs for task in run.tasks)
+
+
+def _result_ref_recorded_on_category(
+    run: CompanyGoalRun,
+    result_ref: str,
+    category: str,
+) -> bool:
+    return any(
+        task.category == category and result_ref in task.result_refs
+        for task in run.tasks
+    )
 
 
 def _load_existing_run(workspace_path: str, run_id: str) -> CompanyGoalRun | None:
@@ -410,14 +527,67 @@ def _landing_qa_report_payload_for_existing_ref(
     return payload
 
 
+def _github_pages_deploy_proposal_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    proposal_ref: str,
+    landing_artifact_ref: str,
+    qa_report_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/deploy_proposal.json"
+    if not proposal_ref.startswith(prefix) or not proposal_ref.endswith(suffix):
+        raise WorkroomStateError("GitHub Pages deploy proposal ref is invalid")
+    parts = proposal_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "github_pages"
+        or parts[3] != "deploy_proposal.json"
+    ):
+        raise WorkroomStateError("GitHub Pages deploy proposal ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    proposal_dir = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+    )
+    proposal_path = proposal_dir / "deploy_proposal.json"
+    try:
+        payload = json.loads(proposal_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("GitHub Pages deploy proposal is corrupt") from exc
+    if not isinstance(payload, dict):
+        raise WorkroomStateError("GitHub Pages deploy proposal is corrupt")
+    if payload.get("proposal_ref") != proposal_ref:
+        raise WorkroomStateError("GitHub Pages deploy proposal metadata does not match ref")
+    if payload.get("landing_artifact_ref") != landing_artifact_ref:
+        raise WorkroomStateError("GitHub Pages deploy proposal artifact does not match")
+    if payload.get("qa_report_ref") != qa_report_ref:
+        raise WorkroomStateError("GitHub Pages deploy proposal QA report does not match")
+    publish_path = payload.get("publish_path", "site")
+    if not isinstance(publish_path, str) or not publish_path.strip():
+        raise WorkroomStateError("GitHub Pages deploy proposal publish path is invalid")
+    return {
+        **payload,
+        "proposal_path": str(proposal_path),
+        "site_entry_path": str(proposal_dir / publish_path.strip() / "index.html"),
+        "workflow_path": str(proposal_dir / "pages-workflow.yml"),
+    }
+
+
 __all__ = [
     "EXTERNAL_CAPABILITY_CATEGORIES",
+    "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "create_landing_artifact",
     "create_landing_qa_report",
     "get_company_state",
     "list_next_actions",
+    "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "start_company_goal",
     "summarize_run",
