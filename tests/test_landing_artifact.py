@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import MappingProxyType
 
 from agency_workroom.landing_artifact import create_landing_artifact_files
 from agency_workroom.models import TaskState
@@ -73,6 +74,38 @@ class LandingArtifactTests(unittest.TestCase):
         self.assertNotIn("<script>", html_text)
         self.assertNotIn("<b>private</b>", html_text)
         self.assertIn("&lt;b&gt;private&lt;/b&gt;", html_text)
+
+    def test_create_landing_artifact_files_reads_immutable_request_payload(self) -> None:
+        root = self.temp_root()
+        task = TaskState(
+            task_ref="workroom-item://abc",
+            role_id="landing_builder",
+            category="landing_page",
+            title="Create landing page plan",
+            status="planned",
+        )
+        plan = MappingProxyType(
+            {
+                "request": MappingProxyType(
+                    {
+                        "audience": "technical founders",
+                        "offer": "Codex-controlled Workroom",
+                    }
+                )
+            }
+        )
+
+        artifact = create_landing_artifact_files(
+            workspace_path=root / "workspace",
+            run_id="run_abc",
+            goal="Validate Workroom demand",
+            task=task,
+            plan=plan,
+        )
+
+        html_text = Path(artifact["artifact_path"]).read_text(encoding="utf-8")
+        self.assertIn("For technical founders", html_text)
+        self.assertIn("Codex-controlled Workroom", html_text)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from html import escape
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ def create_landing_artifact_files(
     run_id: str,
     goal: str,
     task: TaskState,
-    plan: dict[str, object],
+    plan: Mapping[str, object],
 ) -> dict[str, object]:
     if task.category != "landing_page":
         raise WorkroomModelError("task must be a landing_page task")
@@ -74,9 +75,9 @@ def create_landing_artifact_files(
     return metadata
 
 
-def _request_payload(plan: dict[str, object]) -> dict[str, object]:
+def _request_payload(plan: Mapping[str, object]) -> Mapping[str, object]:
     request = plan.get("request", {})
-    if isinstance(request, dict):
+    if isinstance(request, Mapping):
         return request
     return {}
 
