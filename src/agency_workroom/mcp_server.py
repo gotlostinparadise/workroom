@@ -11,6 +11,7 @@ TOOL_NAMES = (
     "get_company_state",
     "list_next_actions",
     "record_work_result",
+    "create_landing_artifact",
     "summarize_run",
 )
 
@@ -66,6 +67,20 @@ def record_work_result(
 
 
 @mcp.tool()
+def create_landing_artifact(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local landing page artifact for a Workroom landing task."""
+    return agent_session.create_landing_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
 def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
     """Summarize completion and capability-module status for a company run."""
     return agent_session.summarize_run(
@@ -84,6 +99,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "TOOL_NAMES",
+    "create_landing_artifact",
     "get_company_state",
     "list_next_actions",
     "main",

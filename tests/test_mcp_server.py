@@ -14,6 +14,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "get_company_state",
                 "list_next_actions",
                 "record_work_result",
+                "create_landing_artifact",
                 "summarize_run",
             ),
             mcp_server.TOOL_NAMES,
