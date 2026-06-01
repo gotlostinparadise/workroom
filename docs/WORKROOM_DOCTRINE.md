@@ -172,6 +172,11 @@ The next improvements should strengthen:
 - replayable evidence for completed turns;
 - practical end-to-end goal runs.
 
+The canonical plan of record is
+[`docs/COMPLETION_ROADMAP.md`](COMPLETION_ROADMAP.md). New implementation work
+should map to that roadmap before code changes begin. If the roadmap contradicts
+live repository truth, correct the roadmap before continuing implementation.
+
 ## Non-Goals
 
 Workroom should not become:

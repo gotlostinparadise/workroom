@@ -8,7 +8,9 @@ local modules, and product behavior. Kernel owns authority, grants, redemption,
 ledger, replay, and audit.
 
 For the project doctrine and long-term operating model, read
-[`docs/WORKROOM_DOCTRINE.md`](docs/WORKROOM_DOCTRINE.md).
+[`docs/WORKROOM_DOCTRINE.md`](docs/WORKROOM_DOCTRINE.md). For the canonical
+plan of record, read
+[`docs/COMPLETION_ROADMAP.md`](docs/COMPLETION_ROADMAP.md).
 
 Verified Kernel commit:
 
