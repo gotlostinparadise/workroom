@@ -6,6 +6,7 @@ REQUIRED_VALIDATION_ROLES = (
     "hypothesis_researcher",
     "landing_builder",
     "qa_tester",
+    "devops_operator",
     "threads_operator",
     "growth_operator",
     "team_lead",
@@ -69,7 +70,7 @@ def plan_business_validation_workflow(
             metadata=common_metadata,
         ),
         WorkflowTask(
-            role_id="landing_builder",
+            role_id="devops_operator",
             category="github_pages",
             title="Plan GitHub Pages deployment",
             summary=(

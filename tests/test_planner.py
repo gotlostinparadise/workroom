@@ -31,7 +31,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
                 "hypothesis_researcher",
                 "strategy_lead",
                 "landing_builder",
-                "landing_builder",
+                "devops_operator",
                 "qa_tester",
                 "threads_operator",
                 "growth_operator",
@@ -56,7 +56,11 @@ class BusinessValidationPlannerTests(unittest.TestCase):
 
     def test_planner_rejects_missing_required_roles(self) -> None:
         team = default_validation_team()
-        reduced_team = type(team)(name=team.name, roles=team.roles[:-1])
+        reduced_team = type(team)(
+            name=team.name,
+            roles=team.roles[:-1],
+            departments=team.departments,
+        )
         request = WorkflowRequest(
             hypothesis="A",
             audience="B",
