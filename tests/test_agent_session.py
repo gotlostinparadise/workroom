@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from agency_workroom.agent_session import (
     create_landing_artifact,
@@ -14,6 +15,7 @@ from agency_workroom.agent_session import (
     prepare_github_pages_deploy_proposal,
     record_work_result,
     recommend_next_tool_call,
+    run_next_local_step,
     start_company_goal,
     summarize_run,
 )
@@ -923,6 +925,144 @@ class AgentSessionTests(unittest.TestCase):
         self.assertFalse(recommendation["will_mutate_state"])
         self.assertFalse(recommendation["blocked"])
         self.assertEqual(["landing artifact ref"], recommendation["missing_prerequisites"])
+
+    def test_run_next_local_step_executes_landing_artifact_first(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+
+        result = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertTrue(result["executed"])
+        self.assertEqual("create_landing_artifact", result["executed_tool"])
+        self.assertEqual(
+            "create_landing_artifact",
+            result["recommendation"]["recommended_tool"],
+        )
+        self.assertIn("artifact", result["result"])
+        self.assertTrue(Path(result["result"]["artifact"]["artifact_path"]).exists())
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        landing_task = self.task_by_category(state, "landing_page")
+        testing_task = self.task_by_category(state, "testing")
+        self.assertEqual("completed", landing_task["status"])
+        self.assertEqual("planned", testing_task["status"])
+
+    def test_run_next_local_step_executes_one_step_at_a_time(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_landing_artifact", first["executed_tool"])
+        self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
+        self.assertEqual("planned", self.task_by_category(state, "testing")["status"])
+        self.assertEqual("planned", self.task_by_category(state, "github_pages")["status"])
+        self.assertEqual(
+            "create_landing_qa_report",
+            recommend_next_tool_call(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )["recommended_tool"],
+        )
+
+    def test_run_next_local_step_follows_local_pipeline_until_blocked(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_landing_artifact", first["executed_tool"])
+        self.assertEqual("create_landing_qa_report", second["executed_tool"])
+        self.assertTrue(second["result"]["report"]["passed"])
+        self.assertEqual("prepare_github_pages_deploy_proposal", third["executed_tool"])
+        self.assertEqual(
+            "proposed_not_executed",
+            third["result"]["deploy_proposal"]["execution_status"],
+        )
+        self.assertFalse(fourth["executed"])
+        self.assertEqual("", fourth["executed_tool"])
+        self.assertTrue(fourth["blocked"])
+        self.assertEqual("github_pages task is blocked", fourth["reason"])
+
+    def test_run_next_local_step_rejects_unsupported_recommendation_without_mutation(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        state_before = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        ledger_path = root / "kernel.jsonl"
+        ledger_before = ledger_path.read_text(encoding="utf-8")
+        workspace_before = self.workspace_file_snapshot(workspace_path)
+        unsupported_recommendation = {
+            "run_id": started["run_id"],
+            "recommended_tool": "record_work_result",
+            "arguments": {
+                "run_id": started["run_id"],
+                "task_ref": started["tasks"][0]["task_ref"],
+                "result_summary": "private result",
+                "workspace_path": str(workspace_path),
+            },
+            "reason": "unsupported in local step runner",
+            "missing_prerequisites": [],
+            "will_mutate_state": True,
+            "blocked": False,
+            "blocker_summary": "",
+        }
+
+        with patch(
+            "agency_workroom.agent_session.recommend_next_tool_call",
+            return_value=unsupported_recommendation,
+        ):
+            result = run_next_local_step(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+
+        self.assertFalse(result["executed"])
+        self.assertEqual("", result["executed_tool"])
+        self.assertIn("not allowlisted", result["reason"])
+        self.assertEqual(unsupported_recommendation, result["recommendation"])
+        self.assertEqual(
+            state_before,
+            get_company_state(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            ),
+        )
+        self.assertEqual(ledger_before, ledger_path.read_text(encoding="utf-8"))
+        self.assertEqual(workspace_before, self.workspace_file_snapshot(workspace_path))
 
 
 if __name__ == "__main__":

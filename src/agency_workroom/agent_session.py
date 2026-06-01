@@ -32,6 +32,11 @@ EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
+LOCAL_STEP_TOOL_NAMES = (
+    "create_landing_artifact",
+    "create_landing_qa_report",
+    "prepare_github_pages_deploy_proposal",
+)
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
 _GITHUB_PAGES_DEPLOY_BLOCKER = (
     "deploy proposal created; execution requires explicit approval and "
@@ -242,6 +247,62 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
                 ),
             )
     return _no_local_recommendation(run.run_id)
+
+
+def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    recommendation = recommend_next_tool_call(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    recommended_tool = str(recommendation.get("recommended_tool", ""))
+    if not recommended_tool:
+        return {
+            "run_id": clean_run_id,
+            "executed": False,
+            "executed_tool": "",
+            "recommendation": recommendation,
+            "result": {},
+            "blocked": bool(recommendation.get("blocked", False)),
+            "reason": str(
+                recommendation.get(
+                    "reason",
+                    "no local recommended tool call is available",
+                )
+            ),
+        }
+    if recommended_tool not in LOCAL_STEP_TOOL_NAMES:
+        return {
+            "run_id": clean_run_id,
+            "executed": False,
+            "executed_tool": "",
+            "recommendation": recommendation,
+            "result": {},
+            "blocked": False,
+            "reason": (
+                "recommended tool is not allowlisted for local execution: "
+                f"{recommended_tool}"
+            ),
+        }
+    arguments = _recommendation_arguments(recommendation)
+    if recommended_tool == "create_landing_artifact":
+        result = create_landing_artifact(**arguments)
+    elif recommended_tool == "create_landing_qa_report":
+        result = create_landing_qa_report(**arguments)
+    elif recommended_tool == "prepare_github_pages_deploy_proposal":
+        result = prepare_github_pages_deploy_proposal(**arguments)
+    else:
+        raise AssertionError("unreachable local step tool")
+    return {
+        "run_id": clean_run_id,
+        "executed": True,
+        "executed_tool": recommended_tool,
+        "recommendation": recommendation,
+        "result": result,
+        "blocked": False,
+        "reason": "executed recommended local tool",
+    }
 
 
 def record_work_result(
@@ -621,6 +682,13 @@ def _no_local_recommendation(run_id: str) -> dict[str, object]:
     ).to_payload()
 
 
+def _recommendation_arguments(recommendation: dict[str, object]) -> dict[str, object]:
+    arguments = recommendation.get("arguments")
+    if not isinstance(arguments, dict):
+        raise WorkroomStateError("recommended tool arguments are invalid")
+    return arguments
+
+
 def _artifact_ref_recorded_in_run(run: CompanyGoalRun, artifact_ref: str) -> bool:
     return any(artifact_ref in task.result_refs for task in run.tasks)
 
@@ -790,6 +858,7 @@ __all__ = [
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
+    "LOCAL_STEP_TOOL_NAMES",
     "create_landing_artifact",
     "create_landing_qa_report",
     "get_company_state",
@@ -797,6 +866,7 @@ __all__ = [
     "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "recommend_next_tool_call",
+    "run_next_local_step",
     "start_company_goal",
     "summarize_run",
 ]
