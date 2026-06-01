@@ -9,6 +9,7 @@ from pathlib import Path
 
 from agency_workroom.devops_operations import (
     DevOpsOperationError,
+    execute_github_pages_deploy_plan_files,
     prepare_github_pages_deploy_execution_plan_files,
 )
 
@@ -193,6 +194,123 @@ class DevOpsOperationTests(unittest.TestCase):
                 target_repo_path=target_repo,
                 target_branch="release",
             )
+
+    def test_execute_plan_rejects_approval_mismatch_without_mutation(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+        initial_head = self.run_git(target_repo, "rev-parse", "HEAD")
+        plan = prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            proposal_ref=proposal["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=target_repo,
+            target_branch="main",
+        )
+
+        with self.assertRaisesRegex(DevOpsOperationError, "approval phrase"):
+            execute_github_pages_deploy_plan_files(
+                workspace_path=workspace,
+                run_id="run_abc",
+                plan_ref=plan["plan_ref"],
+                approval_phrase="approve something else",
+            )
+
+        self.assertFalse((target_repo / "site" / "index.html").exists())
+        self.assertFalse((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
+        self.assertEqual(initial_head, self.run_git(target_repo, "rev-parse", "HEAD"))
+
+    def test_execute_plan_copies_files_commits_and_records_evidence(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+        initial_head = self.run_git(target_repo, "rev-parse", "HEAD")
+        plan = prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            proposal_ref=proposal["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=target_repo,
+            target_branch="main",
+        )
+
+        evidence = execute_github_pages_deploy_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+
+        self.assertEqual("devops-execution-evidence.v1", evidence["schema_version"])
+        self.assertEqual("executed", evidence["execution_status"])
+        self.assertNotEqual(initial_head, evidence["git_commit_sha"])
+        self.assertEqual(evidence["git_commit_sha"], self.run_git(target_repo, "rev-parse", "HEAD"))
+        self.assertEqual(
+            "<!doctype html><title>Landing</title>",
+            (target_repo / "site" / "index.html").read_text(encoding="utf-8"),
+        )
+        self.assertTrue((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
+        self.assertTrue(Path(evidence["evidence_path"]).exists())
+        self.assertEqual(["git add", "git commit"], evidence["commands_executed"])
+
+    def test_execute_plan_is_idempotent_after_evidence_exists(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+        plan = prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            proposal_ref=proposal["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=target_repo,
+            target_branch="main",
+        )
+        first = execute_github_pages_deploy_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+        head_after_first = self.run_git(target_repo, "rev-parse", "HEAD")
+
+        second = execute_github_pages_deploy_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+
+        self.assertEqual(first, second)
+        self.assertEqual(head_after_first, self.run_git(target_repo, "rev-parse", "HEAD"))
+
+    def test_execution_evidence_does_not_record_secret_bearing_fields(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+        plan = prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            proposal_ref=proposal["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=target_repo,
+            target_branch="main",
+        )
+
+        evidence = execute_github_pages_deploy_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+        evidence_text = Path(evidence["evidence_path"]).read_text(encoding="utf-8").lower()
+
+        for forbidden in ("authorization", "headers", "secret", "token"):
+            self.assertNotIn(forbidden, evidence_text)
 
 
 if __name__ == "__main__":
