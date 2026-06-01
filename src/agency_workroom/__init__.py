@@ -22,6 +22,7 @@ from .agent_session import (
     summarize_run,
 )
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
+from .company_specs import business_validation_company_spec
 from .models import (
     CompanyGoalRun,
     CompanySpec,
@@ -45,7 +46,11 @@ from .models import (
     WorkItemDraft,
     WorkroomModelError,
 )
-from .planner import REQUIRED_VALIDATION_ROLES, plan_business_validation_workflow
+from .planner import (
+    REQUIRED_VALIDATION_ROLES,
+    plan_business_validation_workflow,
+    plan_workflow_from_company_spec,
+)
 from .session_store import (
     WorkroomStateError,
     load_company_goal_run,
@@ -89,6 +94,7 @@ __all__ = [
     "WorkroomModelError",
     "WorkroomStateError",
     "advance_company_goal",
+    "business_validation_company_spec",
     "create_landing_artifact",
     "create_landing_qa_report",
     "default_validation_team",
@@ -97,6 +103,7 @@ __all__ = [
     "list_next_actions",
     "load_company_goal_run",
     "plan_business_validation_workflow",
+    "plan_workflow_from_company_spec",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "record_work_result",

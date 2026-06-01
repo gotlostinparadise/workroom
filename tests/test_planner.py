@@ -2,12 +2,108 @@ from __future__ import annotations
 
 import unittest
 
-from agency_workroom.models import WorkflowRequest
-from agency_workroom.planner import plan_business_validation_workflow
+from agency_workroom.company_specs import business_validation_company_spec
+from agency_workroom.models import (
+    CompanySpec,
+    CompanyTaskTemplate,
+    Department,
+    TeamBlueprint,
+    TeamRole,
+    WorkflowRequest,
+)
+from agency_workroom.planner import (
+    plan_business_validation_workflow,
+    plan_workflow_from_company_spec,
+)
 from agency_workroom.team import default_validation_team
 
 
 class BusinessValidationPlannerTests(unittest.TestCase):
+    def test_business_validation_company_spec_contains_current_team_and_tasks(self) -> None:
+        spec = business_validation_company_spec()
+
+        self.assertEqual("business_validation", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual(default_validation_team().to_payload(), spec.team.to_payload())
+        self.assertEqual(8, len(spec.task_templates))
+        self.assertEqual(
+            [
+                "hypothesis_validation",
+                "strategy",
+                "landing_page",
+                "github_pages",
+                "testing",
+                "threads",
+                "promotion",
+                "team_management",
+            ],
+            [template.category for template in spec.task_templates],
+        )
+
+    def test_generic_company_spec_planner_creates_tasks_from_templates(self) -> None:
+        request = WorkflowRequest(
+            hypothesis="Founders want validation",
+            audience="early-stage SaaS founders",
+            offer="48 hour validation",
+            constraints="local only",
+            channels=("landing_page",),
+            success_criteria="10 signups",
+        )
+        spec = CompanySpec(
+            spec_id="simple_validation",
+            version="v1",
+            display_name="Simple Validation",
+            team=TeamBlueprint(
+                name="simple_validation_team",
+                departments=(
+                    Department(
+                        department_id="strategy",
+                        display_name="Strategy Department",
+                        purpose="Frame strategy",
+                        authority_level="coordination",
+                        capability_gate_required=False,
+                    ),
+                ),
+                roles=(
+                    TeamRole(
+                        role_id="strategy_lead",
+                        display_name="Strategy Lead",
+                        responsibilities="Frame positioning",
+                        department_id="strategy",
+                        authority_scope="coordination",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="strategy_lead",
+                    category="strategy",
+                    title="Define strategy",
+                    summary_template=(
+                        "Frame {offer} for {audience} under {constraints}."
+                    ),
+                    priority="high",
+                    metadata={"handoff_to": "product"},
+                ),
+            ),
+        )
+
+        plan = plan_workflow_from_company_spec(request=request, company_spec=spec)
+
+        self.assertEqual(
+            "Simple Validation workflow for hypothesis: Founders want validation",
+            plan.summary,
+        )
+        self.assertEqual(1, len(plan.tasks))
+        self.assertEqual("strategy_lead", plan.tasks[0].role_id)
+        self.assertEqual("strategy", plan.tasks[0].category)
+        self.assertEqual(
+            "Frame 48 hour validation for early-stage SaaS founders under local only.",
+            plan.tasks[0].summary,
+        )
+        self.assertEqual("product", plan.tasks[0].metadata["handoff_to"])
+        self.assertEqual("Founders want validation", plan.tasks[0].metadata["hypothesis"])
+
     def test_planner_creates_role_assigned_tasks_for_business_hypothesis(self) -> None:
         request = WorkflowRequest(
             hypothesis="Founders will pay for a 48 hour AI validation sprint",

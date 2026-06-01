@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from .models import TeamBlueprint, WorkflowPlan, WorkflowRequest, WorkflowTask
+from .company_specs import business_validation_company_spec
+from .models import CompanySpec, TeamBlueprint, WorkflowPlan, WorkflowRequest, WorkflowTask
 
 REQUIRED_VALIDATION_ROLES = (
     "hypothesis_researcher",
@@ -27,6 +28,17 @@ def plan_business_validation_workflow(
     if missing:
         raise ValueError(f"missing required roles: {', '.join(missing)}")
 
+    return plan_workflow_from_company_spec(
+        request=request,
+        company_spec=business_validation_company_spec(team=team),
+    )
+
+
+def plan_workflow_from_company_spec(
+    *,
+    request: WorkflowRequest,
+    company_spec: CompanySpec,
+) -> WorkflowPlan:
     common_metadata = {
         "hypothesis": request.hypothesis,
         "audience": request.audience,
@@ -35,99 +47,25 @@ def plan_business_validation_workflow(
         "channels": list(request.channels),
         "success_criteria": request.success_criteria,
     }
-    tasks = (
+    request_payload = request.to_payload()
+    tasks = tuple(
         WorkflowTask(
-            role_id="hypothesis_researcher",
-            category="hypothesis_validation",
-            title="Frame validation assumptions",
-            summary=(
-                f"Turn the hypothesis '{request.hypothesis}' into assumptions, "
-                f"risks, customer questions, and validation criteria for {request.audience}."
-            ),
-            priority="high",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="strategy_lead",
-            category="strategy",
-            title="Define validation strategy",
-            summary=(
-                f"Decide positioning, target segment, offer angle, and next moves for: "
-                f"{request.offer}."
-            ),
-            priority="high",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="landing_builder",
-            category="landing_page",
-            title="Create landing page plan",
-            summary=(
-                "Draft the landing-page structure, core promise, sections, CTA, "
-                "and copy needed to validate the offer."
-            ),
-            priority="high",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="devops_operator",
-            category="github_pages",
-            title="Plan GitHub Pages deployment",
-            summary=(
-                "Prepare the planned GitHub Pages deployment task. Do not deploy until "
-                "a separate capability-backed deploy module is approved."
-            ),
-            priority="normal",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="qa_tester",
-            category="testing",
-            title="Define validation tests",
-            summary=(
-                "Define acceptance checks for the landing page, tracking links, "
-                "copy consistency, and workflow artifacts."
-            ),
-            priority="normal",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="threads_operator",
-            category="threads",
-            title="Prepare Threads campaign",
-            summary=(
-                "Draft Threads posts, cadence, and response-handling plan. Do not post "
-                "until a separate capability-backed Threads module is approved."
-            ),
-            priority="normal",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="growth_operator",
-            category="promotion",
-            title="Plan promotion experiments",
-            summary=(
-                "Identify low-risk promotion channels, messaging variants, and metrics "
-                f"for the success criteria: {request.success_criteria}."
-            ),
-            priority="normal",
-            metadata=common_metadata,
-        ),
-        WorkflowTask(
-            role_id="team_lead",
-            category="team_management",
-            title="Coordinate validation sprint",
-            summary=(
-                "Sequence the work, track blockers, and prepare a final decision record "
-                "for whether the hypothesis should continue."
-            ),
-            priority="normal",
-            metadata=common_metadata,
-        ),
+            role_id=template.role_id,
+            category=template.category,
+            title=template.title,
+            summary=template.summary_template.format(**request_payload),
+            priority=template.priority,
+            status=template.status,
+            metadata={
+                **common_metadata,
+                **template.to_payload()["metadata"],
+            },
+        )
+        for template in company_spec.task_templates
     )
     return WorkflowPlan(
         request=request,
-        summary=f"Business validation workflow for hypothesis: {request.hypothesis}",
+        summary=f"{company_spec.display_name} workflow for hypothesis: {request.hypothesis}",
         tasks=tasks,
     )
 
@@ -135,4 +73,5 @@ def plan_business_validation_workflow(
 __all__ = [
     "REQUIRED_VALIDATION_ROLES",
     "plan_business_validation_workflow",
+    "plan_workflow_from_company_spec",
 ]
