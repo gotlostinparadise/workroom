@@ -51,6 +51,7 @@ from .planner import (
     REQUIRED_VALIDATION_ROLES,
     plan_business_validation_workflow,
     plan_workflow_from_company_spec,
+    run_context_from_workflow_request,
 )
 from .session_store import (
     WorkroomStateError,
@@ -111,6 +112,7 @@ __all__ = [
     "record_work_result",
     "recommend_next_tool_call",
     "run_next_local_step",
+    "run_context_from_workflow_request",
     "run_state_path",
     "run_business_validation_workflow",
     "save_company_goal_run",

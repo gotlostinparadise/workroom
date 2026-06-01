@@ -7,9 +7,11 @@ from agency_workroom.models import (
     CompanySpec,
     CompanyTaskTemplate,
     Department,
+    RunContext,
     TeamBlueprint,
     TeamRole,
     WorkflowRequest,
+    WorkroomModelError,
 )
 from agency_workroom.planner import (
     plan_business_validation_workflow,
@@ -103,6 +105,89 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         )
         self.assertEqual("product", plan.tasks[0].metadata["handoff_to"])
         self.assertEqual("Founders want validation", plan.tasks[0].metadata["hypothesis"])
+
+    def test_company_spec_planner_accepts_non_business_run_context(self) -> None:
+        context = RunContext(
+            goal="Harden release process",
+            summary="Release hardening workflow",
+            variables={
+                "experiment": "release checklist",
+                "owner": "platform team",
+            },
+            metadata={"kind": "release-context.v1"},
+        )
+        spec = CompanySpec(
+            spec_id="release_hardening",
+            version="v1",
+            display_name="Release Hardening",
+            team=TeamBlueprint(
+                name="release_hardening_team",
+                roles=(
+                    TeamRole(
+                        role_id="release_lead",
+                        display_name="Release Lead",
+                        responsibilities="Coordinate release hardening",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="release_lead",
+                    category="release",
+                    title="Prepare release",
+                    summary_template="Prepare {experiment} for {owner}.",
+                    priority="high",
+                    metadata={"artifact_kind": "release_plan"},
+                ),
+            ),
+        )
+
+        plan = plan_workflow_from_company_spec(
+            run_context=context,
+            company_spec=spec,
+        )
+
+        self.assertEqual("Release hardening workflow", plan.summary)
+        self.assertEqual("Prepare release checklist for platform team.", plan.tasks[0].summary)
+        self.assertEqual("release_plan", plan.tasks[0].metadata["artifact_kind"])
+        self.assertEqual("Harden release process", plan.tasks[0].metadata["goal"])
+        self.assertEqual("release-context.v1", plan.to_payload()["request"]["metadata"]["kind"])
+
+    def test_company_spec_planner_rejects_missing_run_context_template_variable(self) -> None:
+        context = RunContext(
+            goal="Harden release process",
+            summary="Release hardening workflow",
+            variables={"experiment": "release checklist"},
+        )
+        spec = CompanySpec(
+            spec_id="release_hardening",
+            version="v1",
+            display_name="Release Hardening",
+            team=TeamBlueprint(
+                name="release_hardening_team",
+                roles=(
+                    TeamRole(
+                        role_id="release_lead",
+                        display_name="Release Lead",
+                        responsibilities="Coordinate release hardening",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="release_lead",
+                    category="release",
+                    title="Prepare release",
+                    summary_template="Prepare {experiment} for {owner}.",
+                ),
+            ),
+        )
+
+        with self.assertRaisesRegex(WorkroomModelError, "missing template variable"):
+            plan_workflow_from_company_spec(
+                run_context=context,
+                company_spec=spec,
+            )
 
     def test_planner_creates_role_assigned_tasks_for_business_hypothesis(self) -> None:
         request = WorkflowRequest(

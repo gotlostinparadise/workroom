@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from .company_specs import business_validation_company_spec
-from .models import CompanySpec, TeamBlueprint, WorkflowPlan, WorkflowRequest, WorkflowTask
+from .models import (
+    CompanySpec,
+    RunContext,
+    TeamBlueprint,
+    WorkflowPlan,
+    WorkflowRequest,
+    WorkflowTask,
+    WorkroomModelError,
+)
 
 REQUIRED_VALIDATION_ROLES = (
     "hypothesis_researcher",
@@ -34,44 +42,90 @@ def plan_business_validation_workflow(
     )
 
 
-def plan_workflow_from_company_spec(
+def run_context_from_workflow_request(
     *,
     request: WorkflowRequest,
+    summary: str,
+) -> RunContext:
+    return RunContext(
+        goal=request.hypothesis,
+        summary=summary,
+        variables={
+            "hypothesis": request.hypothesis,
+            "audience": request.audience,
+            "offer": request.offer,
+            "constraints": request.constraints,
+            "channels": list(request.channels),
+            "success_criteria": request.success_criteria,
+        },
+        metadata={
+            "adapter": "business_validation.workflow_request",
+            **request.to_payload()["metadata"],
+        },
+    )
+
+
+def plan_workflow_from_company_spec(
+    *,
     company_spec: CompanySpec,
+    run_context: RunContext | None = None,
+    request: WorkflowRequest | None = None,
 ) -> WorkflowPlan:
-    common_metadata = {
-        "hypothesis": request.hypothesis,
-        "audience": request.audience,
-        "offer": request.offer,
-        "constraints": request.constraints,
-        "channels": list(request.channels),
-        "success_criteria": request.success_criteria,
-    }
-    request_payload = request.to_payload()
+    if run_context is None:
+        if request is None:
+            raise WorkroomModelError("run_context or request is required")
+        run_context = run_context_from_workflow_request(
+            request=request,
+            summary=(
+                f"{company_spec.display_name} workflow for hypothesis: "
+                f"{request.hypothesis}"
+            ),
+        )
+    elif request is not None:
+        raise WorkroomModelError("provide run_context or request, not both")
+    context_payload = run_context.to_payload()
+    variables = context_payload["variables"]
     tasks = tuple(
         WorkflowTask(
             role_id=template.role_id,
             category=template.category,
             title=template.title,
-            summary=template.summary_template.format(**request_payload),
+            summary=_render_summary_template(
+                template.summary_template,
+                variables,
+            ),
             priority=template.priority,
             status=template.status,
             metadata={
-                **common_metadata,
+                **variables,
                 **template.to_payload()["metadata"],
             },
         )
         for template in company_spec.task_templates
     )
     return WorkflowPlan(
-        request=request,
-        summary=f"{company_spec.display_name} workflow for hypothesis: {request.hypothesis}",
+        request=run_context,
+        summary=run_context.summary,
         tasks=tasks,
     )
+
+
+def _render_summary_template(
+    summary_template: str,
+    variables: object,
+) -> str:
+    if not isinstance(variables, dict):
+        raise WorkroomModelError("run context variables must be a mapping")
+    try:
+        return summary_template.format(**variables)
+    except KeyError as exc:
+        missing = str(exc).strip("'")
+        raise WorkroomModelError(f"missing template variable: {missing}") from exc
 
 
 __all__ = [
     "REQUIRED_VALIDATION_ROLES",
     "plan_business_validation_workflow",
     "plan_workflow_from_company_spec",
+    "run_context_from_workflow_request",
 ]

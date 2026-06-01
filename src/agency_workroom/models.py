@@ -460,13 +460,13 @@ class WorkflowTask:
 
 @dataclass(frozen=True)
 class WorkflowPlan:
-    request: WorkflowRequest
+    request: WorkflowRequest | RunContext
     summary: str
     tasks: tuple[WorkflowTask, ...] | list[WorkflowTask]
 
     def __post_init__(self) -> None:
-        if not isinstance(self.request, WorkflowRequest):
-            raise WorkroomModelError("request must be a WorkflowRequest")
+        if not isinstance(self.request, (WorkflowRequest, RunContext)):
+            raise WorkroomModelError("request must be a WorkflowRequest or RunContext")
         object.__setattr__(self, "summary", _required_text("summary", self.summary))
         if not isinstance(self.tasks, (tuple, list)) or not self.tasks:
             raise WorkroomModelError("tasks are required")
