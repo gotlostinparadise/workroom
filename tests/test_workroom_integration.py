@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +11,9 @@ from agency_workroom import (
     WorkroomKernelGateway,
     create_landing_artifact,
     create_landing_qa_report,
+    execute_github_pages_deploy,
     get_company_state,
+    prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     record_work_result,
     recommend_next_tool_call,
@@ -30,6 +33,35 @@ class WorkroomIntegrationTests(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
+
+    def run_git(self, repo: Path, *args: str) -> str:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    def init_target_repo(self, root: Path) -> Path:
+        repo = root / "target-repo"
+        repo.mkdir()
+        subprocess.run(
+            ["git", "init", "-b", "main"],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.run_git(repo, "config", "user.name", "Workroom Test")
+        self.run_git(repo, "config", "user.email", "workroom@example.test")
+        (repo / "README.md").write_text("# Target\n", encoding="utf-8")
+        self.run_git(repo, "add", "README.md")
+        self.run_git(repo, "commit", "-m", "Initial commit")
+        return repo
 
     def workspace_file_snapshot(self, workspace_path: Path) -> tuple[tuple[str, str], ...]:
         if not workspace_path.exists():
@@ -562,6 +594,76 @@ class WorkroomIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(2, summary["status_counts"]["completed"])
         self.assertEqual(1, summary["status_counts"]["blocked"])
+        self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_devops_operator_executes_approved_deploy_in_explicit_target_repo(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        target_repo = self.init_target_repo(root)
+        private_goal = "private integration devops deploy marker"
+        repo_workflows_dir = Path.cwd() / ".github" / "workflows"
+        workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        deploy_step = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        plan = prepare_github_pages_deploy_execution_plan(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+            proposal_ref=deploy_step["result"]["deploy_proposal"]["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=str(target_repo),
+            target_branch="main",
+        )
+        execution = execute_github_pages_deploy(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+        summary = summarize_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        github_pages_task = next(
+            task for task in state["tasks"] if task["category"] == "github_pages"
+        )
+
+        self.assertEqual("completed", github_pages_task["status"])
+        self.assertIn(execution["evidence"]["evidence_ref"], github_pages_task["result_refs"])
+        self.assertEqual(3, summary["status_counts"]["completed"])
+        self.assertNotIn("blocked", summary["status_counts"])
+        self.assertTrue((target_repo / "site" / "index.html").exists())
+        self.assertTrue((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
+        self.assertEqual(
+            execution["evidence"]["git_commit_sha"],
+            self.run_git(target_repo, "rev-parse", "HEAD"),
+        )
         self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
