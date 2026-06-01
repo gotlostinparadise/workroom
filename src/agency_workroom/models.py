@@ -93,10 +93,55 @@ def _commit_metadata_without_paths(commit: Mapping[str, object]) -> dict[str, ob
 
 
 @dataclass(frozen=True)
+class Department:
+    department_id: str
+    display_name: str
+    purpose: str
+    authority_level: str
+    capability_gate_required: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "department_id",
+            _required_text("department_id", self.department_id),
+        )
+        object.__setattr__(
+            self,
+            "display_name",
+            _required_text("display_name", self.display_name),
+        )
+        object.__setattr__(self, "purpose", _required_text("purpose", self.purpose))
+        object.__setattr__(
+            self,
+            "authority_level",
+            _required_text("authority_level", self.authority_level),
+        )
+        if not isinstance(self.capability_gate_required, bool):
+            raise WorkroomModelError("capability_gate_required must be a bool")
+        object.__setattr__(
+            self,
+            "capability_gate_required",
+            self.capability_gate_required,
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "department_id": self.department_id,
+            "display_name": self.display_name,
+            "purpose": self.purpose,
+            "authority_level": self.authority_level,
+            "capability_gate_required": self.capability_gate_required,
+        }
+
+
+@dataclass(frozen=True)
 class TeamRole:
     role_id: str
     display_name: str
     responsibilities: str
+    department_id: str = ""
+    authority_scope: str = "local_only"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
@@ -110,36 +155,93 @@ class TeamRole:
             "responsibilities",
             _required_text("responsibilities", self.responsibilities),
         )
+        if not isinstance(self.department_id, str):
+            raise WorkroomModelError("department_id must be a string")
+        object.__setattr__(self, "department_id", self.department_id.strip())
+        object.__setattr__(
+            self,
+            "authority_scope",
+            _required_text("authority_scope", self.authority_scope),
+        )
 
     def to_payload(self) -> dict[str, object]:
-        return {
+        payload = {
             "role_id": self.role_id,
             "display_name": self.display_name,
             "responsibilities": self.responsibilities,
         }
+        if self.department_id:
+            payload["department_id"] = self.department_id
+            payload["authority_scope"] = self.authority_scope
+        return payload
 
 
 @dataclass(frozen=True)
 class TeamBlueprint:
     name: str
     roles: tuple[TeamRole, ...] | list[TeamRole]
+    departments: tuple[Department, ...] | list[Department] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", _required_text("name", self.name))
+        if not isinstance(self.departments, (tuple, list)):
+            raise WorkroomModelError("departments must be a tuple or list")
+        if any(not isinstance(department, Department) for department in self.departments):
+            raise WorkroomModelError("departments must be Department instances")
+        departments = tuple(self.departments)
+        department_ids = {department.department_id for department in departments}
         if not isinstance(self.roles, (tuple, list)) or not self.roles:
             raise WorkroomModelError("roles are required")
         if any(not isinstance(role, TeamRole) for role in self.roles):
             raise WorkroomModelError("roles must be TeamRole instances")
-        object.__setattr__(self, "roles", tuple(self.roles))
+        roles = tuple(self.roles)
+        unknown_departments = sorted(
+            {
+                role.department_id
+                for role in roles
+                if role.department_id and role.department_id not in department_ids
+            }
+        )
+        if unknown_departments:
+            raise WorkroomModelError(
+                f"unknown department: {', '.join(unknown_departments)}"
+            )
+        object.__setattr__(self, "departments", departments)
+        object.__setattr__(self, "roles", roles)
+
+    def department_ids(self) -> tuple[str, ...]:
+        return tuple(department.department_id for department in self.departments)
 
     def role_ids(self) -> tuple[str, ...]:
         return tuple(role.role_id for role in self.roles)
 
+    def department_for_role(self, role_id: str) -> Department:
+        role = self.role_for_id(role_id)
+        if not role.department_id:
+            raise WorkroomModelError(f"role has no department: {role_id}")
+        for department in self.departments:
+            if department.department_id == role.department_id:
+                return department
+        raise WorkroomModelError(f"unknown department: {role.department_id}")
+
+    def role_for_id(self, role_id: str) -> TeamRole:
+        clean_role_id = _required_text("role_id", role_id)
+        for role in self.roles:
+            if role.role_id == clean_role_id:
+                return role
+        raise WorkroomModelError(f"unknown role: {clean_role_id}")
+
     def to_payload(self) -> dict[str, object]:
-        return {
+        payload = {
             "name": self.name,
             "roles": [role.to_payload() for role in self.roles],
         }
+        if self.departments:
+            payload["departments"] = [
+                department.to_payload()
+                for department in self.departments
+            ]
+        return payload
 
 
 @dataclass(frozen=True)
@@ -873,6 +975,7 @@ class WorkItemCommit:
 
 __all__ = [
     "CompanyGoalRun",
+    "Department",
     "DevOpsExecutionEvidence",
     "DevOpsOperationPlan",
     "GitHubPagesDeployProposal",

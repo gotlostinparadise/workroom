@@ -7,6 +7,7 @@ import unittest
 
 from agency_workroom.models import (
     CompanyGoalRun,
+    Department,
     DevOpsExecutionEvidence,
     DevOpsOperationPlan,
     GitHubPagesDeployProposal,
@@ -528,6 +529,119 @@ class SupervisorTurnModelTests(unittest.TestCase):
 
 
 class TeamWorkflowModelTests(unittest.TestCase):
+    def test_department_payload_is_stable(self) -> None:
+        department = Department(
+            department_id="product",
+            display_name="Product Department",
+            purpose="Create local product artifacts",
+            authority_level="local_only",
+            capability_gate_required=False,
+        )
+
+        self.assertEqual(
+            {
+                "department_id": "product",
+                "display_name": "Product Department",
+                "purpose": "Create local product artifacts",
+                "authority_level": "local_only",
+                "capability_gate_required": False,
+            },
+            department.to_payload(),
+        )
+
+    def test_team_role_payload_includes_department_and_authority(self) -> None:
+        role = TeamRole(
+            role_id="landing_builder",
+            display_name="Landing Builder",
+            responsibilities="Create landing artifacts",
+            department_id="product",
+            authority_scope="local_only",
+        )
+
+        self.assertEqual(
+            {
+                "role_id": "landing_builder",
+                "display_name": "Landing Builder",
+                "responsibilities": "Create landing artifacts",
+                "department_id": "product",
+                "authority_scope": "local_only",
+            },
+            role.to_payload(),
+        )
+
+    def test_team_blueprint_payload_includes_departments_and_helpers(self) -> None:
+        departments = (
+            Department(
+                department_id="product",
+                display_name="Product Department",
+                purpose="Create local product artifacts",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="qa",
+                display_name="QA Department",
+                purpose="Verify artifacts",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+        )
+        blueprint = TeamBlueprint(
+            name="Validation Team",
+            departments=departments,
+            roles=(
+                TeamRole(
+                    role_id="landing_builder",
+                    display_name="Landing Builder",
+                    responsibilities="Create landing artifacts",
+                    department_id="product",
+                    authority_scope="local_only",
+                ),
+                TeamRole(
+                    role_id="qa_tester",
+                    display_name="QA Tester",
+                    responsibilities="Verify artifacts",
+                    department_id="qa",
+                    authority_scope="local_only",
+                ),
+            ),
+        )
+
+        self.assertEqual(("product", "qa"), blueprint.department_ids())
+        self.assertEqual("product", blueprint.department_for_role("landing_builder").department_id)
+        self.assertEqual("qa_tester", blueprint.role_for_id("qa_tester").role_id)
+        self.assertEqual(
+            ["product", "qa"],
+            [
+                department["department_id"]
+                for department in blueprint.to_payload()["departments"]
+            ],
+        )
+
+    def test_team_blueprint_rejects_role_with_missing_department(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "unknown department"):
+            TeamBlueprint(
+                name="Validation Team",
+                departments=(
+                    Department(
+                        department_id="product",
+                        display_name="Product Department",
+                        purpose="Create local product artifacts",
+                        authority_level="local_only",
+                        capability_gate_required=False,
+                    ),
+                ),
+                roles=(
+                    TeamRole(
+                        role_id="qa_tester",
+                        display_name="QA Tester",
+                        responsibilities="Verify artifacts",
+                        department_id="qa",
+                        authority_scope="local_only",
+                    ),
+                ),
+            )
+
     def test_team_blueprint_copies_roles(self) -> None:
         roles = [
             TeamRole(
