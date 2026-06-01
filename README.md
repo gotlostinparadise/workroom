@@ -7,6 +7,9 @@ It is an external consumer of the standalone `kernel` package at
 local modules, and product behavior. Kernel owns authority, grants, redemption,
 ledger, replay, and audit.
 
+For the project doctrine and long-term operating model, read
+[`docs/WORKROOM_DOCTRINE.md`](docs/WORKROOM_DOCTRINE.md).
+
 Verified Kernel commit:
 
 ```text
