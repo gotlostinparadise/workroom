@@ -74,6 +74,12 @@ def _required_sequence(name: str, values: tuple[str, ...] | list[str]) -> tuple[
     return tuple(_required_text(name, value) for value in values)
 
 
+def _optional_text_sequence(name: str, values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+    if not isinstance(values, (tuple, list)):
+        raise WorkroomModelError(f"{name} must be a tuple or list")
+    return tuple(_required_text(name, value) for value in values)
+
+
 def _commit_metadata_without_paths(commit: Mapping[str, object]) -> dict[str, object]:
     if not isinstance(commit, Mapping):
         raise WorkroomModelError("commits must be mappings")
@@ -328,6 +334,55 @@ class NextAction:
 
 
 @dataclass(frozen=True)
+class NextToolRecommendation:
+    run_id: str
+    recommended_tool: str
+    arguments: Mapping[str, object]
+    reason: str
+    will_mutate_state: bool
+    blocked: bool
+    missing_prerequisites: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    blocker_summary: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        if not isinstance(self.recommended_tool, str):
+            raise WorkroomModelError("recommended_tool must be a string")
+        object.__setattr__(self, "recommended_tool", self.recommended_tool.strip())
+        object.__setattr__(self, "arguments", _metadata_copy(self.arguments))
+        object.__setattr__(self, "reason", _required_text("reason", self.reason))
+        object.__setattr__(
+            self,
+            "missing_prerequisites",
+            _optional_text_sequence(
+                "missing_prerequisites",
+                self.missing_prerequisites,
+            ),
+        )
+        if not isinstance(self.will_mutate_state, bool):
+            raise WorkroomModelError("will_mutate_state must be a bool")
+        object.__setattr__(self, "will_mutate_state", self.will_mutate_state)
+        if not isinstance(self.blocked, bool):
+            raise WorkroomModelError("blocked must be a bool")
+        object.__setattr__(self, "blocked", self.blocked)
+        if not isinstance(self.blocker_summary, str):
+            raise WorkroomModelError("blocker_summary must be a string")
+        object.__setattr__(self, "blocker_summary", self.blocker_summary.strip())
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "recommended_tool": self.recommended_tool,
+            "arguments": _metadata_payload(self.arguments),
+            "reason": self.reason,
+            "missing_prerequisites": list(self.missing_prerequisites),
+            "will_mutate_state": self.will_mutate_state,
+            "blocked": self.blocked,
+            "blocker_summary": self.blocker_summary,
+        }
+
+
+@dataclass(frozen=True)
 class CompanyGoalRun:
     run_id: str
     user_id: str
@@ -539,6 +594,7 @@ __all__ = [
     "CompanyGoalRun",
     "GitHubPagesDeployProposal",
     "NextAction",
+    "NextToolRecommendation",
     "TeamBlueprint",
     "TeamRole",
     "TaskState",

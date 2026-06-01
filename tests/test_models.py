@@ -7,6 +7,7 @@ from agency_workroom.models import (
     CompanyGoalRun,
     GitHubPagesDeployProposal,
     NextAction,
+    NextToolRecommendation,
     TeamBlueprint,
     TeamRole,
     TaskState,
@@ -223,6 +224,58 @@ class AgentSessionModelTests(unittest.TestCase):
                 commits=[],
                 tasks=[],
             )
+
+
+class NextToolRecommendationModelTests(unittest.TestCase):
+    def test_next_tool_recommendation_payload_is_stable(self) -> None:
+        recommendation = NextToolRecommendation(
+            run_id="run_abc",
+            recommended_tool="create_landing_artifact",
+            arguments={
+                "run_id": "run_abc",
+                "task_ref": "workroom-item://landing",
+                "workspace_path": "/tmp/workspace",
+            },
+            reason="landing_page task is planned and has no landing artifact",
+            missing_prerequisites=(),
+            will_mutate_state=True,
+            blocked=False,
+        )
+
+        self.assertEqual(
+            recommendation.to_payload(),
+            {
+                "run_id": "run_abc",
+                "recommended_tool": "create_landing_artifact",
+                "arguments": {
+                    "run_id": "run_abc",
+                    "task_ref": "workroom-item://landing",
+                    "workspace_path": "/tmp/workspace",
+                },
+                "reason": "landing_page task is planned and has no landing artifact",
+                "missing_prerequisites": [],
+                "will_mutate_state": True,
+                "blocked": False,
+                "blocker_summary": "",
+            },
+        )
+
+    def test_next_tool_recommendation_allows_no_tool_with_missing_prerequisites(self) -> None:
+        recommendation = NextToolRecommendation(
+            run_id="run_abc",
+            recommended_tool="",
+            arguments={},
+            reason="GitHub Pages proposal requires passing landing QA",
+            missing_prerequisites=("passing landing QA report",),
+            will_mutate_state=False,
+            blocked=False,
+        )
+
+        self.assertEqual("", recommendation.to_payload()["recommended_tool"])
+        self.assertEqual(
+            ["passing landing QA report"],
+            recommendation.to_payload()["missing_prerequisites"],
+        )
 
 
 class GitHubPagesDeployProposalModelTests(unittest.TestCase):
