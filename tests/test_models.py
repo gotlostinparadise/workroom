@@ -12,6 +12,7 @@ from agency_workroom.models import (
     GitHubPagesDeployProposal,
     NextAction,
     NextToolRecommendation,
+    SupervisorTurn,
     TeamBlueprint,
     TeamRole,
     TaskState,
@@ -445,6 +446,85 @@ class DevOpsOperationModelTests(unittest.TestCase):
                 "commands_executed": ["git add", "git commit"],
             },
         )
+
+
+class SupervisorTurnModelTests(unittest.TestCase):
+    def test_supervisor_turn_payload_is_stable_and_copies_nested_payloads(self) -> None:
+        recommendation = {
+            "recommended_tool": "create_landing_artifact",
+            "arguments": {"run_id": "run_abc"},
+        }
+        approval_request = {
+            "recommended_tool": "prepare_github_pages_deploy_execution_plan",
+            "missing_inputs": ["target_repo_full_name"],
+        }
+        turn = SupervisorTurn(
+            turn_id="turn_abc",
+            run_id="run_abc",
+            supervisor_id="goal-supervisor:run_abc",
+            phase_before="local_production",
+            phase_after="qa",
+            action_type="local_step_executed",
+            selected_tool="run_next_local_step",
+            delegated_role="landing_builder",
+            reason="landing task is ready",
+            recommendation=recommendation,
+            result_ref="workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+            requires_approval=False,
+            approval_request=approval_request,
+            next_recommendation={"recommended_tool": "create_landing_qa_report"},
+            status_counts={"completed": 1, "planned": 7},
+        )
+        recommendation["arguments"]["run_id"] = "changed"
+        approval_request["missing_inputs"].append("target_repo_path")
+
+        self.assertEqual(
+            {
+                "schema_version": "supervisor-turn.v1",
+                "turn_id": "turn_abc",
+                "run_id": "run_abc",
+                "supervisor_id": "goal-supervisor:run_abc",
+                "phase_before": "local_production",
+                "phase_after": "qa",
+                "action_type": "local_step_executed",
+                "selected_tool": "run_next_local_step",
+                "delegated_role": "landing_builder",
+                "reason": "landing task is ready",
+                "recommendation": {
+                    "recommended_tool": "create_landing_artifact",
+                    "arguments": {"run_id": "run_abc"},
+                },
+                "result_ref": "workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+                "requires_approval": False,
+                "approval_request": {
+                    "recommended_tool": "prepare_github_pages_deploy_execution_plan",
+                    "missing_inputs": ["target_repo_full_name"],
+                },
+                "next_recommendation": {"recommended_tool": "create_landing_qa_report"},
+                "status_counts": {"completed": 1, "planned": 7},
+            },
+            turn.to_payload(),
+        )
+
+    def test_supervisor_turn_rejects_non_bool_requires_approval(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "requires_approval"):
+            SupervisorTurn(
+                turn_id="turn_abc",
+                run_id="run_abc",
+                supervisor_id="goal-supervisor:run_abc",
+                phase_before="local_production",
+                phase_after="qa",
+                action_type="local_step_executed",
+                selected_tool="run_next_local_step",
+                delegated_role="landing_builder",
+                reason="landing task is ready",
+                recommendation={},
+                result_ref="",
+                requires_approval="false",
+                approval_request={},
+                next_recommendation={},
+                status_counts={},
+            )
 
 
 class TeamWorkflowModelTests(unittest.TestCase):

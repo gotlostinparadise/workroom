@@ -731,6 +731,94 @@ def _canonical_payload_sha256(payload: Mapping[str, object]) -> str:
 
 
 @dataclass(frozen=True)
+class SupervisorTurn:
+    turn_id: str
+    run_id: str
+    supervisor_id: str
+    phase_before: str
+    phase_after: str
+    action_type: str
+    selected_tool: str
+    delegated_role: str
+    reason: str
+    recommendation: Mapping[str, object]
+    result_ref: str
+    requires_approval: bool
+    approval_request: Mapping[str, object]
+    next_recommendation: Mapping[str, object]
+    status_counts: Mapping[str, object]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "turn_id", _required_text("turn_id", self.turn_id))
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(
+            self,
+            "supervisor_id",
+            _required_text("supervisor_id", self.supervisor_id),
+        )
+        object.__setattr__(
+            self,
+            "phase_before",
+            _required_text("phase_before", self.phase_before),
+        )
+        object.__setattr__(
+            self,
+            "phase_after",
+            _required_text("phase_after", self.phase_after),
+        )
+        object.__setattr__(
+            self,
+            "action_type",
+            _required_text("action_type", self.action_type),
+        )
+        if not isinstance(self.selected_tool, str):
+            raise WorkroomModelError("selected_tool must be a string")
+        object.__setattr__(self, "selected_tool", self.selected_tool.strip())
+        if not isinstance(self.delegated_role, str):
+            raise WorkroomModelError("delegated_role must be a string")
+        object.__setattr__(self, "delegated_role", self.delegated_role.strip())
+        object.__setattr__(self, "reason", _required_text("reason", self.reason))
+        object.__setattr__(self, "recommendation", _metadata_copy(self.recommendation))
+        if not isinstance(self.result_ref, str):
+            raise WorkroomModelError("result_ref must be a string")
+        object.__setattr__(self, "result_ref", self.result_ref.strip())
+        if not isinstance(self.requires_approval, bool):
+            raise WorkroomModelError("requires_approval must be a bool")
+        object.__setattr__(self, "requires_approval", self.requires_approval)
+        object.__setattr__(
+            self,
+            "approval_request",
+            _metadata_copy(self.approval_request),
+        )
+        object.__setattr__(
+            self,
+            "next_recommendation",
+            _metadata_copy(self.next_recommendation),
+        )
+        object.__setattr__(self, "status_counts", _metadata_copy(self.status_counts))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "supervisor-turn.v1",
+            "turn_id": self.turn_id,
+            "run_id": self.run_id,
+            "supervisor_id": self.supervisor_id,
+            "phase_before": self.phase_before,
+            "phase_after": self.phase_after,
+            "action_type": self.action_type,
+            "selected_tool": self.selected_tool,
+            "delegated_role": self.delegated_role,
+            "reason": self.reason,
+            "recommendation": _metadata_payload(self.recommendation),
+            "result_ref": self.result_ref,
+            "requires_approval": self.requires_approval,
+            "approval_request": _metadata_payload(self.approval_request),
+            "next_recommendation": _metadata_payload(self.next_recommendation),
+            "status_counts": _metadata_payload(self.status_counts),
+        }
+
+
+@dataclass(frozen=True)
 class WorkItemDraft:
     department: str
     agent_role: str
@@ -790,6 +878,7 @@ __all__ = [
     "GitHubPagesDeployProposal",
     "NextAction",
     "NextToolRecommendation",
+    "SupervisorTurn",
     "TeamBlueprint",
     "TeamRole",
     "TaskState",
