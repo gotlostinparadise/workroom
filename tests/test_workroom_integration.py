@@ -23,6 +23,8 @@ from agency_workroom import (
     summarize_run,
 )
 from agency_workroom.models import WorkflowRequest
+from agency_workroom.session_store import load_company_goal_run
+from agency_workroom.supervisor import build_supervisor_snapshot
 from agency_workroom.workflow import run_business_validation_workflow
 from kernel.ledger import JsonlLedger
 from kernel.supervisor import BootMode, boot_kernel_from_ledger
@@ -229,6 +231,50 @@ class WorkroomIntegrationTests(unittest.TestCase):
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn("private agent goal payload", ledger_text)
         self.assertNotIn("private agent result payload", ledger_text)
+
+    def test_company_goal_run_exposes_department_structure(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private company structure integration marker"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        run = load_company_goal_run(workspace_path, started["run_id"])
+        snapshot = build_supervisor_snapshot(run)
+
+        self.assertEqual(
+            [
+                "strategy",
+                "research",
+                "product",
+                "qa",
+                "devops",
+                "growth",
+                "social",
+                "coordination",
+            ],
+            [
+                department["department_id"]
+                for department in started["team"]["departments"]
+            ],
+        )
+        self.assertIn(
+            "devops_operator",
+            [role["role_id"] for role in started["team"]["roles"]],
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+        self.assertEqual("devops_operator", github_pages_task["role_id"])
+        self.assertEqual("product", snapshot["current_department"])
+        self.assertEqual({"planned": 1}, snapshot["department_status"]["devops"]["status_counts"])
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
     def test_agent_tool_flow_creates_local_landing_artifact(self) -> None:
         assert_external_kernel_dependency(self)

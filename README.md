@@ -113,6 +113,11 @@ structured hypothesis request and creates planned work items for hypothesis
 research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
+The team blueprint models departments explicitly: strategy, research, product,
+QA, DevOps, growth, social, and coordination. Roles belong to departments and
+carry authority scope metadata, so Codex can see whether the current work is
+safe local execution, coordination, or approval-gated capability work.
+
 The first slice is local. It does not deploy to GitHub Pages, post to Threads,
 or run background agents. Those external effects require separate
 capability-backed modules and current API/CLI verification before they are
