@@ -21,6 +21,7 @@ from .models import (
     CompanyGoalRun,
     NextAction,
     NextToolRecommendation,
+    SupervisorTurn,
     TaskState,
     WorkflowRequest,
     WorkroomModelError,
@@ -30,6 +31,12 @@ from .session_store import (
     load_company_goal_run,
     run_state_path,
     save_company_goal_run,
+)
+from .supervisor import (
+    build_approval_required_turn,
+    detect_goal_phase,
+    supervisor_id_for,
+    write_supervisor_turn,
 )
 from .workflow import run_business_validation_workflow
 
@@ -309,6 +316,99 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
         "blocked": False,
         "reason": "executed recommended local tool",
     }
+
+
+def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run_before = load_company_goal_run(clean_workspace_path, clean_run_id)
+    phase_before = detect_goal_phase(run_before)
+    recommendation = recommend_next_tool_call(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    recommended_tool = str(recommendation.get("recommended_tool", ""))
+
+    if recommended_tool in LOCAL_STEP_TOOL_NAMES:
+        step_result = run_next_local_step(
+            run_id=clean_run_id,
+            workspace_path=clean_workspace_path,
+        )
+        run_after = load_company_goal_run(clean_workspace_path, clean_run_id)
+        phase_after = detect_goal_phase(run_after)
+        next_recommendation = recommend_next_tool_call(
+            run_id=clean_run_id,
+            workspace_path=clean_workspace_path,
+        )
+        turn = SupervisorTurn(
+            turn_id=_supervisor_turn_id(
+                run_id=clean_run_id,
+                action_type="local_step_executed",
+                phase_before=phase_before,
+                selected_tool="run_next_local_step",
+                result_ref=_result_ref_from_step_result(step_result),
+            ),
+            run_id=clean_run_id,
+            supervisor_id=supervisor_id_for(clean_run_id),
+            phase_before=phase_before,
+            phase_after=phase_after,
+            action_type="local_step_executed",
+            selected_tool="run_next_local_step",
+            delegated_role=_delegated_role_for_local_tool(recommended_tool),
+            reason=str(step_result.get("reason", "executed recommended local tool")),
+            recommendation=recommendation,
+            result_ref=_result_ref_from_step_result(step_result),
+            requires_approval=False,
+            approval_request={},
+            next_recommendation=next_recommendation,
+            status_counts=dict(Counter(task.status for task in run_after.tasks)),
+        )
+        return {
+            **write_supervisor_turn(clean_workspace_path, turn),
+            "execution": step_result,
+        }
+
+    if bool(recommendation.get("blocked", False)) and phase_before == "approval_required":
+        turn = build_approval_required_turn(
+            run=run_before,
+            phase_before=phase_before,
+            recommendation=recommendation,
+        )
+        return write_supervisor_turn(clean_workspace_path, turn)
+
+    if phase_before == "complete":
+        action_type = "complete"
+        reason = "company goal run is complete"
+    elif bool(recommendation.get("blocked", False)):
+        action_type = "blocked"
+        reason = str(recommendation.get("reason", "company goal run is blocked"))
+    else:
+        action_type = "needs_human_decision"
+        reason = str(recommendation.get("reason", "no safe supervisor action is available"))
+    turn = SupervisorTurn(
+        turn_id=_supervisor_turn_id(
+            run_id=clean_run_id,
+            action_type=action_type,
+            phase_before=phase_before,
+            selected_tool="",
+            result_ref="",
+        ),
+        run_id=clean_run_id,
+        supervisor_id=supervisor_id_for(clean_run_id),
+        phase_before=phase_before,
+        phase_after=phase_before,
+        action_type=action_type,
+        selected_tool="",
+        delegated_role="goal_supervisor",
+        reason=reason,
+        recommendation=recommendation,
+        result_ref="",
+        requires_approval=False,
+        approval_request={},
+        next_recommendation=recommendation,
+        status_counts=dict(Counter(task.status for task in run_before.tasks)),
+    )
+    return write_supervisor_turn(clean_workspace_path, turn)
 
 
 def record_work_result(
@@ -781,6 +881,58 @@ def _recommendation_arguments(recommendation: dict[str, object]) -> dict[str, ob
     return arguments
 
 
+def _delegated_role_for_local_tool(tool_name: str) -> str:
+    if tool_name == "create_landing_artifact":
+        return "landing_builder"
+    if tool_name == "create_landing_qa_report":
+        return "qa_tester"
+    if tool_name == "prepare_github_pages_deploy_proposal":
+        return "devops_operator"
+    return "goal_supervisor"
+
+
+def _result_ref_from_step_result(step_result: dict[str, object]) -> str:
+    result = step_result.get("result")
+    if not isinstance(result, dict):
+        return ""
+    artifact = result.get("artifact")
+    if isinstance(artifact, dict) and isinstance(artifact.get("artifact_ref"), str):
+        return artifact["artifact_ref"]
+    report = result.get("report")
+    if isinstance(report, dict) and isinstance(report.get("report_ref"), str):
+        return report["report_ref"]
+    proposal = result.get("deploy_proposal")
+    if isinstance(proposal, dict) and isinstance(proposal.get("proposal_ref"), str):
+        return proposal["proposal_ref"]
+    evidence = result.get("evidence")
+    if isinstance(evidence, dict) and isinstance(evidence.get("evidence_ref"), str):
+        return evidence["evidence_ref"]
+    return ""
+
+
+def _supervisor_turn_id(
+    *,
+    run_id: str,
+    action_type: str,
+    phase_before: str,
+    selected_tool: str,
+    result_ref: str,
+) -> str:
+    digest = hashlib.sha256(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "action_type": action_type,
+                "phase_before": phase_before,
+                "selected_tool": selected_tool,
+                "result_ref": result_ref,
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"turn_{digest[:16]}"
+
+
 def _artifact_ref_recorded_in_run(run: CompanyGoalRun, artifact_ref: str) -> bool:
     return any(artifact_ref in task.result_refs for task in run.tasks)
 
@@ -952,6 +1104,7 @@ __all__ = [
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
+    "advance_company_goal",
     "create_landing_artifact",
     "create_landing_qa_report",
     "execute_github_pages_deploy",

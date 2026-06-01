@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import agency_workroom.agent_session as agent_session
 from agency_workroom.agent_session import (
+    advance_company_goal,
     create_landing_artifact,
     create_landing_qa_report,
     get_company_state,
@@ -1168,6 +1169,88 @@ class AgentSessionTests(unittest.TestCase):
             self.run_git(target_repo, "rev-parse", "HEAD"),
         )
         self.assertTrue((target_repo / "site" / "index.html").exists())
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_advance_company_goal_executes_one_safe_local_step(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("local_production", turn["phase_before"])
+        self.assertEqual("qa", turn["phase_after"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("landing_builder", turn["delegated_role"])
+        self.assertFalse(turn["requires_approval"])
+        self.assertTrue(Path(turn["turn_path"]).exists())
+        self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
+        self.assertEqual("planned", self.task_by_category(state, "testing")["status"])
+
+    def test_advance_company_goal_reaches_approval_required_without_devops_execution(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private supervisor approval marker"
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+
+        first = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", first["action_type"])
+        self.assertEqual("local_step_executed", second["action_type"])
+        self.assertEqual("local_step_executed", third["action_type"])
+        self.assertEqual("approval_required", fourth["action_type"])
+        self.assertTrue(fourth["requires_approval"])
+        self.assertEqual(
+            "prepare_github_pages_deploy_execution_plan",
+            fourth["approval_request"]["recommended_tool"],
+        )
+        self.assertEqual(
+            ["target_repo_full_name", "target_repo_path"],
+            fourth["approval_request"]["missing_inputs"],
+        )
+        github_pages_task = self.task_by_category(state, "github_pages")
+        self.assertEqual("blocked", github_pages_task["status"])
+        self.assertFalse(
+            any(
+                "/devops/" in ref and ref.endswith("/execution_evidence.json")
+                for ref in github_pages_task["result_refs"]
+            )
+        )
+        self.assertTrue(Path(fourth["turn_path"]).exists())
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
 
