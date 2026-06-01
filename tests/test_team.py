@@ -12,9 +12,23 @@ class DefaultValidationTeamTests(unittest.TestCase):
         self.assertEqual("business_validation_team", team.name)
         self.assertEqual(
             (
+                "strategy",
+                "research",
+                "product",
+                "qa",
+                "devops",
+                "growth",
+                "social",
+                "coordination",
+            ),
+            team.department_ids(),
+        )
+        self.assertEqual(
+            (
                 "hypothesis_researcher",
                 "landing_builder",
                 "qa_tester",
+                "devops_operator",
                 "threads_operator",
                 "growth_operator",
                 "team_lead",
@@ -29,6 +43,19 @@ class DefaultValidationTeamTests(unittest.TestCase):
 
         self.assertIsNot(first, second)
         self.assertEqual(first.to_payload(), second.to_payload())
+
+    def test_default_team_maps_roles_to_departments_and_gates(self) -> None:
+        team = default_validation_team()
+
+        self.assertEqual("product", team.department_for_role("landing_builder").department_id)
+        self.assertEqual("devops", team.department_for_role("devops_operator").department_id)
+        self.assertEqual(
+            "approval_required",
+            team.department_for_role("devops_operator").authority_level,
+        )
+        self.assertTrue(
+            team.department_for_role("devops_operator").capability_gate_required
+        )
 
 
 if __name__ == "__main__":

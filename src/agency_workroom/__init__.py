@@ -24,6 +24,7 @@ from .agent_session import (
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .models import (
     CompanyGoalRun,
+    Department,
     DevOpsExecutionEvidence,
     DevOpsOperationPlan,
     GitHubPagesDeployProposal,
@@ -54,6 +55,7 @@ __all__ = [
     "BusinessValidationWorkflowResult",
     "CompanyGoalRun",
     "DEVOPS_OPERATION_PREFIX",
+    "Department",
     "DevOpsExecutionEvidence",
     "DevOpsOperationPlan",
     "EXTERNAL_CAPABILITY_CATEGORIES",
