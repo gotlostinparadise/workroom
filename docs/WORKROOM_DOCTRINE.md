@@ -56,6 +56,12 @@ user goal
 One Workroom supervisor call must be understandable after the fact. It should
 produce a durable artifact or a clear reason why it stopped.
 
+Department transfers should be recorded as Workroom-local handoff records.
+Approval gates, blockers, and strategy questions should be recorded as
+Workroom-local decision records. These records point at supporting artifact
+refs; they do not replace Kernel authority events or grant high-stakes
+permission by themselves.
+
 The preferred unit of progress is one bounded turn, not an unbounded loop.
 Workroom may recommend the next tool call or execute an allowlisted local step,
 but it should not silently continue through a chain of effects.
@@ -83,6 +89,7 @@ infer a deploy target from its own repository checkout.
 
 Private goal text, raw result payloads, secrets, tokens, headers, and account
 credentials must not be written into the Kernel ledger.
+They also must not be written into Workroom handoff or decision records.
 
 ## Company Hierarchy
 
@@ -148,8 +155,8 @@ and better evidence.
 The next improvements should strengthen:
 
 - richer department and role boundaries;
-- better supervisor state and decision records;
-- explicit handoffs between roles;
+- better supervisor state, decision records, and handoff records;
+- explicit handoffs between roles and departments;
 - stronger DevOps and social capability protocols;
 - clearer approval UX for Codex and the user;
 - replayable evidence for completed turns;

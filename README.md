@@ -85,6 +85,11 @@ step, execute at most one local step, or return a structured approval/blocker
 request. It writes a supervisor turn artifact under the run workspace and does
 not execute high-stakes DevOps operations.
 
+Supervisor turns also write Workroom-local operational records when the run
+crosses a department boundary or reaches an approval/decision point. Codex can
+inspect `runs/<run_id>/handoffs/` and `runs/<run_id>/decisions/` refs to see
+what was transferred, which artifacts support it, and what decision is pending.
+
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without
 deploying it.
@@ -117,6 +122,8 @@ The team blueprint models departments explicitly: strategy, research, product,
 QA, DevOps, growth, social, and coordination. Roles belong to departments and
 carry authority scope metadata, so Codex can see whether the current work is
 safe local execution, coordination, or approval-gated capability work.
+Handoff records make department transfers durable; decision records make
+approval gates, blockers, and strategy questions durable.
 
 The first slice is local. It does not deploy to GitHub Pages, post to Threads,
 or run background agents. Those external effects require separate
