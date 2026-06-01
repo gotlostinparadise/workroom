@@ -50,6 +50,7 @@ The MCP tools are agent-facing:
 - `list_next_actions`
 - `recommend_next_tool_call`
 - `run_next_local_step`
+- `advance_company_goal`
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
@@ -74,6 +75,12 @@ executing that tool.
 recommendation. It can advance landing artifact creation, landing QA, or local
 GitHub Pages deploy proposal preparation, but it does not loop, push to GitHub,
 post externally, or run unapproved tools such as raw result recording.
+
+`advance_company_goal` is the first goal-specific supervisor tool. It performs
+one bounded supervisor turn for a run: observe state, choose the next safe local
+step, execute at most one local step, or return a structured approval/blocker
+request. It writes a supervisor turn artifact under the run workspace and does
+not execute high-stakes DevOps operations.
 
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without

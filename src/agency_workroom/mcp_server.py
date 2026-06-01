@@ -12,6 +12,7 @@ TOOL_NAMES = (
     "list_next_actions",
     "recommend_next_tool_call",
     "run_next_local_step",
+    "advance_company_goal",
     "record_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
@@ -69,6 +70,15 @@ def recommend_next_tool_call(run_id: str, workspace_path: str) -> dict[str, obje
 def run_next_local_step(run_id: str, workspace_path: str) -> dict[str, object]:
     """Execute one allowlisted local Workroom step from the current recommendation."""
     return agent_session.run_next_local_step(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def advance_company_goal(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Advance one goal-specific supervisor turn for a Workroom company run."""
+    return agent_session.advance_company_goal(
         run_id=run_id,
         workspace_path=workspace_path,
     )
@@ -201,6 +211,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "TOOL_NAMES",
+    "advance_company_goal",
     "create_landing_artifact",
     "create_landing_qa_report",
     "execute_github_pages_deploy",
