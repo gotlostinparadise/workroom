@@ -7,10 +7,12 @@ import unittest
 
 from agency_workroom.models import (
     CompanyGoalRun,
+    DecisionRecord,
     Department,
     DevOpsExecutionEvidence,
     DevOpsOperationPlan,
     GitHubPagesDeployProposal,
+    HandoffRecord,
     NextAction,
     NextToolRecommendation,
     SupervisorTurn,
@@ -844,6 +846,122 @@ class TeamWorkflowModelTests(unittest.TestCase):
                 request=request,
                 summary="Plan summary",
                 tasks=(),
+            )
+
+
+class OperationalRecordModelTests(unittest.TestCase):
+    def test_handoff_record_payload_is_stable_and_copies_metadata(self) -> None:
+        artifact_refs = ["workroom-artifact://runs/run_abc/landing_page/aaa/index.html"]
+        metadata = {"handoff": {"quality": "passed"}}
+        record = HandoffRecord(
+            handoff_id="handoff_abc",
+            run_id="run_abc",
+            phase="local_production",
+            from_department="product",
+            to_department="qa",
+            status="completed",
+            reason="landing artifact is ready for QA",
+            task_ref="workroom-item://landing",
+            artifact_refs=artifact_refs,
+            requires_approval=False,
+            metadata=metadata,
+        )
+        artifact_refs.append("changed")
+        metadata["handoff"]["quality"] = "changed"
+
+        self.assertEqual(
+            {
+                "schema_version": "handoff-record.v1",
+                "handoff_id": "handoff_abc",
+                "run_id": "run_abc",
+                "phase": "local_production",
+                "from_department": "product",
+                "to_department": "qa",
+                "status": "completed",
+                "reason": "landing artifact is ready for QA",
+                "task_ref": "workroom-item://landing",
+                "artifact_refs": [
+                    "workroom-artifact://runs/run_abc/landing_page/aaa/index.html"
+                ],
+                "requires_approval": False,
+                "metadata": {"handoff": {"quality": "passed"}},
+            },
+            record.to_payload(),
+        )
+
+    def test_handoff_record_rejects_scalar_artifact_refs(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "artifact_refs"):
+            HandoffRecord(
+                handoff_id="handoff_abc",
+                run_id="run_abc",
+                phase="local_production",
+                from_department="product",
+                to_department="qa",
+                status="completed",
+                reason="landing artifact is ready for QA",
+                task_ref="workroom-item://landing",
+                artifact_refs="bad",
+                requires_approval=False,
+            )
+
+    def test_decision_record_payload_is_stable_and_copies_options(self) -> None:
+        options = ["approve", "revise"]
+        metadata = {"gate": {"risk": "high"}}
+        record = DecisionRecord(
+            decision_id="decision_abc",
+            run_id="run_abc",
+            phase="approval_required",
+            owner_department="devops",
+            decision_type="approval_gate",
+            status="required",
+            question="Approve GitHub Pages execution plan?",
+            recommendation="Prepare an explicit execution plan before deploy.",
+            reason="deploy proposal is ready but target repo is missing",
+            task_ref="workroom-item://github-pages",
+            source_refs=("workroom-artifact://runs/run_abc/github_pages/aaa/deploy_proposal.json",),
+            options=options,
+            metadata=metadata,
+        )
+        options.append("changed")
+        metadata["gate"]["risk"] = "changed"
+
+        self.assertEqual(
+            {
+                "schema_version": "decision-record.v1",
+                "decision_id": "decision_abc",
+                "run_id": "run_abc",
+                "phase": "approval_required",
+                "owner_department": "devops",
+                "decision_type": "approval_gate",
+                "status": "required",
+                "question": "Approve GitHub Pages execution plan?",
+                "recommendation": "Prepare an explicit execution plan before deploy.",
+                "reason": "deploy proposal is ready but target repo is missing",
+                "task_ref": "workroom-item://github-pages",
+                "source_refs": [
+                    "workroom-artifact://runs/run_abc/github_pages/aaa/deploy_proposal.json"
+                ],
+                "options": ["approve", "revise"],
+                "metadata": {"gate": {"risk": "high"}},
+            },
+            record.to_payload(),
+        )
+
+    def test_decision_record_rejects_scalar_source_refs(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "source_refs"):
+            DecisionRecord(
+                decision_id="decision_abc",
+                run_id="run_abc",
+                phase="approval_required",
+                owner_department="devops",
+                decision_type="approval_gate",
+                status="required",
+                question="Approve GitHub Pages execution plan?",
+                recommendation="Prepare an explicit execution plan before deploy.",
+                reason="deploy proposal is ready but target repo is missing",
+                task_ref="workroom-item://github-pages",
+                source_refs="bad",
+                options=("approve",),
             )
 
 

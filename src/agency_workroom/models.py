@@ -921,6 +921,146 @@ class SupervisorTurn:
 
 
 @dataclass(frozen=True)
+class HandoffRecord:
+    handoff_id: str
+    run_id: str
+    phase: str
+    from_department: str
+    to_department: str
+    status: str
+    reason: str
+    task_ref: str
+    artifact_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    requires_approval: bool = False
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "handoff_id",
+            _required_text("handoff_id", self.handoff_id),
+        )
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "phase", _required_text("phase", self.phase))
+        object.__setattr__(
+            self,
+            "from_department",
+            _required_text("from_department", self.from_department),
+        )
+        object.__setattr__(
+            self,
+            "to_department",
+            _required_text("to_department", self.to_department),
+        )
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(self, "reason", _required_text("reason", self.reason))
+        if not isinstance(self.task_ref, str):
+            raise WorkroomModelError("task_ref must be a string")
+        object.__setattr__(self, "task_ref", self.task_ref.strip())
+        object.__setattr__(
+            self,
+            "artifact_refs",
+            _optional_text_sequence("artifact_refs", self.artifact_refs),
+        )
+        if not isinstance(self.requires_approval, bool):
+            raise WorkroomModelError("requires_approval must be a bool")
+        object.__setattr__(self, "requires_approval", self.requires_approval)
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "handoff-record.v1",
+            "handoff_id": self.handoff_id,
+            "run_id": self.run_id,
+            "phase": self.phase,
+            "from_department": self.from_department,
+            "to_department": self.to_department,
+            "status": self.status,
+            "reason": self.reason,
+            "task_ref": self.task_ref,
+            "artifact_refs": list(self.artifact_refs),
+            "requires_approval": self.requires_approval,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class DecisionRecord:
+    decision_id: str
+    run_id: str
+    phase: str
+    owner_department: str
+    decision_type: str
+    status: str
+    question: str
+    recommendation: str
+    reason: str
+    task_ref: str
+    source_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    options: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "decision_id",
+            _required_text("decision_id", self.decision_id),
+        )
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "phase", _required_text("phase", self.phase))
+        object.__setattr__(
+            self,
+            "owner_department",
+            _required_text("owner_department", self.owner_department),
+        )
+        object.__setattr__(
+            self,
+            "decision_type",
+            _required_text("decision_type", self.decision_type),
+        )
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(self, "question", _required_text("question", self.question))
+        object.__setattr__(
+            self,
+            "recommendation",
+            _required_text("recommendation", self.recommendation),
+        )
+        object.__setattr__(self, "reason", _required_text("reason", self.reason))
+        if not isinstance(self.task_ref, str):
+            raise WorkroomModelError("task_ref must be a string")
+        object.__setattr__(self, "task_ref", self.task_ref.strip())
+        object.__setattr__(
+            self,
+            "source_refs",
+            _optional_text_sequence("source_refs", self.source_refs),
+        )
+        object.__setattr__(
+            self,
+            "options",
+            _optional_text_sequence("options", self.options),
+        )
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "decision-record.v1",
+            "decision_id": self.decision_id,
+            "run_id": self.run_id,
+            "phase": self.phase,
+            "owner_department": self.owner_department,
+            "decision_type": self.decision_type,
+            "status": self.status,
+            "question": self.question,
+            "recommendation": self.recommendation,
+            "reason": self.reason,
+            "task_ref": self.task_ref,
+            "source_refs": list(self.source_refs),
+            "options": list(self.options),
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class WorkItemDraft:
     department: str
     agent_role: str
@@ -975,10 +1115,12 @@ class WorkItemCommit:
 
 __all__ = [
     "CompanyGoalRun",
+    "DecisionRecord",
     "Department",
     "DevOpsExecutionEvidence",
     "DevOpsOperationPlan",
     "GitHubPagesDeployProposal",
+    "HandoffRecord",
     "NextAction",
     "NextToolRecommendation",
     "SupervisorTurn",
