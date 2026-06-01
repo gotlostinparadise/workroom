@@ -739,6 +739,57 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(recommendation["will_mutate_state"])
         self.assertFalse(recommendation["blocked"])
 
+    def test_recommend_next_tool_call_does_not_mutate_state_with_existing_artifacts(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+        testing_task = self.task_by_category(started, "testing")
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        state_before = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        state_after = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual(state_before, state_after)
+        self.assertEqual(
+            "prepare_github_pages_deploy_proposal",
+            recommendation["recommended_tool"],
+        )
+        landing_state = self.task_by_category(state_after, "landing_page")
+        testing_state = self.task_by_category(state_after, "testing")
+        github_pages_state = self.task_by_category(state_after, "github_pages")
+        self.assertEqual("completed", landing_state["status"])
+        self.assertEqual(
+            [artifact["artifact"]["artifact_ref"]],
+            landing_state["result_refs"],
+        )
+        self.assertEqual("completed", testing_state["status"])
+        self.assertEqual([report["report"]["report_ref"]], testing_state["result_refs"])
+        self.assertEqual("planned", github_pages_state["status"])
+        self.assertEqual([], github_pages_state["result_refs"])
+
     def test_recommend_next_tool_call_after_deploy_proposal_surfaces_approval_blocker(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()

@@ -12,6 +12,7 @@ from agency_workroom import (
     get_company_state,
     prepare_github_pages_deploy_proposal,
     record_work_result,
+    recommend_next_tool_call,
     start_company_goal,
 )
 from agency_workroom.models import WorkflowRequest
@@ -294,6 +295,137 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.assertIn(proposal["proposal_ref"], github_pages_state["result_refs"])
         self.assertNotEqual("completed", github_pages_state["status"])
         self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
+        ledger_text = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn(private_goal, ledger_text)
+
+    def test_recommendation_flow_is_read_only_until_recommended_tools_are_called(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private recommendation orchestration marker"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        landing_task = next(
+            task for task in started["tasks"] if task["category"] == "landing_page"
+        )
+        testing_task = next(
+            task for task in started["tasks"] if task["category"] == "testing"
+        )
+        github_pages_task = next(
+            task for task in started["tasks"] if task["category"] == "github_pages"
+        )
+
+        state_before_landing_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        landing_recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_landing_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            state_before_landing_recommendation,
+            state_after_landing_recommendation,
+        )
+        self.assertEqual(
+            "create_landing_artifact",
+            landing_recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            landing_task["task_ref"],
+            landing_recommendation["arguments"]["task_ref"],
+        )
+
+        landing = create_landing_artifact(**landing_recommendation["arguments"])
+
+        state_before_qa_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        qa_recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_qa_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            state_before_qa_recommendation,
+            state_after_qa_recommendation,
+        )
+        self.assertEqual(
+            "create_landing_qa_report",
+            qa_recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            testing_task["task_ref"],
+            qa_recommendation["arguments"]["task_ref"],
+        )
+        self.assertEqual(
+            landing["artifact"]["artifact_ref"],
+            qa_recommendation["arguments"]["artifact_ref"],
+        )
+
+        qa = create_landing_qa_report(**qa_recommendation["arguments"])
+
+        state_before_deploy_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        deploy_recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_deploy_recommendation = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            state_before_deploy_recommendation,
+            state_after_deploy_recommendation,
+        )
+        self.assertEqual(
+            "prepare_github_pages_deploy_proposal",
+            deploy_recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            github_pages_task["task_ref"],
+            deploy_recommendation["arguments"]["task_ref"],
+        )
+        self.assertEqual(
+            landing["artifact"]["artifact_ref"],
+            deploy_recommendation["arguments"]["landing_artifact_ref"],
+        )
+        self.assertEqual(
+            qa["report"]["report_ref"],
+            deploy_recommendation["arguments"]["qa_report_ref"],
+        )
+
+        deploy = prepare_github_pages_deploy_proposal(
+            **deploy_recommendation["arguments"]
+        )
+        self.assertEqual("blocked", deploy["task"]["status"])
+        self.assertEqual(
+            "proposed_not_executed",
+            deploy["deploy_proposal"]["execution_status"],
+        )
+
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn(private_goal, ledger_text)
 
