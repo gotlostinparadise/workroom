@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import unittest
 
 from agency_workroom.models import (
     CompanyGoalRun,
+    DevOpsExecutionEvidence,
+    DevOpsOperationPlan,
     GitHubPagesDeployProposal,
     NextAction,
     NextToolRecommendation,
@@ -323,6 +327,124 @@ class GitHubPagesDeployProposalModelTests(unittest.TestCase):
                 target_branch="",
                 publish_path="site",
             )
+
+
+class DevOpsOperationModelTests(unittest.TestCase):
+    def test_devops_operation_plan_payload_is_stable_and_hash_is_canonical(self) -> None:
+        plan = DevOpsOperationPlan(
+            operation_type="github_pages.deploy_to_checkout",
+            risk_level="high",
+            run_id="run_abc",
+            task_ref="workroom-item://github-pages",
+            proposal_ref="workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+            target_repo_full_name="owner/site-target",
+            target_repo_path="/tmp/site-target",
+            target_branch="main",
+            publish_path="site",
+            files_to_write=(
+                {
+                    "source_ref": "workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+                    "target_relative_path": "site/index.html",
+                    "sha256": "a" * 64,
+                },
+            ),
+            commands=(
+                'git add site/index.html .github/workflows/workroom-pages.yml',
+                'git commit -m "Deploy Workroom landing page"',
+            ),
+        )
+
+        payload = plan.to_payload()
+        canonical = dict(payload)
+        canonical.pop("plan_sha256")
+        canonical.pop("approval_phrase")
+        expected_hash = hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+        self.assertEqual("devops-operation-plan.v1", payload["schema_version"])
+        self.assertEqual("high", payload["risk_level"])
+        self.assertEqual(expected_hash, payload["plan_sha256"])
+        self.assertEqual(
+            f"approve github-pages deploy {expected_hash}",
+            payload["approval_phrase"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "source_ref": "workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+                    "target_relative_path": "site/index.html",
+                    "sha256": "a" * 64,
+                },
+            ],
+            payload["files_to_write"],
+        )
+
+    def test_devops_operation_plan_rejects_non_high_risk_level(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "risk_level"):
+            DevOpsOperationPlan(
+                operation_type="github_pages.deploy_to_checkout",
+                risk_level="low",
+                run_id="run_abc",
+                task_ref="workroom-item://github-pages",
+                proposal_ref="workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+                target_repo_full_name="owner/site-target",
+                target_repo_path="/tmp/site-target",
+                target_branch="main",
+                publish_path="site",
+                files_to_write=(
+                    {
+                        "source_ref": "workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+                        "target_relative_path": "site/index.html",
+                        "sha256": "a" * 64,
+                    },
+                ),
+                commands=("git add site/index.html",),
+            )
+
+    def test_devops_execution_evidence_payload_is_stable(self) -> None:
+        evidence = DevOpsExecutionEvidence(
+            operation_type="github_pages.deploy_to_checkout",
+            run_id="run_abc",
+            task_ref="workroom-item://github-pages",
+            plan_ref="workroom-artifact://runs/run_abc/devops/aaa/operation_plan.json",
+            plan_sha256="b" * 64,
+            evidence_ref="workroom-artifact://runs/run_abc/devops/aaa/execution_evidence.json",
+            target_repo_full_name="owner/site-target",
+            target_branch="main",
+            git_commit_sha="c" * 40,
+            files_written=(
+                {
+                    "target_relative_path": "site/index.html",
+                    "sha256": "a" * 64,
+                },
+            ),
+            commands_executed=("git add", "git commit"),
+        )
+
+        self.assertEqual(
+            evidence.to_payload(),
+            {
+                "schema_version": "devops-execution-evidence.v1",
+                "operation_type": "github_pages.deploy_to_checkout",
+                "execution_status": "executed",
+                "run_id": "run_abc",
+                "task_ref": "workroom-item://github-pages",
+                "plan_ref": "workroom-artifact://runs/run_abc/devops/aaa/operation_plan.json",
+                "plan_sha256": "b" * 64,
+                "evidence_ref": "workroom-artifact://runs/run_abc/devops/aaa/execution_evidence.json",
+                "target_repo_full_name": "owner/site-target",
+                "target_branch": "main",
+                "git_commit_sha": "c" * 40,
+                "files_written": [
+                    {
+                        "target_relative_path": "site/index.html",
+                        "sha256": "a" * 64,
+                    },
+                ],
+                "commands_executed": ["git add", "git commit"],
+            },
+        )
 
 
 class TeamWorkflowModelTests(unittest.TestCase):

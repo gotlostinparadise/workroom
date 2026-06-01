@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import hashlib
+import json
 import math
 import re
 from types import MappingProxyType
@@ -538,6 +540,197 @@ class GitHubPagesDeployProposal:
 
 
 @dataclass(frozen=True)
+class DevOpsOperationPlan:
+    operation_type: str
+    risk_level: str
+    run_id: str
+    task_ref: str
+    proposal_ref: str
+    target_repo_full_name: str
+    target_repo_path: str
+    target_branch: str
+    publish_path: str
+    files_to_write: tuple[Mapping[str, object], ...] | list[Mapping[str, object]]
+    commands: tuple[str, ...] | list[str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "operation_type",
+            _required_text("operation_type", self.operation_type),
+        )
+        risk_level = _required_text("risk_level", self.risk_level)
+        if risk_level != "high":
+            raise WorkroomModelError("risk_level must be high")
+        object.__setattr__(self, "risk_level", risk_level)
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(
+            self,
+            "proposal_ref",
+            _required_text("proposal_ref", self.proposal_ref),
+        )
+        object.__setattr__(
+            self,
+            "target_repo_full_name",
+            _required_text("target_repo_full_name", self.target_repo_full_name),
+        )
+        object.__setattr__(
+            self,
+            "target_repo_path",
+            _required_text("target_repo_path", self.target_repo_path),
+        )
+        object.__setattr__(
+            self,
+            "target_branch",
+            _required_text("target_branch", self.target_branch),
+        )
+        object.__setattr__(
+            self,
+            "publish_path",
+            _required_text("publish_path", self.publish_path),
+        )
+        object.__setattr__(
+            self,
+            "files_to_write",
+            _required_file_payloads(self.files_to_write),
+        )
+        object.__setattr__(self, "commands", _required_sequence("commands", self.commands))
+
+    def to_payload(self) -> dict[str, object]:
+        payload = {
+            "schema_version": "devops-operation-plan.v1",
+            "operation_type": self.operation_type,
+            "risk_level": self.risk_level,
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "proposal_ref": self.proposal_ref,
+            "target_repo_full_name": self.target_repo_full_name,
+            "target_repo_path": self.target_repo_path,
+            "target_branch": self.target_branch,
+            "publish_path": self.publish_path,
+            "files_to_write": [_metadata_payload(item) for item in self.files_to_write],
+            "commands": list(self.commands),
+        }
+        plan_sha256 = _canonical_payload_sha256(payload)
+        return {
+            **payload,
+            "approval_phrase": f"approve github-pages deploy {plan_sha256}",
+            "plan_sha256": plan_sha256,
+        }
+
+
+@dataclass(frozen=True)
+class DevOpsExecutionEvidence:
+    operation_type: str
+    run_id: str
+    task_ref: str
+    plan_ref: str
+    plan_sha256: str
+    evidence_ref: str
+    target_repo_full_name: str
+    target_branch: str
+    git_commit_sha: str
+    files_written: tuple[Mapping[str, object], ...] | list[Mapping[str, object]]
+    commands_executed: tuple[str, ...] | list[str]
+    execution_status: str = "executed"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "operation_type",
+            _required_text("operation_type", self.operation_type),
+        )
+        execution_status = _required_text("execution_status", self.execution_status)
+        if execution_status != "executed":
+            raise WorkroomModelError("execution_status must be executed")
+        object.__setattr__(self, "execution_status", execution_status)
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(self, "plan_ref", _required_text("plan_ref", self.plan_ref))
+        plan_sha256 = _required_text("plan_sha256", self.plan_sha256)
+        if not _SHA256_RE.fullmatch(plan_sha256):
+            raise WorkroomModelError("plan_sha256 must be a sha256 hex digest")
+        object.__setattr__(self, "plan_sha256", plan_sha256)
+        object.__setattr__(
+            self,
+            "evidence_ref",
+            _required_text("evidence_ref", self.evidence_ref),
+        )
+        object.__setattr__(
+            self,
+            "target_repo_full_name",
+            _required_text("target_repo_full_name", self.target_repo_full_name),
+        )
+        object.__setattr__(
+            self,
+            "target_branch",
+            _required_text("target_branch", self.target_branch),
+        )
+        git_commit_sha = _required_text("git_commit_sha", self.git_commit_sha)
+        if not re.fullmatch(r"[0-9a-f]{40}", git_commit_sha):
+            raise WorkroomModelError("git_commit_sha must be a git commit sha")
+        object.__setattr__(self, "git_commit_sha", git_commit_sha)
+        object.__setattr__(
+            self,
+            "files_written",
+            _required_file_payloads(self.files_written),
+        )
+        object.__setattr__(
+            self,
+            "commands_executed",
+            _required_sequence("commands_executed", self.commands_executed),
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "devops-execution-evidence.v1",
+            "operation_type": self.operation_type,
+            "execution_status": self.execution_status,
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "plan_ref": self.plan_ref,
+            "plan_sha256": self.plan_sha256,
+            "evidence_ref": self.evidence_ref,
+            "target_repo_full_name": self.target_repo_full_name,
+            "target_branch": self.target_branch,
+            "git_commit_sha": self.git_commit_sha,
+            "files_written": [_metadata_payload(item) for item in self.files_written],
+            "commands_executed": list(self.commands_executed),
+        }
+
+
+def _required_file_payloads(
+    values: tuple[Mapping[str, object], ...] | list[Mapping[str, object]],
+) -> tuple[Mapping[str, object], ...]:
+    if not isinstance(values, (tuple, list)) or not values:
+        raise WorkroomModelError("files are required")
+    copied: list[Mapping[str, object]] = []
+    for item in values:
+        if not isinstance(item, Mapping):
+            raise WorkroomModelError("files must be mappings")
+        frozen = _metadata_copy(item)
+        if "target_relative_path" not in frozen:
+            raise WorkroomModelError("target_relative_path is required")
+        if "sha256" in frozen:
+            sha256 = frozen["sha256"]
+            if not isinstance(sha256, str) or not _SHA256_RE.fullmatch(sha256):
+                raise WorkroomModelError("sha256 must be a sha256 hex digest")
+        copied.append(frozen)
+    return tuple(copied)
+
+
+def _canonical_payload_sha256(payload: Mapping[str, object]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8"),
+    ).hexdigest()
+
+
+@dataclass(frozen=True)
 class WorkItemDraft:
     department: str
     agent_role: str
@@ -592,6 +785,8 @@ class WorkItemCommit:
 
 __all__ = [
     "CompanyGoalRun",
+    "DevOpsExecutionEvidence",
+    "DevOpsOperationPlan",
     "GitHubPagesDeployProposal",
     "NextAction",
     "NextToolRecommendation",

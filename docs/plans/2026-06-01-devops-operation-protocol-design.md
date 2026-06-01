@@ -149,8 +149,9 @@ The plan should be deterministic JSON:
 }
 ```
 
-The hash must be computed from the plan content without the `plan_sha256` field
-and with deterministic JSON serialization.
+The hash must be computed from the plan content without the `plan_sha256` and
+`approval_phrase` fields and with deterministic JSON serialization. The
+approval phrase is then derived from that hash.
 
 ## Evidence Payload
 
