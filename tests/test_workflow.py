@@ -37,10 +37,23 @@ class BusinessValidationWorkflowTests(unittest.TestCase):
         )
 
         self.assertEqual("business_validation_team", result.team.name)
+        self.assertEqual("run-context.v1", result.run_context.to_payload()["schema_version"])
+        self.assertEqual(
+            "Founders will pay for private validation notes",
+            result.run_context.goal,
+        )
+        self.assertEqual(
+            "business_validation.workflow_request",
+            result.run_context.metadata["adapter"],
+        )
         self.assertEqual(8, len(result.plan.tasks))
         self.assertEqual(8, len(result.commits))
         self.assertTrue(all(commit.status == "success" for commit in result.commits))
         self.assertTrue(all(Path(commit.work_item_path).exists() for commit in result.commits))
+        self.assertEqual(
+            result.run_context.to_payload(),
+            result.to_dict()["run_context"],
+        )
 
     def test_workflow_does_not_put_raw_private_payloads_in_ledger(self) -> None:
         assert_external_kernel_dependency(self)

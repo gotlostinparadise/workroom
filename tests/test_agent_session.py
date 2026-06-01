@@ -118,6 +118,11 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("started", response["status"])
         self.assertEqual("business_validation", response["company_spec_id"])
         self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual("run-context.v1", response["plan"]["request"]["schema_version"])
+        self.assertEqual(
+            "business_validation.workflow_request",
+            response["plan"]["request"]["metadata"]["adapter"],
+        )
         self.assertEqual(8, len(response["tasks"]))
         self.assertEqual(8, len(response["commits"]))
         self.assertTrue(response["run_id"].startswith("run_"))
