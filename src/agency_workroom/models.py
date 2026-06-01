@@ -245,6 +245,39 @@ class TeamBlueprint:
 
 
 @dataclass(frozen=True)
+class RunContext:
+    goal: str
+    summary: str
+    variables: Mapping[str, object]
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        goal = _required_text("goal", self.goal)
+        summary = _required_text("summary", self.summary)
+        if not isinstance(self.variables, Mapping):
+            raise WorkroomModelError("variables must be a mapping")
+        variables = _metadata_copy(self.variables)
+        merged_variables = {
+            **_metadata_payload(variables),
+            "goal": goal,
+            "summary": summary,
+        }
+        object.__setattr__(self, "goal", goal)
+        object.__setattr__(self, "summary", summary)
+        object.__setattr__(self, "variables", _metadata_copy(merged_variables))
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "run-context.v1",
+            "goal": self.goal,
+            "summary": self.summary,
+            "variables": _metadata_payload(self.variables),
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class CompanyTaskTemplate:
     role_id: str
     category: str
@@ -1231,6 +1264,7 @@ __all__ = [
     "HandoffRecord",
     "NextAction",
     "NextToolRecommendation",
+    "RunContext",
     "SupervisorTurn",
     "TeamBlueprint",
     "TeamRole",

@@ -17,6 +17,7 @@ from agency_workroom.models import (
     HandoffRecord,
     NextAction,
     NextToolRecommendation,
+    RunContext,
     SupervisorTurn,
     TeamBlueprint,
     TeamRole,
@@ -669,6 +670,48 @@ class TeamWorkflowModelTests(unittest.TestCase):
         self.assertEqual("Validation Team", blueprint.name)
         self.assertEqual(1, len(blueprint.roles))
         self.assertEqual("strategy_lead", blueprint.roles[0].role_id)
+
+    def test_run_context_payload_is_stable_and_copies_variables(self) -> None:
+        variables = {
+            "market": "founders",
+            "constraints": {
+                "channels": ["landing_page", "threads"],
+            },
+        }
+        context = RunContext(
+            goal="Launch validation campaign",
+            summary="Launch workflow",
+            variables=variables,
+            metadata={"source": "codex"},
+        )
+        variables["market"] = "changed"
+        variables["constraints"]["channels"].append("changed")
+
+        self.assertEqual(
+            {
+                "schema_version": "run-context.v1",
+                "goal": "Launch validation campaign",
+                "summary": "Launch workflow",
+                "variables": {
+                    "goal": "Launch validation campaign",
+                    "summary": "Launch workflow",
+                    "market": "founders",
+                    "constraints": {
+                        "channels": ["landing_page", "threads"],
+                    },
+                },
+                "metadata": {"source": "codex"},
+            },
+            context.to_payload(),
+        )
+
+    def test_run_context_rejects_non_mapping_variables(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "variables must be a mapping"):
+            RunContext(
+                goal="Launch validation campaign",
+                summary="Launch workflow",
+                variables=("bad",),
+            )
 
     def test_company_task_template_payload_is_stable_and_metadata_is_copied(self) -> None:
         metadata = {"handoff_to": "qa"}
