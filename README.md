@@ -49,6 +49,7 @@ The MCP tools are agent-facing:
 - `get_company_state`
 - `list_next_actions`
 - `recommend_next_tool_call`
+- `run_next_local_step`
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
@@ -67,6 +68,11 @@ without deploying it.
 `recommend_next_tool_call` is read-only: it returns a recommended Workroom MCP
 tool name and arguments for Codex to review or call separately, without
 executing that tool.
+
+`run_next_local_step` executes one allowlisted local step from the current
+recommendation. It can advance landing artifact creation, landing QA, or local
+GitHub Pages deploy proposal preparation, but it does not loop, push to GitHub,
+post externally, or run unapproved tools such as raw result recording.
 
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without
