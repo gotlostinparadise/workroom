@@ -24,6 +24,8 @@ from .agent_session import (
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .models import (
     CompanyGoalRun,
+    CompanySpec,
+    CompanyTaskTemplate,
     DecisionRecord,
     Department,
     DevOpsExecutionEvidence,
@@ -56,6 +58,8 @@ from .workflow import BusinessValidationWorkflowResult, run_business_validation_
 __all__ = [
     "BusinessValidationWorkflowResult",
     "CompanyGoalRun",
+    "CompanySpec",
+    "CompanyTaskTemplate",
     "DEVOPS_OPERATION_PREFIX",
     "DecisionRecord",
     "Department",

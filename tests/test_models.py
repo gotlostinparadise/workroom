@@ -7,6 +7,8 @@ import unittest
 
 from agency_workroom.models import (
     CompanyGoalRun,
+    CompanySpec,
+    CompanyTaskTemplate,
     DecisionRecord,
     Department,
     DevOpsExecutionEvidence,
@@ -665,6 +667,107 @@ class TeamWorkflowModelTests(unittest.TestCase):
         self.assertEqual("Validation Team", blueprint.name)
         self.assertEqual(1, len(blueprint.roles))
         self.assertEqual("strategy_lead", blueprint.roles[0].role_id)
+
+    def test_company_task_template_payload_is_stable_and_metadata_is_copied(self) -> None:
+        metadata = {"handoff_to": "qa"}
+        template = CompanyTaskTemplate(
+            role_id="landing_builder",
+            category="landing_page",
+            title="Create landing page plan",
+            summary_template="Draft a landing page for {offer}.",
+            priority="high",
+            metadata=metadata,
+        )
+        metadata["handoff_to"] = "changed"
+
+        self.assertEqual(
+            {
+                "role_id": "landing_builder",
+                "category": "landing_page",
+                "title": "Create landing page plan",
+                "summary_template": "Draft a landing page for {offer}.",
+                "priority": "high",
+                "status": "planned",
+                "metadata": {"handoff_to": "qa"},
+            },
+            template.to_payload(),
+        )
+
+    def test_company_spec_payload_includes_team_and_task_templates(self) -> None:
+        team = TeamBlueprint(
+            name="Simple Company",
+            departments=(
+                Department(
+                    department_id="product",
+                    display_name="Product Department",
+                    purpose="Create product artifacts",
+                    authority_level="local_only",
+                    capability_gate_required=False,
+                ),
+            ),
+            roles=(
+                TeamRole(
+                    role_id="landing_builder",
+                    display_name="Landing Builder",
+                    responsibilities="Create landing artifacts",
+                    department_id="product",
+                    authority_scope="local_only",
+                ),
+            ),
+        )
+        spec = CompanySpec(
+            spec_id="simple_company",
+            version="v1",
+            display_name="Simple Company",
+            team=team,
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="landing_builder",
+                    category="landing_page",
+                    title="Create landing page plan",
+                    summary_template="Draft a landing page for {offer}.",
+                    priority="high",
+                    metadata={"artifact_kind": "landing_page"},
+                ),
+            ),
+            metadata={"vertical": "validation"},
+        )
+
+        payload = spec.to_payload()
+
+        self.assertEqual("company-spec.v1", payload["schema_version"])
+        self.assertEqual("simple_company", payload["spec_id"])
+        self.assertEqual("v1", payload["version"])
+        self.assertEqual("Simple Company", payload["display_name"])
+        self.assertEqual("Simple Company", payload["team"]["name"])
+        self.assertEqual("landing_builder", payload["task_templates"][0]["role_id"])
+        self.assertEqual({"vertical": "validation"}, payload["metadata"])
+
+    def test_company_spec_rejects_task_template_with_missing_role(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "unknown role"):
+            CompanySpec(
+                spec_id="bad_company",
+                version="v1",
+                display_name="Bad Company",
+                team=TeamBlueprint(
+                    name="Bad Company",
+                    roles=(
+                        TeamRole(
+                            role_id="strategy_lead",
+                            display_name="Strategy Lead",
+                            responsibilities="Own positioning",
+                        ),
+                    ),
+                ),
+                task_templates=(
+                    CompanyTaskTemplate(
+                        role_id="landing_builder",
+                        category="landing_page",
+                        title="Create landing page",
+                        summary_template="Draft a landing page.",
+                    ),
+                ),
+            )
 
     def test_workflow_request_payload_is_stable_and_metadata_is_copied(self) -> None:
         metadata = {"source": "founder-call"}

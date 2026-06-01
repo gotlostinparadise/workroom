@@ -245,6 +245,98 @@ class TeamBlueprint:
 
 
 @dataclass(frozen=True)
+class CompanyTaskTemplate:
+    role_id: str
+    category: str
+    title: str
+    summary_template: str
+    priority: str = "normal"
+    status: str = "planned"
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
+        object.__setattr__(self, "category", _required_text("category", self.category))
+        object.__setattr__(self, "title", _required_text("title", self.title))
+        object.__setattr__(
+            self,
+            "summary_template",
+            _required_text("summary_template", self.summary_template),
+        )
+        object.__setattr__(self, "priority", _required_text("priority", self.priority))
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "role_id": self.role_id,
+            "category": self.category,
+            "title": self.title,
+            "summary_template": self.summary_template,
+            "priority": self.priority,
+            "status": self.status,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class CompanySpec:
+    spec_id: str
+    version: str
+    display_name: str
+    team: TeamBlueprint
+    task_templates: tuple[CompanyTaskTemplate, ...] | list[CompanyTaskTemplate]
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "spec_id", _required_text("spec_id", self.spec_id))
+        object.__setattr__(self, "version", _required_text("version", self.version))
+        object.__setattr__(
+            self,
+            "display_name",
+            _required_text("display_name", self.display_name),
+        )
+        if not isinstance(self.team, TeamBlueprint):
+            raise WorkroomModelError("team must be a TeamBlueprint")
+        if not isinstance(self.task_templates, (tuple, list)) or not self.task_templates:
+            raise WorkroomModelError("task_templates are required")
+        if any(
+            not isinstance(template, CompanyTaskTemplate)
+            for template in self.task_templates
+        ):
+            raise WorkroomModelError(
+                "task_templates must be CompanyTaskTemplate instances"
+            )
+        task_templates = tuple(self.task_templates)
+        role_ids = set(self.team.role_ids())
+        unknown_roles = sorted(
+            {
+                template.role_id
+                for template in task_templates
+                if template.role_id not in role_ids
+            }
+        )
+        if unknown_roles:
+            raise WorkroomModelError(f"unknown role: {', '.join(unknown_roles)}")
+        object.__setattr__(self, "task_templates", task_templates)
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "company-spec.v1",
+            "spec_id": self.spec_id,
+            "version": self.version,
+            "display_name": self.display_name,
+            "team": self.team.to_payload(),
+            "task_templates": [
+                template.to_payload()
+                for template in self.task_templates
+            ],
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class WorkflowRequest:
     hypothesis: str
     audience: str
@@ -1115,6 +1207,8 @@ class WorkItemCommit:
 
 __all__ = [
     "CompanyGoalRun",
+    "CompanySpec",
+    "CompanyTaskTemplate",
     "DecisionRecord",
     "Department",
     "DevOpsExecutionEvidence",
