@@ -9,6 +9,7 @@ from pathlib import Path
 from agency_workroom import (
     WorkItemDraft,
     WorkroomKernelGateway,
+    advance_company_goal,
     create_landing_artifact,
     create_landing_qa_report,
     execute_github_pages_deploy,
@@ -665,6 +666,73 @@ class WorkroomIntegrationTests(unittest.TestCase):
             self.run_git(target_repo, "rev-parse", "HEAD"),
         )
         self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_goal_supervisor_advances_until_devops_approval_required(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private integration supervisor marker"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        turns = [
+            advance_company_goal(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+            for _ in range(4)
+        ]
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        github_pages_task = next(
+            task for task in state["tasks"] if task["category"] == "github_pages"
+        )
+
+        self.assertEqual(
+            [
+                "local_step_executed",
+                "local_step_executed",
+                "local_step_executed",
+                "approval_required",
+            ],
+            [turn["action_type"] for turn in turns],
+        )
+        self.assertEqual(
+            [
+                "local_production",
+                "qa",
+                "deploy_preparation",
+                "approval_required",
+            ],
+            [turn["phase_before"] for turn in turns],
+        )
+        self.assertEqual(
+            "prepare_github_pages_deploy_execution_plan",
+            turns[-1]["approval_request"]["recommended_tool"],
+        )
+        self.assertEqual(
+            ["target_repo_full_name", "target_repo_path"],
+            turns[-1]["approval_request"]["missing_inputs"],
+        )
+        self.assertEqual("blocked", github_pages_task["status"])
+        self.assertFalse(
+            any(
+                "/devops/" in ref and ref.endswith("/execution_evidence.json")
+                for ref in github_pages_task["result_refs"]
+            )
+        )
+        for turn in turns:
+            self.assertTrue(Path(turn["turn_path"]).exists())
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
     def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[tuple[str, str], ...]:
