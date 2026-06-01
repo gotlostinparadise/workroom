@@ -120,11 +120,11 @@ structured hypothesis request and creates planned work items for hypothesis
 research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
-Business Validation is the first bundled `CompanySpec`. A company spec defines
-the departments, roles, task templates, and metadata that create a goal-specific
-company run. The current reference vertical keeps the existing validation
-behavior, but the runtime now has a reusable spec boundary for future company
-types.
+Business Validation is the default registered `CompanySpec`. A company spec
+defines the departments, roles, task templates, and metadata that create a
+goal-specific company run. The current reference vertical keeps the existing
+validation behavior, but startup now routes through the generic company start
+contract so future company types can use the same runtime path.
 
 The generic runtime input is `RunContext`: a goal, summary, and template
 variables for the active company spec. `WorkflowRequest` remains the Business

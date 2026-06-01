@@ -103,7 +103,7 @@ These milestones are complete enough to be treated as foundation:
 
 ### 1. Company Start Contract and Registry v1
 
-Status: Next.
+Status: Done.
 
 Goal: make company startup use an explicit registered company spec and generic
 run context internally, while preserving the current public
@@ -129,7 +129,7 @@ Exit criteria:
 
 ### 2. Role Delegation Contract v1
 
-Status: Later.
+Status: Next.
 
 Goal: define how the supervisor delegates work to role agents and how role
 agents return durable results, without adding autonomous background execution.
@@ -253,7 +253,7 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Company Start Contract and Registry v1
+Role Delegation Contract v1
 ```
 
 Before implementing it, create an implementation plan under `docs/plans/` and
