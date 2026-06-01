@@ -15,6 +15,7 @@ from .landing_qa import LandingQaError, create_landing_qa_report_file
 from .models import (
     CompanyGoalRun,
     NextAction,
+    NextToolRecommendation,
     TaskState,
     WorkflowRequest,
     WorkroomModelError,
@@ -119,6 +120,128 @@ def list_next_actions(*, run_id: str, workspace_path: str) -> dict[str, object]:
         if task.status in _NEXT_ACTION_STATUSES
     ]
     return {"run_id": run.run_id, "next_actions": actions}
+
+
+def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    landing_task = _task_for_category(run, "landing_page")
+    testing_task = _task_for_category(run, "testing")
+    github_pages_task = _task_for_category(run, "github_pages")
+    landing_artifact_ref = _result_ref_for_kind(run, "landing_artifact")
+    qa_report_ref = _result_ref_for_kind(run, "landing_qa_report")
+    deploy_proposal_ref = _result_ref_for_kind(run, "github_pages_deploy_proposal")
+
+    if landing_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="landing_page task is blocked",
+            blocker_summary=landing_task.blocker_summary,
+        )
+    if landing_artifact_ref is None:
+        if landing_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="create_landing_artifact",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": landing_task.task_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason="landing_page task is ready and has no landing artifact",
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if landing_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="landing artifact ref",
+                reason="landing_page task is completed without a landing artifact ref",
+            )
+        return _no_local_recommendation(run.run_id)
+
+    if testing_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="testing task is blocked",
+            blocker_summary=testing_task.blocker_summary,
+        )
+    if qa_report_ref is None:
+        if testing_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="create_landing_qa_report",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": testing_task.task_ref,
+                    "artifact_ref": landing_artifact_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason="landing artifact exists and testing task has no QA report",
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if testing_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="landing QA report ref",
+                reason="testing task is completed without a landing QA report ref",
+            )
+        return _no_local_recommendation(run.run_id)
+
+    qa_report = _landing_qa_report_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        report_ref=qa_report_ref,
+        artifact_ref=landing_artifact_ref,
+    )
+    if qa_report.get("passed") is not True:
+        return NextToolRecommendation(
+            run_id=run.run_id,
+            recommended_tool="",
+            arguments={},
+            reason="GitHub Pages proposal requires passing landing QA",
+            missing_prerequisites=("passing landing QA report",),
+            will_mutate_state=False,
+            blocked=False,
+        ).to_payload()
+
+    if github_pages_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="github_pages task is blocked",
+            blocker_summary=github_pages_task.blocker_summary,
+        )
+    if deploy_proposal_ref is None:
+        if github_pages_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="prepare_github_pages_deploy_proposal",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": github_pages_task.task_ref,
+                    "landing_artifact_ref": landing_artifact_ref,
+                    "qa_report_ref": qa_report_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason=(
+                    "landing artifact and passing QA report exist and "
+                    "github_pages task has no deploy proposal"
+                ),
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if github_pages_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="GitHub Pages deploy proposal ref",
+                reason=(
+                    "github_pages task is completed without a GitHub Pages "
+                    "deploy proposal ref"
+                ),
+            )
+    return _no_local_recommendation(run.run_id)
 
 
 def record_work_result(
@@ -414,6 +537,90 @@ def _task_index_for(run: CompanyGoalRun, task_ref: str) -> int:
     raise WorkroomStateError(f"task state not found: {task_ref}")
 
 
+def _task_for_category(run: CompanyGoalRun, category: str) -> TaskState:
+    for task in run.tasks:
+        if task.category == category:
+            return task
+    raise WorkroomStateError(f"{category} task state not found")
+
+
+def _result_ref_for_kind(run: CompanyGoalRun, kind: str) -> str | None:
+    for task in run.tasks:
+        for ref in task.result_refs:
+            if _matches_result_kind(ref, kind):
+                return ref
+    return None
+
+
+def _matches_result_kind(ref: str, kind: str) -> bool:
+    if kind == "landing_artifact":
+        return (
+            ref.startswith(LANDING_ARTIFACT_PREFIX)
+            and "/landing_page/" in ref
+            and ref.endswith("/index.html")
+        )
+    if kind == "landing_qa_report":
+        return (
+            ref.startswith(LANDING_QA_REPORT_PREFIX)
+            and "/landing_qa/" in ref
+            and ref.endswith("/qa_report.json")
+        )
+    if kind == "github_pages_deploy_proposal":
+        return (
+            ref.startswith(GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX)
+            and "/github_pages/" in ref
+            and ref.endswith("/deploy_proposal.json")
+        )
+    raise WorkroomStateError(f"unknown result ref kind: {kind}")
+
+
+def _blocked_recommendation(
+    *,
+    run_id: str,
+    reason: str,
+    blocker_summary: str,
+) -> dict[str, object]:
+    return NextToolRecommendation(
+        run_id=run_id,
+        recommended_tool="",
+        arguments={},
+        reason=reason,
+        missing_prerequisites=(),
+        will_mutate_state=False,
+        blocked=True,
+        blocker_summary=blocker_summary or "task is blocked",
+    ).to_payload()
+
+
+def _missing_prerequisite_recommendation(
+    *,
+    run_id: str,
+    missing_prerequisite: str,
+    reason: str,
+) -> dict[str, object]:
+    return NextToolRecommendation(
+        run_id=run_id,
+        recommended_tool="",
+        arguments={},
+        reason=reason,
+        missing_prerequisites=(missing_prerequisite,),
+        will_mutate_state=False,
+        blocked=False,
+    ).to_payload()
+
+
+def _no_local_recommendation(run_id: str) -> dict[str, object]:
+    return NextToolRecommendation(
+        run_id=run_id,
+        recommended_tool="",
+        arguments={},
+        reason="no local recommended tool call is available",
+        missing_prerequisites=(),
+        will_mutate_state=False,
+        blocked=False,
+    ).to_payload()
+
+
 def _artifact_ref_recorded_in_run(run: CompanyGoalRun, artifact_ref: str) -> bool:
     return any(artifact_ref in task.result_refs for task in run.tasks)
 
@@ -589,6 +796,7 @@ __all__ = [
     "list_next_actions",
     "prepare_github_pages_deploy_proposal",
     "record_work_result",
+    "recommend_next_tool_call",
     "start_company_goal",
     "summarize_run",
 ]

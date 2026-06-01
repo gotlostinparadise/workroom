@@ -12,12 +12,17 @@ from agency_workroom.agent_session import (
     list_next_actions,
     prepare_github_pages_deploy_proposal,
     record_work_result,
+    recommend_next_tool_call,
     start_company_goal,
     summarize_run,
 )
 from agency_workroom.landing_artifact import create_landing_artifact_files
-from agency_workroom.models import TaskState
-from agency_workroom.session_store import WorkroomStateError
+from agency_workroom.models import CompanyGoalRun, TaskState
+from agency_workroom.session_store import (
+    WorkroomStateError,
+    load_company_goal_run,
+    save_company_goal_run,
+)
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
@@ -26,6 +31,27 @@ class AgentSessionTests(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
+
+    def started_run(self, root: Path) -> tuple[dict[str, object], Path]:
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate a business hypothesis",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        return started, workspace_path
+
+    def task_by_category(
+        self,
+        started: dict[str, object],
+        category: str,
+    ) -> dict[str, object]:
+        return next(
+            task
+            for task in started["tasks"]
+            if isinstance(task, dict) and task["category"] == category
+        )
 
     def test_start_company_goal_creates_run_state_and_work_items(self) -> None:
         assert_external_kernel_dependency(self)
@@ -617,6 +643,215 @@ class AgentSessionTests(unittest.TestCase):
                 qa_report_ref=report["report"]["report_ref"],
                 workspace_path=str(workspace_path),
             )
+
+    def test_recommend_next_tool_call_starts_with_landing_artifact(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(started["run_id"], recommendation["run_id"])
+        self.assertEqual("create_landing_artifact", recommendation["recommended_tool"])
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": landing_task["task_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_after_landing_artifact_recommends_qa(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+        testing_task = self.task_by_category(started, "testing")
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_landing_qa_report", recommendation["recommended_tool"])
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": testing_task["task_ref"],
+                "artifact_ref": artifact["artifact"]["artifact_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_after_passing_qa_recommends_deploy_proposal(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+        testing_task = self.task_by_category(started, "testing")
+        github_pages_task = self.task_by_category(started, "github_pages")
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "prepare_github_pages_deploy_proposal",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": github_pages_task["task_ref"],
+                "landing_artifact_ref": artifact["artifact"]["artifact_ref"],
+                "qa_report_ref": report["report"]["report_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_after_deploy_proposal_surfaces_approval_blocker(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+        testing_task = self.task_by_category(started, "testing")
+        github_pages_task = self.task_by_category(started, "github_pages")
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        deploy_proposal = prepare_github_pages_deploy_proposal(
+            run_id=started["run_id"],
+            task_ref=github_pages_task["task_ref"],
+            landing_artifact_ref=artifact["artifact"]["artifact_ref"],
+            qa_report_ref=report["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("", recommendation["recommended_tool"])
+        self.assertEqual({}, recommendation["arguments"])
+        self.assertFalse(recommendation["will_mutate_state"])
+        self.assertTrue(recommendation["blocked"])
+        self.assertEqual(
+            deploy_proposal["task"]["blocker_summary"],
+            recommendation["blocker_summary"],
+        )
+
+    def test_recommend_next_tool_call_after_failed_qa_surfaces_testing_blocker(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        landing_task = self.task_by_category(started, "landing_page")
+        testing_task = self.task_by_category(started, "testing")
+        artifact = create_landing_artifact(
+            run_id=started["run_id"],
+            task_ref=landing_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        Path(artifact["artifact"]["artifact_path"]).write_text(
+            "<html><body><script>alert(1)</script></body></html>",
+            encoding="utf-8",
+        )
+        report = create_landing_qa_report(
+            run_id=started["run_id"],
+            task_ref=testing_task["task_ref"],
+            artifact_ref=artifact["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertFalse(report["report"]["passed"])
+        self.assertEqual("", recommendation["recommended_tool"])
+        self.assertEqual({}, recommendation["arguments"])
+        self.assertFalse(recommendation["will_mutate_state"])
+        self.assertTrue(recommendation["blocked"])
+        self.assertEqual("landing QA report failed", recommendation["blocker_summary"])
+
+    def test_recommend_next_tool_call_completed_task_missing_result_ref_fails_closed(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        run = load_company_goal_run(workspace_path, str(started["run_id"]))
+        landing_task = next(task for task in run.tasks if task.category == "landing_page")
+        corrupted_landing_task = TaskState(
+            task_ref=landing_task.task_ref,
+            role_id=landing_task.role_id,
+            category=landing_task.category,
+            title=landing_task.title,
+            status="completed",
+            result_refs=(),
+            blocker_summary=landing_task.blocker_summary,
+            metadata=landing_task.metadata,
+        )
+        corrupted_run = CompanyGoalRun(
+            run_id=run.run_id,
+            user_id=run.user_id,
+            goal=run.goal,
+            team=run.team,
+            plan=run.plan,
+            commits=run.commits,
+            tasks=tuple(
+                corrupted_landing_task if task.task_ref == landing_task.task_ref else task
+                for task in run.tasks
+            ),
+        )
+        save_company_goal_run(workspace_path, corrupted_run)
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("", recommendation["recommended_tool"])
+        self.assertFalse(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+        self.assertEqual(["landing artifact ref"], recommendation["missing_prerequisites"])
 
 
 if __name__ == "__main__":
