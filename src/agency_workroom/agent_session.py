@@ -5,6 +5,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from .devops_operations import (
+    DevOpsOperationError,
+    execute_github_pages_deploy_plan_files,
+    prepare_github_pages_deploy_execution_plan_files,
+)
 from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
@@ -29,6 +34,7 @@ from .session_store import (
 from .workflow import run_business_validation_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
+DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
@@ -570,6 +576,92 @@ def prepare_github_pages_deploy_proposal(
     }
 
 
+def prepare_github_pages_deploy_execution_plan(
+    *,
+    run_id: str,
+    workspace_path: str,
+    proposal_ref: str,
+    target_repo_full_name: str,
+    target_repo_path: str,
+    target_branch: str = "",
+    publish_path: str = "",
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_proposal_ref = _required_text("proposal_ref", proposal_ref)
+    github_pages_task = _task_for_category(run, "github_pages")
+    if clean_proposal_ref not in github_pages_task.result_refs:
+        raise WorkroomStateError("GitHub Pages deploy proposal is not recorded in run state")
+    try:
+        return prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace_path,
+            run_id=run.run_id,
+            proposal_ref=clean_proposal_ref,
+            target_repo_full_name=target_repo_full_name,
+            target_repo_path=target_repo_path,
+            target_branch=target_branch,
+            publish_path=publish_path,
+        )
+    except DevOpsOperationError as exc:
+        raise WorkroomStateError(str(exc)) from exc
+
+
+def execute_github_pages_deploy(
+    *,
+    run_id: str,
+    workspace_path: str,
+    plan_ref: str,
+    approval_phrase: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    try:
+        evidence = execute_github_pages_deploy_plan_files(
+            workspace_path=workspace_path,
+            run_id=run.run_id,
+            plan_ref=plan_ref,
+            approval_phrase=approval_phrase,
+        )
+    except DevOpsOperationError as exc:
+        raise WorkroomStateError(str(exc)) from exc
+    task_ref = _required_text("task_ref", str(evidence.get("task_ref", "")))
+    task_index = _task_index_for(run, task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "github_pages":
+        raise WorkroomStateError("DevOps evidence task is not a github_pages task")
+    evidence_ref = _required_text("evidence_ref", str(evidence.get("evidence_ref", "")))
+    if evidence_ref in current_task.result_refs and current_task.status == "completed":
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "evidence": evidence,
+        }
+    updated_task = _task_with_result(
+        current_task,
+        result_ref=evidence_ref,
+        status="completed",
+        blocker_summary="",
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {
+        "run_id": run.run_id,
+        "task": updated_task.to_payload(),
+        "evidence": evidence,
+    }
+
+
 def summarize_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     run = load_company_goal_run(workspace_path, run_id)
     status_counts = Counter(task.status for task in run.tasks)
@@ -855,14 +947,17 @@ def _github_pages_deploy_proposal_payload_for_existing_ref(
 
 __all__ = [
     "EXTERNAL_CAPABILITY_CATEGORIES",
+    "DEVOPS_OPERATION_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "execute_github_pages_deploy",
     "get_company_state",
     "list_next_actions",
+    "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "recommend_next_tool_call",

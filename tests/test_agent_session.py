@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,9 +16,11 @@ from agency_workroom.agent_session import (
     get_company_state,
     list_next_actions,
     prepare_github_pages_deploy_proposal,
+    prepare_github_pages_deploy_execution_plan,
     record_work_result,
     recommend_next_tool_call,
     run_next_local_step,
+    execute_github_pages_deploy,
     start_company_goal,
     summarize_run,
 )
@@ -71,6 +74,35 @@ class AgentSessionTests(unittest.TestCase):
             for task in started["tasks"]
             if isinstance(task, dict) and task["category"] == category
         )
+
+    def run_git(self, repo: Path, *args: str) -> str:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    def init_target_repo(self, root: Path) -> Path:
+        repo = root / "target-repo"
+        repo.mkdir()
+        subprocess.run(
+            ["git", "init", "-b", "main"],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.run_git(repo, "config", "user.name", "Workroom Test")
+        self.run_git(repo, "config", "user.email", "workroom@example.test")
+        (repo / "README.md").write_text("# Target\n", encoding="utf-8")
+        self.run_git(repo, "add", "README.md")
+        self.run_git(repo, "commit", "-m", "Initial commit")
+        return repo
 
     def test_start_company_goal_creates_run_state_and_work_items(self) -> None:
         assert_external_kernel_dependency(self)
@@ -1079,6 +1111,64 @@ class AgentSessionTests(unittest.TestCase):
             "schedule",
         ):
             self.assertNotIn(forbidden, source)
+
+    def test_prepare_and_execute_github_pages_deploy_through_devops_operator(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        target_repo = self.init_target_repo(root)
+        private_goal = "private devops execution goal marker"
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        deploy_step = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        proposal_ref = deploy_step["result"]["deploy_proposal"]["proposal_ref"]
+
+        plan = prepare_github_pages_deploy_execution_plan(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+            proposal_ref=proposal_ref,
+            target_repo_full_name="owner/site-target",
+            target_repo_path=str(target_repo),
+            target_branch="main",
+        )
+        execution = execute_github_pages_deploy(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+            plan_ref=plan["plan_ref"],
+            approval_phrase=plan["approval_phrase"],
+        )
+        evidence = execution["evidence"]
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        github_pages_task = self.task_by_category(state, "github_pages")
+
+        self.assertEqual("completed", github_pages_task["status"])
+        self.assertEqual("", github_pages_task["blocker_summary"])
+        self.assertIn(evidence["evidence_ref"], github_pages_task["result_refs"])
+        self.assertEqual(
+            evidence["git_commit_sha"],
+            self.run_git(target_repo, "rev-parse", "HEAD"),
+        )
+        self.assertTrue((target_repo / "site" / "index.html").exists())
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
