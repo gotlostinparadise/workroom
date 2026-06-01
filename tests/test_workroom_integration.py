@@ -14,7 +14,9 @@ from agency_workroom import (
     prepare_github_pages_deploy_proposal,
     record_work_result,
     recommend_next_tool_call,
+    run_next_local_step,
     start_company_goal,
+    summarize_run,
 )
 from agency_workroom.models import WorkflowRequest
 from agency_workroom.workflow import run_business_validation_workflow
@@ -440,6 +442,128 @@ class WorkroomIntegrationTests(unittest.TestCase):
 
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn(private_goal, ledger_text)
+
+    def test_next_local_step_runner_advances_until_deploy_approval_blocker(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private next local step orchestration marker"
+        repo_workflows_dir = Path.cwd() / ".github" / "workflows"
+        workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_first = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertTrue(first["executed"])
+        self.assertEqual("create_landing_artifact", first["executed_tool"])
+        self.assertTrue(Path(first["result"]["artifact"]["artifact_path"]).exists())
+        self.assertEqual(
+            "completed",
+            next(
+                task
+                for task in state_after_first["tasks"]
+                if task["category"] == "landing_page"
+            )["status"],
+        )
+        self.assertEqual(
+            "planned",
+            next(
+                task for task in state_after_first["tasks"] if task["category"] == "testing"
+            )["status"],
+        )
+        self.assertEqual(
+            "planned",
+            next(
+                task
+                for task in state_after_first["tasks"]
+                if task["category"] == "github_pages"
+            )["status"],
+        )
+
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_second = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertTrue(second["executed"])
+        self.assertEqual("create_landing_qa_report", second["executed_tool"])
+        self.assertTrue(second["result"]["report"]["passed"])
+        self.assertEqual(
+            "completed",
+            next(
+                task for task in state_after_second["tasks"] if task["category"] == "testing"
+            )["status"],
+        )
+        self.assertEqual(
+            "planned",
+            next(
+                task
+                for task in state_after_second["tasks"]
+                if task["category"] == "github_pages"
+            )["status"],
+        )
+
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state_after_third = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertTrue(third["executed"])
+        self.assertEqual("prepare_github_pages_deploy_proposal", third["executed_tool"])
+        self.assertEqual(
+            "proposed_not_executed",
+            third["result"]["deploy_proposal"]["execution_status"],
+        )
+        self.assertTrue(Path(third["result"]["deploy_proposal"]["site_entry_path"]).exists())
+        github_pages_state = next(
+            task
+            for task in state_after_third["tasks"]
+            if task["category"] == "github_pages"
+        )
+        self.assertEqual("blocked", github_pages_state["status"])
+
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        summary = summarize_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertFalse(fourth["executed"])
+        self.assertEqual("", fourth["executed_tool"])
+        self.assertTrue(fourth["blocked"])
+        self.assertEqual("github_pages task is blocked", fourth["reason"])
+        self.assertEqual(
+            github_pages_state["blocker_summary"],
+            fourth["recommendation"]["blocker_summary"],
+        )
+        self.assertEqual(2, summary["status_counts"]["completed"])
+        self.assertEqual(1, summary["status_counts"]["blocked"])
+        self.assertEqual(workflows_before, self.workflow_file_snapshot(repo_workflows_dir))
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
     def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[tuple[str, str], ...]:
         if not workflows_dir.exists():

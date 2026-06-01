@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import agency_workroom.agent_session as agent_session
 from agency_workroom.agent_session import (
     create_landing_artifact,
     create_landing_qa_report,
@@ -1063,6 +1065,20 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertEqual(ledger_before, ledger_path.read_text(encoding="utf-8"))
         self.assertEqual(workspace_before, self.workspace_file_snapshot(workspace_path))
+
+    def test_run_next_local_step_has_no_process_network_or_loop_primitives(self) -> None:
+        source = inspect.getsource(agent_session.run_next_local_step)
+
+        for forbidden in (
+            "subprocess",
+            "socket",
+            "requests",
+            "httpx",
+            "urllib",
+            "while True",
+            "schedule",
+        ):
+            self.assertNotIn(forbidden, source)
 
 
 if __name__ == "__main__":
