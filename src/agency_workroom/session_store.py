@@ -66,6 +66,8 @@ def load_company_goal_run(workspace_path: str | Path, run_id: str) -> CompanyGoa
             run_id=payload["run_id"],
             user_id=payload["user_id"],
             goal=payload["goal"],
+            company_spec_id=payload.get("company_spec_id", "business_validation"),
+            company_spec_version=payload.get("company_spec_version", "v1"),
             team=payload["team"],
             plan=payload["plan"],
             commits=payload["commits"],

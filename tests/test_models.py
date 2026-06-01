@@ -183,6 +183,8 @@ class AgentSessionModelTests(unittest.TestCase):
 
         self.assertEqual("run_abc123", payload["run_id"])
         self.assertEqual("Validate a business hypothesis", payload["goal"])
+        self.assertEqual("business_validation", payload["company_spec_id"])
+        self.assertEqual("v1", payload["company_spec_version"])
         self.assertEqual(1, len(payload["tasks"]))
         self.assertEqual(1, len(payload["commits"]))
 

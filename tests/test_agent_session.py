@@ -116,6 +116,8 @@ class AgentSessionTests(unittest.TestCase):
         )
 
         self.assertEqual("started", response["status"])
+        self.assertEqual("business_validation", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
         self.assertEqual(8, len(response["tasks"]))
         self.assertEqual(8, len(response["commits"]))
         self.assertTrue(response["run_id"].startswith("run_"))
@@ -171,6 +173,8 @@ class AgentSessionTests(unittest.TestCase):
         )
 
         self.assertEqual(started["run_id"], state["run_id"])
+        self.assertEqual("business_validation", state["company_spec_id"])
+        self.assertEqual("v1", state["company_spec_version"])
         self.assertEqual(8, len(actions["next_actions"]))
         self.assertTrue(
             any(action["requires_capability_module"] for action in actions["next_actions"])

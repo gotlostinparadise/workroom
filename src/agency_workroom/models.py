@@ -587,11 +587,23 @@ class CompanyGoalRun:
     plan: Mapping[str, object]
     commits: tuple[Mapping[str, object], ...] | list[Mapping[str, object]]
     tasks: tuple[TaskState, ...] | list[TaskState]
+    company_spec_id: str = "business_validation"
+    company_spec_version: str = "v1"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
         object.__setattr__(self, "user_id", _required_text("user_id", self.user_id))
         object.__setattr__(self, "goal", _required_text("goal", self.goal))
+        object.__setattr__(
+            self,
+            "company_spec_id",
+            _required_text("company_spec_id", self.company_spec_id),
+        )
+        object.__setattr__(
+            self,
+            "company_spec_version",
+            _required_text("company_spec_version", self.company_spec_version),
+        )
         object.__setattr__(self, "team", _metadata_copy(self.team))
         object.__setattr__(self, "plan", _metadata_copy(self.plan))
         object.__setattr__(
@@ -613,6 +625,8 @@ class CompanyGoalRun:
             "run_id": self.run_id,
             "user_id": self.user_id,
             "goal": self.goal,
+            "company_spec_id": self.company_spec_id,
+            "company_spec_version": self.company_spec_version,
             "team": _metadata_payload(self.team),
             "plan": _metadata_payload(self.plan),
             "commits": [_metadata_payload(commit) for commit in self.commits],
