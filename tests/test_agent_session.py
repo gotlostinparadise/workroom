@@ -32,6 +32,17 @@ class AgentSessionTests(unittest.TestCase):
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
 
+    def workspace_file_snapshot(self, workspace_path: Path) -> tuple[str, ...]:
+        if not workspace_path.exists():
+            return ()
+        return tuple(
+            sorted(
+                str(path.relative_to(workspace_path))
+                for path in workspace_path.rglob("*")
+                if path.is_file()
+            )
+        )
+
     def started_run(self, root: Path) -> tuple[dict[str, object], Path]:
         workspace_path = root / "workspace"
         started = start_company_goal(
@@ -758,10 +769,13 @@ class AgentSessionTests(unittest.TestCase):
             artifact_ref=artifact["artifact"]["artifact_ref"],
             workspace_path=str(workspace_path),
         )
+        ledger_path = root / "kernel.jsonl"
         state_before = get_company_state(
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
         )
+        ledger_before = ledger_path.read_text(encoding="utf-8")
+        workspace_before = self.workspace_file_snapshot(workspace_path)
 
         recommendation = recommend_next_tool_call(
             run_id=started["run_id"],
@@ -773,6 +787,8 @@ class AgentSessionTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         self.assertEqual(state_before, state_after)
+        self.assertEqual(ledger_before, ledger_path.read_text(encoding="utf-8"))
+        self.assertEqual(workspace_before, self.workspace_file_snapshot(workspace_path))
         self.assertEqual(
             "prepare_github_pages_deploy_proposal",
             recommendation["recommended_tool"],

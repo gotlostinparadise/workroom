@@ -28,6 +28,47 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
 
+    def workspace_file_snapshot(self, workspace_path: Path) -> tuple[str, ...]:
+        if not workspace_path.exists():
+            return ()
+        return tuple(
+            sorted(
+                str(path.relative_to(workspace_path))
+                for path in workspace_path.rglob("*")
+                if path.is_file()
+            )
+        )
+
+    def assert_recommendation_is_read_only(
+        self,
+        *,
+        run_id: object,
+        ledger_path: Path,
+        workspace_path: Path,
+    ) -> dict[str, object]:
+        state_before = get_company_state(
+            run_id=run_id,
+            workspace_path=str(workspace_path),
+        )
+        ledger_before = ledger_path.read_text(encoding="utf-8")
+        workspace_before = self.workspace_file_snapshot(workspace_path)
+
+        recommendation = recommend_next_tool_call(
+            run_id=run_id,
+            workspace_path=str(workspace_path),
+        )
+
+        state_after = get_company_state(
+            run_id=run_id,
+            workspace_path=str(workspace_path),
+        )
+        ledger_after = ledger_path.read_text(encoding="utf-8")
+        workspace_after = self.workspace_file_snapshot(workspace_path)
+        self.assertEqual(state_before, state_after)
+        self.assertEqual(ledger_before, ledger_after)
+        self.assertEqual(workspace_before, workspace_after)
+        return recommendation
+
     def test_workroom_creates_work_item_through_external_kernel_authority_path(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -323,23 +364,12 @@ class WorkroomIntegrationTests(unittest.TestCase):
             task for task in started["tasks"] if task["category"] == "github_pages"
         )
 
-        state_before_landing_recommendation = get_company_state(
+        landing_recommendation = self.assert_recommendation_is_read_only(
             run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        landing_recommendation = recommend_next_tool_call(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        state_after_landing_recommendation = get_company_state(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
+            ledger_path=ledger_path,
+            workspace_path=workspace_path,
         )
 
-        self.assertEqual(
-            state_before_landing_recommendation,
-            state_after_landing_recommendation,
-        )
         self.assertEqual(
             "create_landing_artifact",
             landing_recommendation["recommended_tool"],
@@ -351,23 +381,12 @@ class WorkroomIntegrationTests(unittest.TestCase):
 
         landing = create_landing_artifact(**landing_recommendation["arguments"])
 
-        state_before_qa_recommendation = get_company_state(
+        qa_recommendation = self.assert_recommendation_is_read_only(
             run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        qa_recommendation = recommend_next_tool_call(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        state_after_qa_recommendation = get_company_state(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
+            ledger_path=ledger_path,
+            workspace_path=workspace_path,
         )
 
-        self.assertEqual(
-            state_before_qa_recommendation,
-            state_after_qa_recommendation,
-        )
         self.assertEqual(
             "create_landing_qa_report",
             qa_recommendation["recommended_tool"],
@@ -383,23 +402,12 @@ class WorkroomIntegrationTests(unittest.TestCase):
 
         qa = create_landing_qa_report(**qa_recommendation["arguments"])
 
-        state_before_deploy_recommendation = get_company_state(
+        deploy_recommendation = self.assert_recommendation_is_read_only(
             run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        deploy_recommendation = recommend_next_tool_call(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
-        )
-        state_after_deploy_recommendation = get_company_state(
-            run_id=started["run_id"],
-            workspace_path=str(workspace_path),
+            ledger_path=ledger_path,
+            workspace_path=workspace_path,
         )
 
-        self.assertEqual(
-            state_before_deploy_recommendation,
-            state_after_deploy_recommendation,
-        )
         self.assertEqual(
             "prepare_github_pages_deploy_proposal",
             deploy_recommendation["recommended_tool"],
