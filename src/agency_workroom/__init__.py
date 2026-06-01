@@ -18,6 +18,7 @@ from .agent_session import (
     record_work_result,
     recommend_next_tool_call,
     run_next_local_step,
+    start_company_run,
     start_company_goal,
     summarize_run,
 )
@@ -133,6 +134,7 @@ __all__ = [
     "run_state_path",
     "run_business_validation_workflow",
     "save_company_goal_run",
+    "start_company_run",
     "start_company_goal",
     "summarize_run",
 ]

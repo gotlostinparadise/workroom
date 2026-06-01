@@ -22,11 +22,20 @@ from agency_workroom.agent_session import (
     recommend_next_tool_call,
     run_next_local_step,
     execute_github_pages_deploy,
+    start_company_run,
     start_company_goal,
     summarize_run,
 )
 from agency_workroom.landing_artifact import create_landing_artifact_files
-from agency_workroom.models import CompanyGoalRun, TaskState
+from agency_workroom.models import (
+    CompanyGoalRun,
+    CompanySpec,
+    CompanyTaskTemplate,
+    RunContext,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+)
 from agency_workroom.session_store import (
     WorkroomStateError,
     load_company_goal_run,
@@ -129,6 +138,65 @@ class AgentSessionTests(unittest.TestCase):
 
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
+
+    def test_start_company_run_accepts_generic_company_spec(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        spec = CompanySpec(
+            spec_id="release_hardening",
+            version="v1",
+            display_name="Release Hardening",
+            team=TeamBlueprint(
+                name="release_hardening_team",
+                roles=(
+                    TeamRole(
+                        role_id="release_lead",
+                        display_name="Release Lead",
+                        responsibilities="Coordinate release hardening",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="release_lead",
+                    category="release",
+                    title="Prepare release checklist",
+                    summary_template="Prepare {experiment} for {owner}.",
+                ),
+            ),
+        )
+        context = RunContext(
+            goal="Harden release process",
+            summary="Release hardening workflow",
+            variables={
+                "experiment": "release checklist",
+                "owner": "platform team",
+            },
+            metadata={"kind": "release-context.v1"},
+        )
+
+        response = start_company_run(
+            goal="Harden release process",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec=spec,
+            run_context=context,
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("release_hardening", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual("run-context.v1", response["plan"]["request"]["schema_version"])
+        self.assertNotIn("adapter", response["plan"]["request"]["metadata"])
+        self.assertEqual(1, len(response["tasks"]))
+        self.assertEqual(1, len(response["commits"]))
+        state = get_company_state(
+            run_id=response["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual("release_hardening", state["company_spec_id"])
 
     def test_start_company_goal_is_idempotent_for_same_goal(self) -> None:
         assert_external_kernel_dependency(self)

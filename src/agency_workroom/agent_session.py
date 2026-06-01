@@ -15,18 +15,22 @@ from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
 )
+from .company_registry import DEFAULT_COMPANY_SPEC_ID, default_company_spec
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
 from .models import (
     CompanyGoalRun,
+    CompanySpec,
     NextAction,
     NextToolRecommendation,
+    RunContext,
     SupervisorTurn,
     TaskState,
     WorkflowRequest,
     WorkroomModelError,
 )
+from .planner import run_context_from_workflow_request
 from .session_store import (
     WorkroomStateError,
     load_company_goal_run,
@@ -43,7 +47,7 @@ from .supervisor import (
     write_handoff_record,
     write_supervisor_turn,
 )
-from .workflow import run_business_validation_workflow
+from .workflow import run_company_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
@@ -69,6 +73,20 @@ def _run_id_for(user_id: str, goal: str) -> str:
     return f"run_{digest[:16]}"
 
 
+def _run_id_for_company(user_id: str, goal: str, company_spec: CompanySpec) -> str:
+    if company_spec.spec_id == DEFAULT_COMPANY_SPEC_ID:
+        return _run_id_for(user_id, goal)
+    clean_user_id = _required_text("user_id", user_id)
+    clean_goal = _required_text("goal", goal)
+    digest = hashlib.sha256(
+        (
+            f"{clean_user_id}:{company_spec.spec_id}:"
+            f"{company_spec.version}:{clean_goal}"
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"run_{digest[:16]}"
+
+
 def _request_from_goal(goal: str) -> WorkflowRequest:
     return WorkflowRequest(
         hypothesis=goal,
@@ -80,24 +98,31 @@ def _request_from_goal(goal: str) -> WorkflowRequest:
     )
 
 
-def start_company_goal(
+def start_company_run(
     *,
     goal: str,
     user_id: str,
     ledger_path: str,
     workspace_path: str,
+    company_spec: CompanySpec,
+    run_context: RunContext,
 ) -> dict[str, object]:
-    run_id = _run_id_for(user_id, goal)
+    clean_goal = _required_text("goal", goal)
+    clean_user_id = _required_text("user_id", user_id)
+    if run_context.goal != clean_goal:
+        raise WorkroomModelError("run context goal must match goal")
+    run_id = _run_id_for_company(clean_user_id, clean_goal, company_spec)
     existing_run = _load_existing_run(workspace_path, run_id)
     if existing_run is not None:
         payload = existing_run.to_payload()
         payload["status"] = "existing"
         return payload
     gateway = WorkroomKernelGateway.open(ledger_path, workspace_path)
-    result = run_business_validation_workflow(
+    result = run_company_workflow(
         gateway=gateway,
-        declared_by_user_id=_required_text("user_id", user_id),
-        request=_request_from_goal(_required_text("goal", goal)),
+        declared_by_user_id=clean_user_id,
+        company_spec=company_spec,
+        run_context=run_context,
     )
     tasks = tuple(
         TaskState(
@@ -111,8 +136,8 @@ def start_company_goal(
     )
     run = CompanyGoalRun(
         run_id=run_id,
-        user_id=user_id,
-        goal=goal,
+        user_id=clean_user_id,
+        goal=clean_goal,
         company_spec_id=result.company_spec.spec_id,
         company_spec_version=result.company_spec.version,
         team=result.team.to_payload(),
@@ -124,6 +149,33 @@ def start_company_goal(
     payload = run.to_payload()
     payload["status"] = "started"
     return payload
+
+
+def start_company_goal(
+    *,
+    goal: str,
+    user_id: str,
+    ledger_path: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    clean_goal = _required_text("goal", goal)
+    company_spec = default_company_spec()
+    request = _request_from_goal(clean_goal)
+    run_context = run_context_from_workflow_request(
+        request=request,
+        summary=(
+            f"{company_spec.display_name} workflow for hypothesis: "
+            f"{request.hypothesis}"
+        ),
+    )
+    return start_company_run(
+        goal=clean_goal,
+        user_id=user_id,
+        ledger_path=ledger_path,
+        workspace_path=workspace_path,
+        company_spec=company_spec,
+        run_context=run_context,
+    )
 
 
 def get_company_state(*, run_id: str, workspace_path: str) -> dict[str, object]:
@@ -1362,6 +1414,7 @@ __all__ = [
     "record_work_result",
     "recommend_next_tool_call",
     "run_next_local_step",
+    "start_company_run",
     "start_company_goal",
     "summarize_run",
 ]
