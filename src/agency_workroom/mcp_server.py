@@ -16,6 +16,8 @@ TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
     "prepare_github_pages_deploy_proposal",
+    "prepare_github_pages_deploy_execution_plan",
+    "execute_github_pages_deploy",
     "summarize_run",
 )
 
@@ -143,6 +145,44 @@ def prepare_github_pages_deploy_proposal(
 
 
 @mcp.tool()
+def prepare_github_pages_deploy_execution_plan(
+    run_id: str,
+    workspace_path: str,
+    proposal_ref: str,
+    target_repo_full_name: str,
+    target_repo_path: str,
+    target_branch: str = "",
+    publish_path: str = "",
+) -> dict[str, object]:
+    """Prepare a high-stakes DevOps execution plan for an explicit target repo."""
+    return agent_session.prepare_github_pages_deploy_execution_plan(
+        run_id=run_id,
+        workspace_path=workspace_path,
+        proposal_ref=proposal_ref,
+        target_repo_full_name=target_repo_full_name,
+        target_repo_path=target_repo_path,
+        target_branch=target_branch,
+        publish_path=publish_path,
+    )
+
+
+@mcp.tool()
+def execute_github_pages_deploy(
+    run_id: str,
+    workspace_path: str,
+    plan_ref: str,
+    approval_phrase: str,
+) -> dict[str, object]:
+    """Execute an approved GitHub Pages deploy plan against an explicit checkout."""
+    return agent_session.execute_github_pages_deploy(
+        run_id=run_id,
+        workspace_path=workspace_path,
+        plan_ref=plan_ref,
+        approval_phrase=approval_phrase,
+    )
+
+
+@mcp.tool()
 def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
     """Summarize completion and capability-module status for a company run."""
     return agent_session.summarize_run(
@@ -163,10 +203,12 @@ __all__ = [
     "TOOL_NAMES",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "execute_github_pages_deploy",
     "get_company_state",
     "list_next_actions",
     "main",
     "mcp",
+    "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "recommend_next_tool_call",
     "record_work_result",

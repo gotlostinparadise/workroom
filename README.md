@@ -54,12 +54,13 @@ The MCP tools are agent-facing:
 - `create_landing_artifact`
 - `create_landing_qa_report`
 - `prepare_github_pages_deploy_proposal`
+- `prepare_github_pages_deploy_execution_plan`
+- `execute_github_pages_deploy`
 - `summarize_run`
 
-This interface is local and stdio-based. This slice does not run background
-agents, push to GitHub, post to Threads, or call external services. External
-effects require separate capability-backed modules and current API/CLI
-verification before they are added.
+This interface is local and stdio-based. It does not run background agents,
+push to GitHub, post to Threads, create repositories, delete repositories, or
+call external APIs.
 
 The first local capability is `create_landing_artifact`: it writes a landing
 page draft under the run workspace and records a Workroom-local artifact ref
@@ -84,6 +85,16 @@ bundle, writes `deploy_proposal.json` and `pages-workflow.yml` for review, and
 blocks before any real GitHub Pages deployment. It does not run `git push`,
 call `gh api`, dispatch workflows, or write repository `.github/workflows`
 files.
+
+The first DevOps high-stakes capability is the GitHub Pages deploy-to-checkout
+operation. `prepare_github_pages_deploy_execution_plan` requires an explicit
+target repository checkout and writes an operation plan with a `plan_sha256`
+and exact approval phrase. `execute_github_pages_deploy` only runs when that
+exact approval phrase is supplied; it copies the reviewed site bundle into the
+explicit target checkout, creates a local git commit there, writes execution
+evidence, and completes the blocked GitHub Pages task. This slice does not push
+to remotes, create/delete repositories, configure Pages settings, or use the
+Workroom repository as a default deploy target.
 
 ## First Validation Team
 

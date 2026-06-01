@@ -19,6 +19,8 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_landing_artifact",
                 "create_landing_qa_report",
                 "prepare_github_pages_deploy_proposal",
+                "prepare_github_pages_deploy_execution_plan",
+                "execute_github_pages_deploy",
                 "summarize_run",
             ),
             mcp_server.TOOL_NAMES,
