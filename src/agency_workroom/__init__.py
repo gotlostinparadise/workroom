@@ -23,6 +23,12 @@ from .agent_session import (
 )
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .company_specs import business_validation_company_spec
+from .company_registry import (
+    DEFAULT_COMPANY_SPEC_ID,
+    default_company_spec,
+    get_company_spec,
+    list_company_specs,
+)
 from .models import (
     CompanyGoalRun,
     CompanySpec,
@@ -67,6 +73,7 @@ __all__ = [
     "CompanyGoalRun",
     "CompanySpec",
     "CompanyTaskTemplate",
+    "DEFAULT_COMPANY_SPEC_ID",
     "DEVOPS_OPERATION_PREFIX",
     "DecisionRecord",
     "Department",
@@ -101,8 +108,11 @@ __all__ = [
     "create_landing_artifact",
     "create_landing_qa_report",
     "default_validation_team",
+    "default_company_spec",
     "execute_github_pages_deploy",
+    "get_company_spec",
     "get_company_state",
+    "list_company_specs",
     "list_next_actions",
     "load_company_goal_run",
     "plan_business_validation_workflow",

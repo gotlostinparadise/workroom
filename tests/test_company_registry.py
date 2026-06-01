@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+import unittest
+
+from agency_workroom.company_registry import (
+    DEFAULT_COMPANY_SPEC_ID,
+    get_company_spec,
+    list_company_specs,
+)
+from agency_workroom.models import WorkroomModelError
+
+
+class CompanyRegistryTests(unittest.TestCase):
+    def test_default_company_spec_is_business_validation(self) -> None:
+        self.assertEqual("business_validation", DEFAULT_COMPANY_SPEC_ID)
+
+        spec = get_company_spec(DEFAULT_COMPANY_SPEC_ID)
+
+        self.assertEqual("business_validation", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+
+    def test_list_company_specs_returns_registered_spec_payloads(self) -> None:
+        specs = list_company_specs()
+
+        self.assertEqual(1, len(specs))
+        self.assertEqual("business_validation", specs[0]["spec_id"])
+        self.assertEqual("v1", specs[0]["version"])
+
+    def test_get_company_spec_rejects_unknown_spec(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "unknown company spec"):
+            get_company_spec("missing")
+
+    def test_get_company_spec_returns_fresh_instances(self) -> None:
+        first = get_company_spec(DEFAULT_COMPANY_SPEC_ID)
+        second = get_company_spec(DEFAULT_COMPANY_SPEC_ID)
+
+        self.assertIsNot(first, second)
+        self.assertEqual(first.to_payload(), second.to_payload())
+
+
+if __name__ == "__main__":
+    unittest.main()
