@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -28,12 +29,15 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
 
-    def workspace_file_snapshot(self, workspace_path: Path) -> tuple[str, ...]:
+    def workspace_file_snapshot(self, workspace_path: Path) -> tuple[tuple[str, str], ...]:
         if not workspace_path.exists():
             return ()
         return tuple(
             sorted(
-                str(path.relative_to(workspace_path))
+                (
+                    str(path.relative_to(workspace_path)),
+                    hashlib.sha256(path.read_bytes()).hexdigest(),
+                )
                 for path in workspace_path.rglob("*")
                 if path.is_file()
             )
