@@ -7,8 +7,12 @@ from pathlib import Path
 from agency_workroom.models import CompanyGoalRun, SupervisorTurn, TaskState
 from agency_workroom.supervisor import (
     build_approval_required_turn,
+    build_decision_record,
+    build_handoff_record,
     build_supervisor_snapshot,
     detect_goal_phase,
+    write_decision_record,
+    write_handoff_record,
     write_supervisor_turn,
 )
 from agency_workroom.team import default_validation_team
@@ -227,6 +231,92 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual(
             "workroom-artifact://runs/run_abc/supervisor/turns/turn_abc.json",
             payload["turn_ref"],
+        )
+
+    def test_write_handoff_record_creates_artifact_and_ref(self) -> None:
+        root = self.temp_root()
+        run = self.make_run(self.make_tasks())
+        record = build_handoff_record(
+            run=run,
+            phase="local_production",
+            from_department="product",
+            to_department="qa",
+            status="completed",
+            reason="landing artifact is ready for QA",
+            task_ref="workroom-item://landing",
+            artifact_refs=(
+                "workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+            ),
+            requires_approval=False,
+            metadata={"next_phase": "qa"},
+        )
+        duplicate = build_handoff_record(
+            run=run,
+            phase="local_production",
+            from_department="product",
+            to_department="qa",
+            status="completed",
+            reason="landing artifact is ready for QA",
+            task_ref="workroom-item://landing",
+            artifact_refs=(
+                "workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+            ),
+            requires_approval=False,
+            metadata={"next_phase": "qa"},
+        )
+
+        payload = write_handoff_record(root / "workspace", record)
+
+        self.assertEqual(record.handoff_id, duplicate.handoff_id)
+        self.assertTrue(Path(payload["handoff_path"]).exists())
+        self.assertEqual(
+            f"workroom-artifact://runs/run_abc/handoffs/{record.handoff_id}.json",
+            payload["handoff_ref"],
+        )
+
+    def test_write_decision_record_creates_artifact_and_ref(self) -> None:
+        root = self.temp_root()
+        run = self.make_run(self.make_tasks())
+        record = build_decision_record(
+            run=run,
+            phase="approval_required",
+            owner_department="devops",
+            decision_type="approval_gate",
+            status="required",
+            question="Approve GitHub Pages execution planning?",
+            recommendation="Prepare an explicit target repository execution plan.",
+            reason="deploy proposal is ready but target repo inputs are missing",
+            task_ref="workroom-item://github-pages",
+            source_refs=(
+                "workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+            ),
+            options=("prepare_execution_plan", "revise_proposal"),
+            metadata={"gate": "github_pages"},
+        )
+        duplicate = build_decision_record(
+            run=run,
+            phase="approval_required",
+            owner_department="devops",
+            decision_type="approval_gate",
+            status="required",
+            question="Approve GitHub Pages execution planning?",
+            recommendation="Prepare an explicit target repository execution plan.",
+            reason="deploy proposal is ready but target repo inputs are missing",
+            task_ref="workroom-item://github-pages",
+            source_refs=(
+                "workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+            ),
+            options=("prepare_execution_plan", "revise_proposal"),
+            metadata={"gate": "github_pages"},
+        )
+
+        payload = write_decision_record(root / "workspace", record)
+
+        self.assertEqual(record.decision_id, duplicate.decision_id)
+        self.assertTrue(Path(payload["decision_path"]).exists())
+        self.assertEqual(
+            f"workroom-artifact://runs/run_abc/decisions/{record.decision_id}.json",
+            payload["decision_ref"],
         )
 
     def test_build_approval_required_turn_recommends_devops_plan(self) -> None:

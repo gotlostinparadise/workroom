@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .models import CompanyGoalRun, SupervisorTurn, TaskState
+from .models import CompanyGoalRun, DecisionRecord, HandoffRecord, SupervisorTurn, TaskState
 from .session_store import WorkroomStateError
 
 
@@ -144,6 +144,154 @@ def write_supervisor_turn(
     return {
         **payload,
         "turn_path": str(turn_path),
+    }
+
+
+def build_handoff_record(
+    *,
+    run: CompanyGoalRun,
+    phase: str,
+    from_department: str,
+    to_department: str,
+    status: str,
+    reason: str,
+    task_ref: str,
+    artifact_refs: tuple[str, ...] | list[str],
+    requires_approval: bool,
+    metadata: Mapping[str, object],
+) -> HandoffRecord:
+    handoff_id = _record_id(
+        "handoff",
+        {
+            "run_id": run.run_id,
+            "phase": phase,
+            "from_department": from_department,
+            "to_department": to_department,
+            "status": status,
+            "reason": reason,
+            "task_ref": task_ref,
+            "artifact_refs": list(artifact_refs),
+            "requires_approval": requires_approval,
+            "metadata": metadata,
+        },
+    )
+    return HandoffRecord(
+        handoff_id=handoff_id,
+        run_id=run.run_id,
+        phase=phase,
+        from_department=from_department,
+        to_department=to_department,
+        status=status,
+        reason=reason,
+        task_ref=task_ref,
+        artifact_refs=artifact_refs,
+        requires_approval=requires_approval,
+        metadata=metadata,
+    )
+
+
+def build_decision_record(
+    *,
+    run: CompanyGoalRun,
+    phase: str,
+    owner_department: str,
+    decision_type: str,
+    status: str,
+    question: str,
+    recommendation: str,
+    reason: str,
+    task_ref: str,
+    source_refs: tuple[str, ...] | list[str],
+    options: tuple[str, ...] | list[str],
+    metadata: Mapping[str, object],
+) -> DecisionRecord:
+    decision_id = _record_id(
+        "decision",
+        {
+            "run_id": run.run_id,
+            "phase": phase,
+            "owner_department": owner_department,
+            "decision_type": decision_type,
+            "status": status,
+            "question": question,
+            "recommendation": recommendation,
+            "reason": reason,
+            "task_ref": task_ref,
+            "source_refs": list(source_refs),
+            "options": list(options),
+            "metadata": metadata,
+        },
+    )
+    return DecisionRecord(
+        decision_id=decision_id,
+        run_id=run.run_id,
+        phase=phase,
+        owner_department=owner_department,
+        decision_type=decision_type,
+        status=status,
+        question=question,
+        recommendation=recommendation,
+        reason=reason,
+        task_ref=task_ref,
+        source_refs=source_refs,
+        options=options,
+        metadata=metadata,
+    )
+
+
+def write_handoff_record(
+    workspace_path: str | Path,
+    record: HandoffRecord,
+) -> dict[str, object]:
+    handoff_dir = Path(workspace_path) / "runs" / record.run_id / "handoffs"
+    handoff_path = handoff_dir / f"{record.handoff_id}.json"
+    handoff_ref = (
+        f"workroom-artifact://runs/{record.run_id}/handoffs/"
+        f"{record.handoff_id}.json"
+    )
+    payload = {
+        **record.to_payload(),
+        "handoff_ref": handoff_ref,
+    }
+    try:
+        handoff_dir.mkdir(parents=True, exist_ok=True)
+        handoff_path.write_text(
+            json.dumps(payload, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise WorkroomStateError("handoff record write failed") from exc
+    return {
+        **payload,
+        "handoff_path": str(handoff_path),
+    }
+
+
+def write_decision_record(
+    workspace_path: str | Path,
+    record: DecisionRecord,
+) -> dict[str, object]:
+    decision_dir = Path(workspace_path) / "runs" / record.run_id / "decisions"
+    decision_path = decision_dir / f"{record.decision_id}.json"
+    decision_ref = (
+        f"workroom-artifact://runs/{record.run_id}/decisions/"
+        f"{record.decision_id}.json"
+    )
+    payload = {
+        **record.to_payload(),
+        "decision_ref": decision_ref,
+    }
+    try:
+        decision_dir.mkdir(parents=True, exist_ok=True)
+        decision_path.write_text(
+            json.dumps(payload, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise WorkroomStateError("decision record write failed") from exc
+    return {
+        **payload,
+        "decision_path": str(decision_path),
     }
 
 
@@ -380,11 +528,26 @@ def _turn_id(
     return f"turn_{digest[:16]}"
 
 
+def _record_id(prefix: str, seed: Mapping[str, object]) -> str:
+    digest = hashlib.sha256(
+        json.dumps(
+            seed,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"{prefix}_{digest[:16]}"
+
+
 __all__ = [
     "SUPERVISOR_ID_PREFIX",
     "build_approval_required_turn",
+    "build_decision_record",
+    "build_handoff_record",
     "build_supervisor_snapshot",
     "detect_goal_phase",
     "supervisor_id_for",
+    "write_decision_record",
+    "write_handoff_record",
     "write_supervisor_turn",
 ]
