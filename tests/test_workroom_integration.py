@@ -441,12 +441,15 @@ class WorkroomIntegrationTests(unittest.TestCase):
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn(private_goal, ledger_text)
 
-    def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[str, ...]:
+    def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[tuple[str, str], ...]:
         if not workflows_dir.exists():
             return ()
         return tuple(
             sorted(
-                str(path.relative_to(workflows_dir))
+                (
+                    str(path.relative_to(workflows_dir)),
+                    hashlib.sha256(path.read_bytes()).hexdigest(),
+                )
                 for path in workflows_dir.rglob("*")
                 if path.is_file()
             )
