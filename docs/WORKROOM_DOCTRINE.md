@@ -22,6 +22,10 @@ calls, and decides when to ask the user for approval.
 Workroom creates and manages the company run for that goal. It owns workflow,
 local state, roles, task status, artifacts, and product behavior.
 
+A Company Spec defines the shape of a goal-specific company: departments,
+roles, task templates, and policy metadata. Business Validation is the first
+reference company spec, not the limit of the runtime.
+
 The Goal Supervisor advances one company run through bounded turns. It observes
 state, selects the next safe step, delegates work, records a turn artifact, and
 stops at blockers or approval gates.
@@ -154,6 +158,7 @@ and better evidence.
 
 The next improvements should strengthen:
 
+- reusable company specs and runtime primitives;
 - richer department and role boundaries;
 - better supervisor state, decision records, and handoff records;
 - explicit handoffs between roles and departments;

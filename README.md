@@ -118,6 +118,12 @@ structured hypothesis request and creates planned work items for hypothesis
 research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
+Business Validation is the first bundled `CompanySpec`. A company spec defines
+the departments, roles, task templates, and metadata that create a goal-specific
+company run. The current reference vertical keeps the existing validation
+behavior, but the runtime now has a reusable spec boundary for future company
+types.
+
 The team blueprint models departments explicitly: strategy, research, product,
 QA, DevOps, growth, social, and coordination. Roles belong to departments and
 carry authority scope metadata, so Codex can see whether the current work is
