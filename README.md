@@ -124,6 +124,12 @@ company run. The current reference vertical keeps the existing validation
 behavior, but the runtime now has a reusable spec boundary for future company
 types.
 
+The generic runtime input is `RunContext`: a goal, summary, and template
+variables for the active company spec. `WorkflowRequest` remains the Business
+Validation adapter shape, so existing `start_company_goal` callers keep the
+same MCP arguments while the runtime no longer assumes every company has a
+hypothesis, audience, offer, or success criteria.
+
 The team blueprint models departments explicitly: strategy, research, product,
 QA, DevOps, growth, social, and coordination. Roles belong to departments and
 carry authority scope metadata, so Codex can see whether the current work is

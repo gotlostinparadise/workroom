@@ -26,6 +26,11 @@ A Company Spec defines the shape of a goal-specific company: departments,
 roles, task templates, and policy metadata. Business Validation is the first
 reference company spec, not the limit of the runtime.
 
+A Run Context is the generic input to a company spec. It carries the goal,
+summary, and template variables needed to create work for that company. A
+vertical-specific request, such as the Business Validation `WorkflowRequest`,
+is an adapter into Run Context rather than a requirement of the runtime.
+
 The Goal Supervisor advances one company run through bounded turns. It observes
 state, selects the next safe step, delegates work, records a turn artifact, and
 stops at blockers or approval gates.
