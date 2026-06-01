@@ -52,6 +52,49 @@ class LandingArtifactTests(unittest.TestCase):
         self.assertEqual(task.task_ref, metadata["task_ref"])
         self.assertEqual(artifact["artifact_ref"], metadata["artifact_ref"])
 
+    def test_create_landing_artifact_files_reads_run_context_variables(self) -> None:
+        root = self.temp_root()
+        task = TaskState(
+            task_ref="workroom-item://abc",
+            role_id="landing_builder",
+            category="landing_page",
+            title="Create landing page plan",
+            status="planned",
+        )
+        plan = {
+            "request": {
+                "schema_version": "run-context.v1",
+                "goal": "Validate Workroom demand",
+                "summary": "Business validation workflow",
+                "variables": {
+                    "audience": "target audience to validate",
+                    "offer": "business validation offer",
+                    "constraints": "local-only execution",
+                    "success_criteria": (
+                        "evidence sufficient for a continue, pivot, or stop decision"
+                    ),
+                },
+                "metadata": {"adapter": "business_validation.workflow_request"},
+            }
+        }
+
+        artifact = create_landing_artifact_files(
+            workspace_path=root / "workspace",
+            run_id="run_abc",
+            goal="Validate Workroom demand",
+            task=task,
+            plan=plan,
+        )
+
+        html_text = Path(artifact["artifact_path"]).read_text(encoding="utf-8")
+        self.assertIn("target audience to validate", html_text)
+        self.assertIn("business validation offer", html_text)
+        self.assertIn(
+            "evidence sufficient for a continue, pivot, or stop decision",
+            html_text,
+        )
+        self.assertNotIn("validation evidence", html_text)
+
     def test_create_landing_artifact_files_escapes_dynamic_text(self) -> None:
         root = self.temp_root()
         task = TaskState(

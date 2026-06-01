@@ -78,6 +78,9 @@ def create_landing_artifact_files(
 def _request_payload(plan: Mapping[str, object]) -> Mapping[str, object]:
     request = plan.get("request", {})
     if isinstance(request, Mapping):
+        variables = request.get("variables")
+        if isinstance(variables, Mapping):
+            return variables
         return request
     return {}
 

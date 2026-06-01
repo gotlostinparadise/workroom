@@ -59,8 +59,8 @@ def run_context_from_workflow_request(
             "success_criteria": request.success_criteria,
         },
         metadata={
-            "adapter": "business_validation.workflow_request",
             **request.to_payload()["metadata"],
+            "adapter": "business_validation.workflow_request",
         },
     )
 

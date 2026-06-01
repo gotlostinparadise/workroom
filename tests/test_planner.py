@@ -16,6 +16,7 @@ from agency_workroom.models import (
 from agency_workroom.planner import (
     plan_business_validation_workflow,
     plan_workflow_from_company_spec,
+    run_context_from_workflow_request,
 )
 from agency_workroom.team import default_validation_team
 
@@ -152,6 +153,31 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         self.assertEqual("release_plan", plan.tasks[0].metadata["artifact_kind"])
         self.assertEqual("Harden release process", plan.tasks[0].metadata["goal"])
         self.assertEqual("release-context.v1", plan.to_payload()["request"]["metadata"]["kind"])
+
+    def test_business_validation_adapter_metadata_cannot_be_overridden(self) -> None:
+        request = WorkflowRequest(
+            hypothesis="Founders want validation",
+            audience="early-stage SaaS founders",
+            offer="48 hour validation",
+            constraints="local only",
+            channels=("landing_page",),
+            success_criteria="10 signups",
+            metadata={
+                "adapter": "caller.override",
+                "request_id": "req_1",
+            },
+        )
+
+        context = run_context_from_workflow_request(
+            request=request,
+            summary="Business validation workflow",
+        )
+
+        self.assertEqual(
+            "business_validation.workflow_request",
+            context.to_payload()["metadata"]["adapter"],
+        )
+        self.assertEqual("req_1", context.to_payload()["metadata"]["request_id"])
 
     def test_company_spec_planner_rejects_missing_run_context_template_variable(self) -> None:
         context = RunContext(
