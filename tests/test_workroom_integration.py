@@ -767,6 +767,23 @@ class WorkroomIntegrationTests(unittest.TestCase):
             turns[-1]["approval_request"]["recommended_tool"],
         )
         self.assertEqual(
+            [("product", "qa"), ("qa", "devops"), ("devops", "approval_gate")],
+            [
+                (
+                    turn["handoff"]["from_department"],
+                    turn["handoff"]["to_department"],
+                )
+                for turn in turns[:3]
+            ],
+        )
+        for turn in turns[:3]:
+            self.assertTrue(Path(turn["handoff_path"]).exists())
+            self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
+        self.assertEqual("devops", turns[-1]["decision"]["owner_department"])
+        self.assertEqual("approval_gate", turns[-1]["decision"]["decision_type"])
+        self.assertTrue(Path(turns[-1]["decision_path"]).exists())
+        self.assertEqual(turns[-1]["decision"]["decision_ref"], turns[-1]["decision_ref"])
+        self.assertEqual(
             ["target_repo_full_name", "target_repo_path"],
             turns[-1]["approval_request"]["missing_inputs"],
         )

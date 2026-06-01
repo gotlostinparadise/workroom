@@ -1192,6 +1192,10 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("landing_builder", turn["delegated_role"])
         self.assertFalse(turn["requires_approval"])
         self.assertTrue(Path(turn["turn_path"]).exists())
+        self.assertEqual("product", turn["handoff"]["from_department"])
+        self.assertEqual("qa", turn["handoff"]["to_department"])
+        self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
+        self.assertTrue(Path(turn["handoff_path"]).exists())
         self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
         self.assertEqual("planned", self.task_by_category(state, "testing")["status"])
 
@@ -1233,7 +1237,20 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("local_step_executed", second["action_type"])
         self.assertEqual("local_step_executed", third["action_type"])
         self.assertEqual("approval_required", fourth["action_type"])
+        self.assertEqual("product", first["handoff"]["from_department"])
+        self.assertEqual("qa", first["handoff"]["to_department"])
+        self.assertEqual("qa", second["handoff"]["from_department"])
+        self.assertEqual("devops", second["handoff"]["to_department"])
+        self.assertEqual("devops", third["handoff"]["from_department"])
+        self.assertEqual("approval_gate", third["handoff"]["to_department"])
+        for turn in (first, second, third):
+            self.assertTrue(Path(turn["handoff_path"]).exists())
+            self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
         self.assertTrue(fourth["requires_approval"])
+        self.assertEqual("devops", fourth["decision"]["owner_department"])
+        self.assertEqual("approval_gate", fourth["decision"]["decision_type"])
+        self.assertEqual(fourth["decision"]["decision_ref"], fourth["decision_ref"])
+        self.assertTrue(Path(fourth["decision_path"]).exists())
         self.assertEqual(
             "prepare_github_pages_deploy_execution_plan",
             fourth["approval_request"]["recommended_tool"],

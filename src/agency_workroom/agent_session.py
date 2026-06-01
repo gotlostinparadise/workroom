@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 import hashlib
 import json
 from pathlib import Path
@@ -34,8 +35,12 @@ from .session_store import (
 )
 from .supervisor import (
     build_approval_required_turn,
+    build_decision_record,
+    build_handoff_record,
     detect_goal_phase,
     supervisor_id_for,
+    write_decision_record,
+    write_handoff_record,
     write_supervisor_turn,
 )
 from .workflow import run_business_validation_workflow
@@ -363,10 +368,21 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             next_recommendation=next_recommendation,
             status_counts=dict(Counter(task.status for task in run_after.tasks)),
         )
-        return {
+        response = {
             **write_supervisor_turn(clean_workspace_path, turn),
             "execution": step_result,
         }
+        return _attach_operational_record(
+            response=response,
+            workspace_path=clean_workspace_path,
+            run=run_after,
+            phase=phase_before,
+            action_type="local_step_executed",
+            task_ref=_task_ref_from_step_result(step_result),
+            artifact_refs=(_result_ref_from_step_result(step_result),),
+            reason=str(step_result.get("reason", "executed recommended local tool")),
+            recommendation=next_recommendation,
+        )
 
     if bool(recommendation.get("blocked", False)) and phase_before == "approval_required":
         turn = build_approval_required_turn(
@@ -374,7 +390,18 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             phase_before=phase_before,
             recommendation=recommendation,
         )
-        return write_supervisor_turn(clean_workspace_path, turn)
+        response = write_supervisor_turn(clean_workspace_path, turn)
+        return _attach_operational_record(
+            response=response,
+            workspace_path=clean_workspace_path,
+            run=run_before,
+            phase=phase_before,
+            action_type="approval_required",
+            task_ref=_task_ref_for_category(run_before, "github_pages"),
+            artifact_refs=(turn.result_ref,),
+            reason=turn.reason,
+            recommendation=recommendation,
+        )
 
     if phase_before == "complete":
         action_type = "complete"
@@ -408,7 +435,18 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         next_recommendation=recommendation,
         status_counts=dict(Counter(task.status for task in run_before.tasks)),
     )
-    return write_supervisor_turn(clean_workspace_path, turn)
+    response = write_supervisor_turn(clean_workspace_path, turn)
+    return _attach_operational_record(
+        response=response,
+        workspace_path=clean_workspace_path,
+        run=run_before,
+        phase=phase_before,
+        action_type=action_type,
+        task_ref=_task_ref_for_first_blocked_task(run_before),
+        artifact_refs=(),
+        reason=reason,
+        recommendation=recommendation,
+    )
 
 
 def record_work_result(
@@ -908,6 +946,203 @@ def _result_ref_from_step_result(step_result: dict[str, object]) -> str:
     if isinstance(evidence, dict) and isinstance(evidence.get("evidence_ref"), str):
         return evidence["evidence_ref"]
     return ""
+
+
+def _task_ref_from_step_result(step_result: dict[str, object]) -> str:
+    result = step_result.get("result")
+    if not isinstance(result, dict):
+        return ""
+    task = result.get("task")
+    if isinstance(task, dict) and isinstance(task.get("task_ref"), str):
+        return task["task_ref"]
+    return ""
+
+
+def _attach_operational_record(
+    *,
+    response: dict[str, object],
+    workspace_path: str,
+    run: CompanyGoalRun,
+    phase: str,
+    action_type: str,
+    task_ref: str,
+    artifact_refs: tuple[str, ...],
+    reason: str,
+    recommendation: dict[str, object],
+) -> dict[str, object]:
+    clean_artifact_refs = tuple(ref for ref in artifact_refs if ref)
+    if action_type == "local_step_executed":
+        handoff = _build_handoff_for_phase(
+            run=run,
+            phase=phase,
+            task_ref=task_ref,
+            artifact_refs=clean_artifact_refs,
+            reason=reason,
+            recommendation=recommendation,
+        )
+        if handoff is None:
+            return response
+        payload = write_handoff_record(workspace_path, handoff)
+        return {
+            **response,
+            "handoff": payload,
+            "handoff_ref": payload["handoff_ref"],
+            "handoff_path": payload["handoff_path"],
+        }
+    if action_type in {"approval_required", "blocked", "needs_human_decision"}:
+        decision = _build_decision_for_action(
+            run=run,
+            phase=phase,
+            action_type=action_type,
+            task_ref=task_ref,
+            source_refs=clean_artifact_refs,
+            reason=reason,
+            recommendation=recommendation,
+        )
+        payload = write_decision_record(workspace_path, decision)
+        return {
+            **response,
+            "decision": payload,
+            "decision_ref": payload["decision_ref"],
+            "decision_path": payload["decision_path"],
+        }
+    return response
+
+
+def _build_handoff_for_phase(
+    *,
+    run: CompanyGoalRun,
+    phase: str,
+    task_ref: str,
+    artifact_refs: tuple[str, ...],
+    reason: str,
+    recommendation: dict[str, object],
+):
+    handoffs = {
+        "local_production": ("product", "qa", "completed", False),
+        "qa": ("qa", "devops", "completed", False),
+        "deploy_preparation": ("devops", "approval_gate", "approval_required", True),
+    }
+    handoff = handoffs.get(phase)
+    if handoff is None or not artifact_refs:
+        return None
+    from_department, to_department, status, requires_approval = handoff
+    return build_handoff_record(
+        run=run,
+        phase=phase,
+        from_department=from_department,
+        to_department=to_department,
+        status=status,
+        reason=reason,
+        task_ref=task_ref,
+        artifact_refs=artifact_refs,
+        requires_approval=requires_approval,
+        metadata={
+            "next_recommendation": {
+                "recommended_tool": str(recommendation.get("recommended_tool", "")),
+                "blocked": bool(recommendation.get("blocked", False)),
+            },
+        },
+    )
+
+
+def _build_decision_for_action(
+    *,
+    run: CompanyGoalRun,
+    phase: str,
+    action_type: str,
+    task_ref: str,
+    source_refs: tuple[str, ...],
+    reason: str,
+    recommendation: dict[str, object],
+):
+    if action_type == "approval_required":
+        return build_decision_record(
+            run=run,
+            phase=phase,
+            owner_department="devops",
+            decision_type="approval_gate",
+            status="required",
+            question="Prepare and approve a GitHub Pages execution plan?",
+            recommendation="Provide explicit target repository inputs before execution.",
+            reason=reason,
+            task_ref=task_ref,
+            source_refs=source_refs,
+            options=("prepare_execution_plan", "revise_deploy_proposal"),
+            metadata={
+                "recommended_tool": "prepare_github_pages_deploy_execution_plan",
+                "missing_inputs": ["target_repo_full_name", "target_repo_path"],
+            },
+        )
+    owner_department = _department_for_task_ref(run, task_ref)
+    if action_type == "blocked":
+        decision_type = "blocker_resolution"
+        question = "How should this blocked department proceed?"
+        recommendation_text = str(
+            recommendation.get("blocker_summary")
+            or recommendation.get("reason")
+            or "Resolve the blocker before continuing."
+        )
+        options = ("resolve_blocker", "revise_goal", "stop_run")
+    else:
+        decision_type = "strategy_decision"
+        owner_department = "strategy"
+        question = "What strategic decision should guide the next Workroom step?"
+        recommendation_text = str(
+            recommendation.get("reason")
+            or "Codex or the user should choose the next direction."
+        )
+        options = ("continue", "pivot", "stop")
+    return build_decision_record(
+        run=run,
+        phase=phase,
+        owner_department=owner_department,
+        decision_type=decision_type,
+        status="required",
+        question=question,
+        recommendation=recommendation_text,
+        reason=reason,
+        task_ref=task_ref,
+        source_refs=source_refs,
+        options=options,
+        metadata={
+            "action_type": action_type,
+            "recommended_tool": str(recommendation.get("recommended_tool", "")),
+        },
+    )
+
+
+def _task_ref_for_category(run: CompanyGoalRun, category: str) -> str:
+    for task in run.tasks:
+        if task.category == category:
+            return task.task_ref
+    return ""
+
+
+def _task_ref_for_first_blocked_task(run: CompanyGoalRun) -> str:
+    for task in run.tasks:
+        if task.status == "blocked":
+            return task.task_ref
+    return ""
+
+
+def _department_for_task_ref(run: CompanyGoalRun, task_ref: str) -> str:
+    role_id = ""
+    for task in run.tasks:
+        if task.task_ref == task_ref:
+            role_id = task.role_id
+            break
+    roles = run.team.get("roles", ())
+    if not isinstance(roles, (tuple, list)):
+        return "coordination"
+    for role in roles:
+        if (
+            isinstance(role, Mapping)
+            and role.get("role_id") == role_id
+            and isinstance(role.get("department_id"), str)
+        ):
+            return role["department_id"]
+    return "coordination"
 
 
 def _supervisor_turn_id(
