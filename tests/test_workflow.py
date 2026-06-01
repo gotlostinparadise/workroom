@@ -5,8 +5,15 @@ import unittest
 from pathlib import Path
 
 from agency_workroom import WorkroomKernelGateway
-from agency_workroom.models import WorkflowRequest
-from agency_workroom.workflow import run_business_validation_workflow
+from agency_workroom.models import (
+    CompanySpec,
+    CompanyTaskTemplate,
+    RunContext,
+    TeamBlueprint,
+    TeamRole,
+    WorkflowRequest,
+)
+from agency_workroom.workflow import run_business_validation_workflow, run_company_workflow
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
@@ -15,6 +22,61 @@ class BusinessValidationWorkflowTests(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
+
+    def test_generic_workflow_runs_from_company_spec_and_context(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        gateway = WorkroomKernelGateway.open(root / "kernel.jsonl", root / "workspace")
+        spec = CompanySpec(
+            spec_id="release_hardening",
+            version="v1",
+            display_name="Release Hardening",
+            team=TeamBlueprint(
+                name="release_hardening_team",
+                roles=(
+                    TeamRole(
+                        role_id="release_lead",
+                        display_name="Release Lead",
+                        responsibilities="Coordinate release hardening",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="release_lead",
+                    category="release",
+                    title="Prepare release checklist",
+                    summary_template="Prepare {experiment} for {owner}.",
+                ),
+            ),
+        )
+        context = RunContext(
+            goal="Harden release process",
+            summary="Release hardening workflow",
+            variables={
+                "experiment": "release checklist",
+                "owner": "platform team",
+            },
+            metadata={"kind": "release-context.v1"},
+        )
+
+        result = run_company_workflow(
+            gateway=gateway,
+            declared_by_user_id="usr_workflow",
+            company_spec=spec,
+            run_context=context,
+        )
+
+        self.assertEqual("release_hardening", result.company_spec.spec_id)
+        self.assertEqual("run-context.v1", result.run_context.to_payload()["schema_version"])
+        self.assertEqual(
+            "release checklist",
+            result.plan.to_payload()["request"]["variables"]["experiment"],
+        )
+        self.assertEqual("release_lead", result.plan.tasks[0].role_id)
+        self.assertEqual(1, len(result.commits))
+        self.assertTrue(result.commits[0].status == "success")
+        self.assertNotIn("adapter", result.run_context.to_payload()["metadata"])
 
     def test_workflow_creates_planned_tasks_through_kernel_gateway(self) -> None:
         assert_external_kernel_dependency(self)

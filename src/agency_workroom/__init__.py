@@ -66,13 +66,19 @@ from .session_store import (
     save_company_goal_run,
 )
 from .team import default_validation_team
-from .workflow import BusinessValidationWorkflowResult, run_business_validation_workflow
+from .workflow import (
+    BusinessValidationWorkflowResult,
+    CompanyWorkflowResult,
+    run_business_validation_workflow,
+    run_company_workflow,
+)
 
 __all__ = [
     "BusinessValidationWorkflowResult",
     "CompanyGoalRun",
     "CompanySpec",
     "CompanyTaskTemplate",
+    "CompanyWorkflowResult",
     "DEFAULT_COMPANY_SPEC_ID",
     "DEVOPS_OPERATION_PREFIX",
     "DecisionRecord",
@@ -123,6 +129,7 @@ __all__ = [
     "recommend_next_tool_call",
     "run_next_local_step",
     "run_context_from_workflow_request",
+    "run_company_workflow",
     "run_state_path",
     "run_business_validation_workflow",
     "save_company_goal_run",
