@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 import hashlib
 import json
 from pathlib import Path
@@ -37,10 +38,16 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
 
 def build_supervisor_snapshot(run: CompanyGoalRun) -> dict[str, object]:
     status_counts = Counter(task.status for task in run.tasks)
+    phase = detect_goal_phase(run)
+    departments_by_id = _departments_by_id(run)
+    role_departments = _role_departments(run)
+    department_status = _department_status(run, departments_by_id, role_departments)
+    department_blockers = _department_blockers(run, departments_by_id, role_departments)
+    current_department = _current_department_for_phase(phase, run, role_departments)
     return {
         "run_id": run.run_id,
         "supervisor_id": supervisor_id_for(run.run_id),
-        "phase": detect_goal_phase(run),
+        "phase": phase,
         "status_counts": dict(status_counts),
         "open_blockers": [
             {
@@ -51,6 +58,14 @@ def build_supervisor_snapshot(run: CompanyGoalRun) -> dict[str, object]:
             for task in run.tasks
             if task.status == "blocked"
         ],
+        "department_status": department_status,
+        "department_blockers": department_blockers,
+        "current_department": current_department,
+        "current_authority_level": _authority_level_for_department(
+            current_department,
+            departments_by_id,
+        ),
+        "current_handoff": _handoff_for_phase(phase, current_department),
     }
 
 
@@ -66,6 +81,7 @@ def build_approval_required_turn(
     status_counts = Counter(task.status for task in run.tasks)
     approval_request = {
         "recommended_tool": "prepare_github_pages_deploy_execution_plan",
+        "department_id": "devops",
         "arguments": {
             "run_id": run.run_id,
             "workspace_path": "",
@@ -160,6 +176,185 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
     if kind == "devops_execution_evidence":
         return "/devops/" in ref and ref.endswith("/execution_evidence.json")
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
+
+
+def _departments_by_id(run: CompanyGoalRun) -> dict[str, dict[str, object]]:
+    departments = run.team.get("departments", ())
+    if not isinstance(departments, (tuple, list)):
+        return {}
+    result: dict[str, dict[str, object]] = {}
+    for department in departments:
+        if not isinstance(department, Mapping):
+            continue
+        department_id = department.get("department_id")
+        if isinstance(department_id, str) and department_id.strip():
+            result[department_id.strip()] = dict(department)
+    return result
+
+
+def _role_departments(run: CompanyGoalRun) -> dict[str, str]:
+    roles = run.team.get("roles", ())
+    if not isinstance(roles, (tuple, list)):
+        return {}
+    result: dict[str, str] = {}
+    for role in roles:
+        if not isinstance(role, Mapping):
+            continue
+        role_id = role.get("role_id")
+        department_id = role.get("department_id")
+        if (
+            isinstance(role_id, str)
+            and role_id.strip()
+            and isinstance(department_id, str)
+            and department_id.strip()
+        ):
+            result[role_id.strip()] = department_id.strip()
+    return result
+
+
+def _department_status(
+    run: CompanyGoalRun,
+    departments_by_id: dict[str, dict[str, object]],
+    role_departments: dict[str, str],
+) -> dict[str, dict[str, object]]:
+    status_by_department: dict[str, Counter[str]] = {
+        department_id: Counter()
+        for department_id in departments_by_id
+    }
+    for task in run.tasks:
+        department_id = role_departments.get(task.role_id, "unknown")
+        status_by_department.setdefault(department_id, Counter())[task.status] += 1
+
+    return {
+        department_id: {
+            "display_name": str(
+                departments_by_id.get(department_id, {}).get(
+                    "display_name",
+                    department_id,
+                )
+            ),
+            "authority_level": _authority_level_for_department(
+                department_id,
+                departments_by_id,
+            ),
+            "capability_gate_required": bool(
+                departments_by_id.get(department_id, {}).get(
+                    "capability_gate_required",
+                    False,
+                )
+            ),
+            "status_counts": dict(status_counts),
+        }
+        for department_id, status_counts in status_by_department.items()
+        if status_counts
+    }
+
+
+def _department_blockers(
+    run: CompanyGoalRun,
+    departments_by_id: dict[str, dict[str, object]],
+    role_departments: dict[str, str],
+) -> dict[str, list[dict[str, object]]]:
+    blockers: dict[str, list[dict[str, object]]] = {}
+    for task in run.tasks:
+        if task.status != "blocked":
+            continue
+        department_id = role_departments.get(task.role_id, "unknown")
+        blockers.setdefault(department_id, []).append(
+            {
+                "task_ref": task.task_ref,
+                "role_id": task.role_id,
+                "category": task.category,
+                "title": task.title,
+                "blocker_summary": task.blocker_summary,
+                "authority_level": _authority_level_for_department(
+                    department_id,
+                    departments_by_id,
+                ),
+            }
+        )
+    return blockers
+
+
+def _current_department_for_phase(
+    phase: str,
+    run: CompanyGoalRun,
+    role_departments: dict[str, str],
+) -> str:
+    phase_departments = {
+        "local_production": "product",
+        "qa": "qa",
+        "deploy_preparation": "devops",
+        "approval_required": "devops",
+        "promotion_preparation": "growth",
+        "decision": "strategy",
+        "complete": "coordination",
+    }
+    if phase in phase_departments:
+        return phase_departments[phase]
+    if phase == "blocked":
+        for task in run.tasks:
+            if task.status == "blocked":
+                return role_departments.get(task.role_id, "unknown")
+    return "unknown"
+
+
+def _authority_level_for_department(
+    department_id: str,
+    departments_by_id: dict[str, dict[str, object]],
+) -> str:
+    authority_level = departments_by_id.get(department_id, {}).get("authority_level")
+    if isinstance(authority_level, str) and authority_level.strip():
+        return authority_level.strip()
+    return "local_only"
+
+
+def _handoff_for_phase(phase: str, current_department: str) -> dict[str, str]:
+    handoffs = {
+        "local_production": {
+            "from_department": "product",
+            "to_department": "qa",
+            "status": "pending",
+        },
+        "qa": {
+            "from_department": "qa",
+            "to_department": "devops",
+            "status": "pending",
+        },
+        "deploy_preparation": {
+            "from_department": "devops",
+            "to_department": "approval_gate",
+            "status": "pending",
+        },
+        "approval_required": {
+            "from_department": "devops",
+            "to_department": "approval_gate",
+            "status": "approval_required",
+        },
+        "promotion_preparation": {
+            "from_department": "devops",
+            "to_department": "growth",
+            "status": "pending",
+        },
+        "decision": {
+            "from_department": "coordination",
+            "to_department": "strategy",
+            "status": "decision_required",
+        },
+        "complete": {
+            "from_department": current_department,
+            "to_department": "",
+            "status": "complete",
+        },
+    }
+    return handoffs.get(
+        phase,
+        {
+            "from_department": current_department,
+            "to_department": "coordination",
+            "status": "blocked",
+        },
+    )
 
 
 def _turn_id(

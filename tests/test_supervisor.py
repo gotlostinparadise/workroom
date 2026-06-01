@@ -11,6 +11,7 @@ from agency_workroom.supervisor import (
     detect_goal_phase,
     write_supervisor_turn,
 )
+from agency_workroom.team import default_validation_team
 
 
 class SupervisorCoreTests(unittest.TestCase):
@@ -24,7 +25,7 @@ class SupervisorCoreTests(unittest.TestCase):
             run_id="run_abc",
             user_id="usr_codex",
             goal="Validate a business hypothesis",
-            team={"name": "business_validation_team", "roles": []},
+            team=default_validation_team().to_payload(),
             plan={"summary": "Plan", "tasks": []},
             commits=[{"work_item_ref": task.task_ref} for task in tasks],
             tasks=tasks,
@@ -60,7 +61,7 @@ class SupervisorCoreTests(unittest.TestCase):
             ),
             TaskState(
                 task_ref="workroom-item://github-pages",
-                role_id="landing_builder",
+                role_id="devops_operator",
                 category="github_pages",
                 title="Plan GitHub Pages deployment",
                 status=github_pages_status,
@@ -137,6 +138,68 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual("local_production", snapshot["phase"])
         self.assertEqual({"planned": 4}, snapshot["status_counts"])
         self.assertEqual([], snapshot["open_blockers"])
+
+    def test_build_supervisor_snapshot_reports_department_status(self) -> None:
+        run = self.make_run(self.make_tasks())
+
+        snapshot = build_supervisor_snapshot(run)
+
+        self.assertEqual(
+            {"planned": 1},
+            snapshot["department_status"]["product"]["status_counts"],
+        )
+        self.assertEqual(
+            {"planned": 1},
+            snapshot["department_status"]["qa"]["status_counts"],
+        )
+        self.assertEqual(
+            {"planned": 1},
+            snapshot["department_status"]["devops"]["status_counts"],
+        )
+        self.assertEqual("product", snapshot["current_department"])
+        self.assertEqual("local_only", snapshot["current_authority_level"])
+        self.assertEqual(
+            {
+                "from_department": "product",
+                "to_department": "qa",
+                "status": "pending",
+            },
+            snapshot["current_handoff"],
+        )
+
+    def test_build_supervisor_snapshot_reports_devops_blocker(self) -> None:
+        proposal_ref = (
+            "workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json"
+        )
+        run = self.make_run(
+            self.make_tasks(
+                landing_status="completed",
+                landing_refs=("workroom-artifact://runs/run_abc/landing_page/aaa/index.html",),
+                testing_status="completed",
+                testing_refs=("workroom-artifact://runs/run_abc/landing_qa/bbb/qa_report.json",),
+                github_pages_status="blocked",
+                github_pages_refs=(proposal_ref,),
+                github_pages_blocker="deploy proposal created",
+            )
+        )
+
+        snapshot = build_supervisor_snapshot(run)
+
+        self.assertEqual("approval_required", snapshot["phase"])
+        self.assertEqual("devops", snapshot["current_department"])
+        self.assertEqual("approval_required", snapshot["current_authority_level"])
+        self.assertEqual(
+            "workroom-item://github-pages",
+            snapshot["department_blockers"]["devops"][0]["task_ref"],
+        )
+        self.assertEqual(
+            {
+                "from_department": "devops",
+                "to_department": "approval_gate",
+                "status": "approval_required",
+            },
+            snapshot["current_handoff"],
+        )
 
     def test_write_supervisor_turn_creates_artifact_and_ref(self) -> None:
         root = self.temp_root()
