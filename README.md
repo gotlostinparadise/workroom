@@ -48,6 +48,7 @@ The MCP tools are agent-facing:
 - `start_company_goal`
 - `get_company_state`
 - `list_next_actions`
+- `recommend_next_tool_call`
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
@@ -62,6 +63,10 @@ verification before they are added.
 The first local capability is `create_landing_artifact`: it writes a landing
 page draft under the run workspace and records a Workroom-local artifact ref
 without deploying it.
+
+`recommend_next_tool_call` is read-only: it returns a recommended Workroom MCP
+tool name and arguments for Codex to review or call separately, without
+executing that tool.
 
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without

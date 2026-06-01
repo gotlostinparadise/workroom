@@ -13,6 +13,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "start_company_goal",
                 "get_company_state",
                 "list_next_actions",
+                "recommend_next_tool_call",
                 "record_work_result",
                 "create_landing_artifact",
                 "create_landing_qa_report",
