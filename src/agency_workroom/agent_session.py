@@ -44,6 +44,7 @@ from .supervisor import (
     build_role_work_request,
     build_role_work_result,
     detect_goal_phase,
+    plan_supervisor_transition,
     supervisor_id_for,
     write_decision_record,
     write_handoff_record,
@@ -390,11 +391,18 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         run_id=clean_run_id,
         workspace_path=clean_workspace_path,
     )
-    recommended_tool = str(recommendation.get("recommended_tool", ""))
+    transition = plan_supervisor_transition(
+        run=run_before,
+        phase_before=phase_before,
+        recommendation=recommendation,
+        local_step_tool_names=LOCAL_STEP_TOOL_NAMES,
+    )
+    transition_payload = transition.to_payload()
+    recommended_tool = transition.selected_tool
 
-    if recommended_tool in LOCAL_STEP_TOOL_NAMES:
+    if transition.outcome == "local_step":
         recommendation_arguments = _recommendation_arguments(recommendation)
-        task_ref = str(recommendation_arguments.get("task_ref", ""))
+        task_ref = transition.task_ref
         role_task = _task_for_ref(run_before, task_ref)
         role_department = _department_for_task_ref(run_before, task_ref)
         role_request = build_role_work_request(
@@ -447,6 +455,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             request_payload=role_request_payload,
             result_payload=role_result_payload,
         )
+        role_work_metadata["transition"] = transition_payload
         next_recommendation = recommend_next_tool_call(
             run_id=clean_run_id,
             workspace_path=clean_workspace_path,
@@ -454,7 +463,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         turn = SupervisorTurn(
             turn_id=_supervisor_turn_id(
                 run_id=clean_run_id,
-                action_type="local_step_executed",
+                action_type=transition.action_type,
                 phase_before=phase_before,
                 selected_tool="run_next_local_step",
                 result_ref=step_result_ref,
@@ -463,9 +472,9 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             supervisor_id=supervisor_id_for(clean_run_id),
             phase_before=phase_before,
             phase_after=phase_after,
-            action_type="local_step_executed",
+            action_type=transition.action_type,
             selected_tool="run_next_local_step",
-            delegated_role=_delegated_role_for_local_tool(recommended_tool),
+            delegated_role=transition.delegated_role,
             reason=str(step_result.get("reason", "executed recommended local tool")),
             recommendation=recommendation,
             result_ref=step_result_ref,
@@ -478,6 +487,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         response = {
             **write_supervisor_turn(clean_workspace_path, turn),
             "execution": step_result,
+            "transition": transition_payload,
             "role_work_request": role_request_payload,
             "role_work_result": role_result_payload,
             "role_work_request_ref": role_request_payload["request_ref"],
@@ -490,45 +500,40 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             workspace_path=clean_workspace_path,
             run=run_after,
             phase=phase_before,
-            action_type="local_step_executed",
+            action_type=transition.action_type,
             task_ref=_task_ref_from_step_result(step_result),
             artifact_refs=(step_result_ref,),
             reason=str(step_result.get("reason", "executed recommended local tool")),
             recommendation=next_recommendation,
         )
 
-    if bool(recommendation.get("blocked", False)) and phase_before == "approval_required":
+    if transition.outcome == "approval_required":
         turn = build_approval_required_turn(
             run=run_before,
             phase_before=phase_before,
             recommendation=recommendation,
+            metadata={"transition": transition_payload},
         )
-        response = write_supervisor_turn(clean_workspace_path, turn)
+        response = {
+            **write_supervisor_turn(clean_workspace_path, turn),
+            "transition": transition_payload,
+        }
         return _attach_operational_record(
             response=response,
             workspace_path=clean_workspace_path,
             run=run_before,
             phase=phase_before,
-            action_type="approval_required",
+            action_type=transition.action_type,
             task_ref=_task_ref_for_category(run_before, "github_pages"),
             artifact_refs=(turn.result_ref,),
             reason=turn.reason,
             recommendation=recommendation,
         )
 
-    if phase_before == "complete":
-        action_type = "complete"
-        reason = "company goal run is complete"
-    elif bool(recommendation.get("blocked", False)):
-        action_type = "blocked"
-        reason = str(recommendation.get("reason", "company goal run is blocked"))
-    else:
-        action_type = "needs_human_decision"
-        reason = str(recommendation.get("reason", "no safe supervisor action is available"))
     turn = SupervisorTurn(
         turn_id=_supervisor_turn_id(
             run_id=clean_run_id,
-            action_type=action_type,
+            action_type=transition.action_type,
             phase_before=phase_before,
             selected_tool="",
             result_ref="",
@@ -537,27 +542,31 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         supervisor_id=supervisor_id_for(clean_run_id),
         phase_before=phase_before,
         phase_after=phase_before,
-        action_type=action_type,
+        action_type=transition.action_type,
         selected_tool="",
-        delegated_role="goal_supervisor",
-        reason=reason,
+        delegated_role=transition.delegated_role,
+        reason=transition.reason,
         recommendation=recommendation,
         result_ref="",
         requires_approval=False,
         approval_request={},
         next_recommendation=recommendation,
         status_counts=dict(Counter(task.status for task in run_before.tasks)),
+        metadata={"transition": transition_payload},
     )
-    response = write_supervisor_turn(clean_workspace_path, turn)
+    response = {
+        **write_supervisor_turn(clean_workspace_path, turn),
+        "transition": transition_payload,
+    }
     return _attach_operational_record(
         response=response,
         workspace_path=clean_workspace_path,
         run=run_before,
         phase=phase_before,
-        action_type=action_type,
-        task_ref=_task_ref_for_first_blocked_task(run_before),
+        action_type=transition.action_type,
+        task_ref=transition.task_ref,
         artifact_refs=(),
-        reason=reason,
+        reason=transition.reason,
         recommendation=recommendation,
     )
 
@@ -1102,16 +1111,6 @@ def _role_work_metadata(
             "artifact_refs": result_payload["artifact_refs"],
         },
     }
-
-
-def _delegated_role_for_local_tool(tool_name: str) -> str:
-    if tool_name == "create_landing_artifact":
-        return "landing_builder"
-    if tool_name == "create_landing_qa_report":
-        return "qa_tester"
-    if tool_name == "prepare_github_pages_deploy_proposal":
-        return "devops_operator"
-    return "goal_supervisor"
 
 
 def _result_ref_from_step_result(step_result: dict[str, object]) -> str:

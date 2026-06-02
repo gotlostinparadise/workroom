@@ -1269,6 +1269,18 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("landing_builder", turn["delegated_role"])
         self.assertFalse(turn["requires_approval"])
         self.assertTrue(Path(turn["turn_path"]).exists())
+        persisted_turn = json.loads(Path(turn["turn_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual("handoff", turn["transition"]["record_kind"])
+        self.assertEqual("create_landing_artifact", turn["transition"]["selected_tool"])
+        self.assertEqual(
+            turn["transition"],
+            turn["metadata"]["transition"],
+        )
+        self.assertEqual(
+            turn["transition"],
+            persisted_turn["metadata"]["transition"],
+        )
         self.assertEqual("product", turn["handoff"]["from_department"])
         self.assertEqual("qa", turn["handoff"]["to_department"])
         self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
@@ -1331,6 +1343,19 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("local_step_executed", second["action_type"])
         self.assertEqual("local_step_executed", third["action_type"])
         self.assertEqual("approval_required", fourth["action_type"])
+        self.assertEqual("local_step", first["transition"]["outcome"])
+        self.assertEqual("local_step", second["transition"]["outcome"])
+        self.assertEqual("local_step", third["transition"]["outcome"])
+        self.assertEqual("approval_required", fourth["transition"]["outcome"])
+        self.assertEqual("decision", fourth["transition"]["record_kind"])
+        self.assertEqual(
+            "prepare_github_pages_deploy_execution_plan",
+            fourth["transition"]["selected_tool"],
+        )
+        self.assertEqual(
+            fourth["transition"],
+            fourth["metadata"]["transition"],
+        )
         self.assertEqual("product", first["handoff"]["from_department"])
         self.assertEqual("qa", first["handoff"]["to_department"])
         self.assertEqual("qa", second["handoff"]["from_department"])

@@ -170,6 +170,7 @@ def build_approval_required_turn(
     run: CompanyGoalRun,
     phase_before: str,
     recommendation: dict[str, object],
+    metadata: Mapping[str, object] | None = None,
 ) -> SupervisorTurn:
     proposal_ref = _result_ref_for_kind(run, "github_pages_deploy_proposal")
     if proposal_ref is None:
@@ -211,6 +212,7 @@ def build_approval_required_turn(
         approval_request=approval_request,
         next_recommendation=approval_request,
         status_counts=dict(status_counts),
+        metadata={} if metadata is None else metadata,
     )
     return turn
 
