@@ -87,6 +87,11 @@ step, execute at most one local step, or return a structured approval/blocker
 request. It writes a supervisor turn artifact under the run workspace and does
 not execute high-stakes DevOps operations.
 
+Supervisor state is modeled as explicit phases and one-turn transition
+outcomes. Each `advance_company_goal` call plans one transition, records that
+transition in supervisor metadata, and then stops. It does not schedule future
+turns, loop until completion, or execute external effects on its own.
+
 Supervisor turns also write Workroom-local operational records when the run
 crosses a department boundary or reaches an approval/decision point. Codex can
 inspect `runs/<run_id>/handoffs/` and `runs/<run_id>/decisions/` refs to see

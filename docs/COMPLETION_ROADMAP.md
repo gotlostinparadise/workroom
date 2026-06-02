@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v2.
+Status: Canonical plan v3.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -108,6 +108,10 @@ These milestones are complete enough to be treated as foundation:
     Supervisor turns can write local role-work request/result artifacts and
     attach their refs to turn metadata without autonomous role-agent execution.
 
+13. Supervisor State Machine v2.
+    Supervisor phases, outcomes, and one-turn transition plans are explicit and
+    persisted with supervisor turns.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -153,7 +157,7 @@ Exit criteria:
 
 ### 3. Supervisor State Machine v2
 
-Status: Next.
+Status: Done.
 
 Goal: make the supervisor's turn logic explicit enough to support more than the
 current Business Validation happy path.
@@ -170,7 +174,7 @@ Exit criteria:
 
 ### 4. Capability Protocols v2
 
-Status: Later.
+Status: Next.
 
 Goal: strengthen high-stakes capability protocols for DevOps, social, growth,
 and other external-effect domains.
@@ -262,9 +266,9 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Supervisor State Machine v2
+Capability Protocols v2
 ```
 
-Before implementing it, create an implementation plan under `docs/plans/`,
-model the state-machine contract explicitly, and execute it with TDD in an
-isolated worktree.
+Before implementing it, create an implementation plan under `docs/plans/`.
+Keep the work bounded to proposal, approval, execution, and evidence contracts;
+do not add background execution or implicit external effects.
