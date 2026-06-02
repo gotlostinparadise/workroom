@@ -68,6 +68,12 @@ from .session_store import (
     run_state_path,
     save_company_goal_run,
 )
+from .supervisor import (
+    build_role_work_request,
+    build_role_work_result,
+    write_role_work_request,
+    write_role_work_result,
+)
 from .team import default_validation_team
 from .workflow import (
     BusinessValidationWorkflowResult,
@@ -116,6 +122,8 @@ __all__ = [
     "WorkroomStateError",
     "advance_company_goal",
     "business_validation_company_spec",
+    "build_role_work_request",
+    "build_role_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
     "default_validation_team",
@@ -141,4 +149,6 @@ __all__ = [
     "start_company_run",
     "start_company_goal",
     "summarize_run",
+    "write_role_work_request",
+    "write_role_work_result",
 ]

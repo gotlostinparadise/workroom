@@ -21,6 +21,12 @@ class PackageImportTests(unittest.TestCase):
         major = int(version("mcp").split(".", 1)[0])
         self.assertEqual(1, major)
 
+    def test_role_work_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.build_role_work_request))
+        self.assertTrue(callable(agency_workroom.build_role_work_result))
+        self.assertTrue(callable(agency_workroom.write_role_work_request))
+        self.assertTrue(callable(agency_workroom.write_role_work_result))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,15 @@ import hashlib
 import json
 from pathlib import Path
 
-from .models import CompanyGoalRun, DecisionRecord, HandoffRecord, SupervisorTurn, TaskState
+from .models import (
+    CompanyGoalRun,
+    DecisionRecord,
+    HandoffRecord,
+    RoleWorkRequest,
+    RoleWorkResult,
+    SupervisorTurn,
+    TaskState,
+)
 from .session_store import WorkroomStateError
 
 
@@ -144,6 +152,154 @@ def write_supervisor_turn(
     return {
         **payload,
         "turn_path": str(turn_path),
+    }
+
+
+def build_role_work_request(
+    *,
+    run: CompanyGoalRun,
+    task: TaskState,
+    department: str,
+    objective: str,
+    inputs: Mapping[str, object] | None = None,
+    artifact_refs: tuple[str, ...] | list[str] = (),
+    metadata: Mapping[str, object] | None = None,
+) -> RoleWorkRequest:
+    request_inputs = {} if inputs is None else inputs
+    request_metadata = {} if metadata is None else metadata
+    request_id = _record_id(
+        "role_req",
+        {
+            "run_id": run.run_id,
+            "task_ref": task.task_ref,
+            "role_id": task.role_id,
+            "department": department,
+            "objective": objective,
+            "inputs": request_inputs,
+            "artifact_refs": list(artifact_refs),
+            "metadata": request_metadata,
+        },
+    )
+    return RoleWorkRequest(
+        request_id=request_id,
+        run_id=run.run_id,
+        task_ref=task.task_ref,
+        role_id=task.role_id,
+        department=department,
+        objective=objective,
+        inputs=request_inputs,
+        artifact_refs=artifact_refs,
+        metadata=request_metadata,
+    )
+
+
+def write_role_work_request(
+    workspace_path: str | Path,
+    request: RoleWorkRequest,
+) -> dict[str, object]:
+    request_dir = (
+        Path(workspace_path)
+        / "runs"
+        / request.run_id
+        / "role_work"
+        / "requests"
+    )
+    request_path = request_dir / f"{request.request_id}.json"
+    request_ref = (
+        f"workroom-artifact://runs/{request.run_id}/role_work/requests/"
+        f"{request.request_id}.json"
+    )
+    payload = {
+        **request.to_payload(),
+        "request_ref": request_ref,
+    }
+    try:
+        request_dir.mkdir(parents=True, exist_ok=True)
+        request_path.write_text(
+            json.dumps(payload, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise WorkroomStateError("role work request write failed") from exc
+    return {
+        **payload,
+        "request_path": str(request_path),
+    }
+
+
+def build_role_work_result(
+    *,
+    request: RoleWorkRequest,
+    status: str,
+    summary: str,
+    outputs: Mapping[str, object] | None = None,
+    artifact_refs: tuple[str, ...] | list[str] = (),
+    blocker_summary: str = "",
+    metadata: Mapping[str, object] | None = None,
+) -> RoleWorkResult:
+    result_outputs = {} if outputs is None else outputs
+    result_metadata = {} if metadata is None else metadata
+    result_id = _record_id(
+        "role_result",
+        {
+            "request_id": request.request_id,
+            "run_id": request.run_id,
+            "task_ref": request.task_ref,
+            "role_id": request.role_id,
+            "status": status,
+            "summary": summary,
+            "outputs": result_outputs,
+            "artifact_refs": list(artifact_refs),
+            "blocker_summary": blocker_summary,
+            "metadata": result_metadata,
+        },
+    )
+    return RoleWorkResult(
+        result_id=result_id,
+        request_id=request.request_id,
+        run_id=request.run_id,
+        task_ref=request.task_ref,
+        role_id=request.role_id,
+        status=status,
+        summary=summary,
+        outputs=result_outputs,
+        artifact_refs=artifact_refs,
+        blocker_summary=blocker_summary,
+        metadata=result_metadata,
+    )
+
+
+def write_role_work_result(
+    workspace_path: str | Path,
+    result: RoleWorkResult,
+) -> dict[str, object]:
+    result_dir = (
+        Path(workspace_path)
+        / "runs"
+        / result.run_id
+        / "role_work"
+        / "results"
+    )
+    result_path = result_dir / f"{result.result_id}.json"
+    result_ref = (
+        f"workroom-artifact://runs/{result.run_id}/role_work/results/"
+        f"{result.result_id}.json"
+    )
+    payload = {
+        **result.to_payload(),
+        "result_ref": result_ref,
+    }
+    try:
+        result_dir.mkdir(parents=True, exist_ok=True)
+        result_path.write_text(
+            json.dumps(payload, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise WorkroomStateError("role work result write failed") from exc
+    return {
+        **payload,
+        "result_path": str(result_path),
     }
 
 
@@ -544,10 +700,14 @@ __all__ = [
     "build_approval_required_turn",
     "build_decision_record",
     "build_handoff_record",
+    "build_role_work_request",
+    "build_role_work_result",
     "build_supervisor_snapshot",
     "detect_goal_phase",
     "supervisor_id_for",
     "write_decision_record",
     "write_handoff_record",
+    "write_role_work_request",
+    "write_role_work_result",
     "write_supervisor_turn",
 ]

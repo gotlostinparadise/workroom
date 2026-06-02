@@ -9,10 +9,14 @@ from agency_workroom.supervisor import (
     build_approval_required_turn,
     build_decision_record,
     build_handoff_record,
+    build_role_work_request,
+    build_role_work_result,
     build_supervisor_snapshot,
     detect_goal_phase,
     write_decision_record,
     write_handoff_record,
+    write_role_work_request,
+    write_role_work_result,
     write_supervisor_turn,
 )
 from agency_workroom.team import default_validation_team
@@ -231,6 +235,107 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual(
             "workroom-artifact://runs/run_abc/supervisor/turns/turn_abc.json",
             payload["turn_ref"],
+        )
+
+    def test_write_role_work_request_creates_artifact_and_ref(self) -> None:
+        root = self.temp_root()
+        run = self.make_run(self.make_tasks())
+        request = build_role_work_request(
+            run=run,
+            task=run.tasks[0],
+            department="product",
+            objective="Create landing page artifact",
+            inputs={"brief": {"goal": run.goal}},
+            artifact_refs=("workroom-artifact://runs/run_abc/context/brief.json",),
+            metadata={"phase": "local_production"},
+        )
+        duplicate = build_role_work_request(
+            run=run,
+            task=run.tasks[0],
+            department="product",
+            objective="Create landing page artifact",
+            inputs={"brief": {"goal": run.goal}},
+            artifact_refs=("workroom-artifact://runs/run_abc/context/brief.json",),
+            metadata={"phase": "local_production"},
+        )
+
+        payload = write_role_work_request(root / "workspace", request)
+
+        self.assertEqual(request.request_id, duplicate.request_id)
+        self.assertTrue(Path(payload["request_path"]).exists())
+        self.assertEqual(
+            f"workroom-artifact://runs/run_abc/role_work/requests/{request.request_id}.json",
+            payload["request_ref"],
+        )
+
+    def test_write_role_work_result_creates_artifact_and_ref(self) -> None:
+        root = self.temp_root()
+        run = self.make_run(self.make_tasks())
+        request = build_role_work_request(
+            run=run,
+            task=run.tasks[0],
+            department="product",
+            objective="Create landing page artifact",
+        )
+        result = build_role_work_result(
+            request=request,
+            status="completed",
+            summary="Landing page artifact created",
+            outputs={"artifact_kind": "landing_page"},
+            artifact_refs=("workroom-artifact://runs/run_abc/landing_page/aaa/index.html",),
+            metadata={"tool": "create_landing_artifact"},
+        )
+        duplicate = build_role_work_result(
+            request=request,
+            status="completed",
+            summary="Landing page artifact created",
+            outputs={"artifact_kind": "landing_page"},
+            artifact_refs=("workroom-artifact://runs/run_abc/landing_page/aaa/index.html",),
+            metadata={"tool": "create_landing_artifact"},
+        )
+
+        payload = write_role_work_result(root / "workspace", result)
+
+        self.assertEqual(result.result_id, duplicate.result_id)
+        self.assertTrue(Path(payload["result_path"]).exists())
+        self.assertEqual(
+            f"workroom-artifact://runs/run_abc/role_work/results/{result.result_id}.json",
+            payload["result_ref"],
+        )
+
+    def test_failed_role_work_result_can_feed_decision_record_metadata(self) -> None:
+        run = self.make_run(self.make_tasks())
+        request = build_role_work_request(
+            run=run,
+            task=run.tasks[0],
+            department="product",
+            objective="Create landing page artifact",
+        )
+        result = build_role_work_result(
+            request=request,
+            status="blocked",
+            summary="Landing page artifact blocked",
+            blocker_summary="missing validated offer copy",
+        )
+        record = build_decision_record(
+            run=run,
+            phase="local_production",
+            owner_department="product",
+            decision_type="role_work_blocker",
+            status="required",
+            question="How should landing_builder proceed?",
+            recommendation="Clarify the offer before writing the landing page.",
+            reason=result.blocker_summary,
+            task_ref=run.tasks[0].task_ref,
+            source_refs=(f"workroom-artifact://runs/run_abc/role_work/results/{result.result_id}.json",),
+            options=("clarify_offer", "stop"),
+            metadata={"role_work_result": result.to_payload()},
+        )
+
+        self.assertEqual("role_work_blocker", record.decision_type)
+        self.assertEqual(
+            "missing validated offer copy",
+            record.metadata["role_work_result"]["blocker_summary"],
         )
 
     def test_write_handoff_record_creates_artifact_and_ref(self) -> None:
