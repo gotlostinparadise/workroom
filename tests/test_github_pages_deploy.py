@@ -90,6 +90,19 @@ class GitHubPagesDeployTests(unittest.TestCase):
         self.assertTrue(proposal["approval_required"])
         self.assertIn("GitHub repository", proposal["unverified_external_state"])
         self.assertEqual(64, len(str(proposal["site_entry_sha256"])))
+        capability_protocol = proposal["capability_protocol"]
+        self.assertEqual("capability-protocol.v2", capability_protocol["schema_version"])
+        self.assertEqual("devops", capability_protocol["domain"])
+        self.assertEqual("github_pages.deploy", capability_protocol["capability_name"])
+        self.assertEqual("proposal", capability_protocol["stage"])
+        self.assertEqual("high", capability_protocol["risk_level"])
+        self.assertTrue(capability_protocol["approval_required"])
+        self.assertEqual(proposal["proposal_ref"], capability_protocol["source_ref"])
+        self.assertIn(
+            artifact["artifact_ref"],
+            capability_protocol["verification_refs"],
+        )
+        self.assertIn(report["report_ref"], capability_protocol["verification_refs"])
         self.assertEqual(
             Path(artifact["artifact_path"]).read_text(encoding="utf-8"),
             Path(proposal["site_entry_path"]).read_text(encoding="utf-8"),

@@ -664,6 +664,16 @@ class SupervisorCoreTests(unittest.TestCase):
             ["target_repo_full_name", "target_repo_path"],
             payload["approval_request"]["missing_inputs"],
         )
+        capability_protocol = payload["approval_request"]["capability_protocol"]
+        self.assertEqual("capability-protocol.v2", capability_protocol["schema_version"])
+        self.assertEqual("devops", capability_protocol["domain"])
+        self.assertEqual("github_pages.deploy", capability_protocol["capability_name"])
+        self.assertEqual("approval", capability_protocol["stage"])
+        self.assertEqual("high", capability_protocol["risk_level"])
+        self.assertTrue(capability_protocol["approval_required"])
+        self.assertEqual(proposal_ref, capability_protocol["source_ref"])
+        self.assertEqual(proposal_ref, capability_protocol["verification_refs"][0])
+        self.assertEqual(capability_protocol, payload["metadata"]["capability_protocol"])
 
 
 if __name__ == "__main__":

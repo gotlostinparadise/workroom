@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .models import (
+    CapabilityProtocol,
     CompanyGoalRun,
     DecisionRecord,
     HandoffRecord,
@@ -191,6 +192,10 @@ def build_approval_required_turn(
     if proposal_ref is None:
         raise WorkroomStateError("GitHub Pages deploy proposal is not recorded")
     status_counts = Counter(task.status for task in run.tasks)
+    capability_protocol = _approval_capability_protocol_for_github_pages(
+        run=run,
+        proposal_ref=proposal_ref,
+    )
     approval_request = {
         "recommended_tool": "prepare_github_pages_deploy_execution_plan",
         "department_id": "devops",
@@ -204,7 +209,10 @@ def build_approval_required_turn(
         },
         "missing_inputs": ["target_repo_full_name", "target_repo_path"],
         "reason": "GitHub Pages deploy requires an explicit target repo and approval",
+        "capability_protocol": capability_protocol,
     }
+    turn_metadata = {} if metadata is None else dict(metadata)
+    turn_metadata["capability_protocol"] = capability_protocol
     turn = SupervisorTurn(
         turn_id=_turn_id(
             run_id=run.run_id,
@@ -227,9 +235,37 @@ def build_approval_required_turn(
         approval_request=approval_request,
         next_recommendation=approval_request,
         status_counts=dict(status_counts),
-        metadata={} if metadata is None else metadata,
+        metadata=turn_metadata,
     )
     return turn
+
+
+def _approval_capability_protocol_for_github_pages(
+    *,
+    run: CompanyGoalRun,
+    proposal_ref: str,
+) -> dict[str, object]:
+    return CapabilityProtocol(
+        domain="devops",
+        capability_name="github_pages.deploy",
+        stage="approval",
+        risk_level="high",
+        run_id=run.run_id,
+        task_ref=_task_ref_for_category(run, "github_pages"),
+        source_ref=proposal_ref,
+        approval_required=True,
+        required_before_execute=(
+            "provide target_repo_full_name",
+            "provide target_repo_path",
+            "prepare deterministic execution plan",
+            "obtain exact approval phrase before execution",
+        ),
+        verification_refs=(proposal_ref,),
+        metadata={
+            "recommended_tool": "prepare_github_pages_deploy_execution_plan",
+            "department_id": "devops",
+        },
+    ).to_payload()
 
 
 def write_supervisor_turn(

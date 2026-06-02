@@ -435,6 +435,14 @@ def _verify_plan_payload(
     canonical = dict(plan)
     canonical.pop("plan_sha256", None)
     canonical.pop("approval_phrase", None)
+    protocol = canonical.get("capability_protocol")
+    if isinstance(protocol, dict):
+        if protocol.get("approval_phrase") != plan.get("approval_phrase"):
+            raise DevOpsOperationError("capability protocol approval phrase does not match")
+        canonical["capability_protocol"] = {
+            **protocol,
+            "approval_phrase": "",
+        }
     expected_hash = hashlib.sha256(
         json.dumps(
             canonical,

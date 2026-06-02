@@ -33,6 +33,9 @@ SUPERVISOR_OUTCOMES = (
     "needs_human_decision",
     "complete",
 )
+CAPABILITY_DOMAINS = ("devops", "social", "growth")
+CAPABILITY_PROTOCOL_STAGES = ("proposal", "approval", "execution_plan", "evidence")
+CAPABILITY_RISK_LEVELS = ("low", "medium", "high")
 _SUPERVISOR_RECORD_KINDS = frozenset({"none", "handoff", "decision"})
 
 
@@ -686,6 +689,94 @@ class CompanyGoalRun:
 
 
 @dataclass(frozen=True)
+class CapabilityProtocol:
+    domain: str
+    capability_name: str
+    stage: str
+    risk_level: str
+    run_id: str
+    task_ref: str
+    source_ref: str = ""
+    approval_required: bool = False
+    approval_phrase: str = ""
+    required_before_execute: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    verification_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    evidence_ref: str = ""
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        domain = _required_text("domain", self.domain)
+        if domain not in CAPABILITY_DOMAINS:
+            raise WorkroomModelError("domain must be a known capability domain")
+        object.__setattr__(self, "domain", domain)
+        object.__setattr__(
+            self,
+            "capability_name",
+            _required_text("capability_name", self.capability_name),
+        )
+        stage = _required_text("stage", self.stage)
+        if stage not in CAPABILITY_PROTOCOL_STAGES:
+            raise WorkroomModelError("stage must be a known capability protocol stage")
+        object.__setattr__(self, "stage", stage)
+        risk_level = _required_text("risk_level", self.risk_level)
+        if risk_level not in CAPABILITY_RISK_LEVELS:
+            raise WorkroomModelError("risk_level must be low, medium, or high")
+        object.__setattr__(self, "risk_level", risk_level)
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        if not isinstance(self.source_ref, str):
+            raise WorkroomModelError("source_ref must be a string")
+        object.__setattr__(self, "source_ref", self.source_ref.strip())
+        if not isinstance(self.approval_required, bool):
+            raise WorkroomModelError("approval_required must be a bool")
+        object.__setattr__(self, "approval_required", self.approval_required)
+        if not isinstance(self.approval_phrase, str):
+            raise WorkroomModelError("approval_phrase must be a string")
+        approval_phrase = self.approval_phrase.strip()
+        if stage == "execution_plan" and risk_level == "high" and not approval_phrase:
+            raise WorkroomModelError("approval_phrase is required for high-risk plans")
+        object.__setattr__(self, "approval_phrase", approval_phrase)
+        object.__setattr__(
+            self,
+            "required_before_execute",
+            _optional_text_sequence(
+                "required_before_execute",
+                self.required_before_execute,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "verification_refs",
+            _optional_text_sequence("verification_refs", self.verification_refs),
+        )
+        if not isinstance(self.evidence_ref, str):
+            raise WorkroomModelError("evidence_ref must be a string")
+        evidence_ref = self.evidence_ref.strip()
+        if stage == "evidence" and not evidence_ref:
+            raise WorkroomModelError("evidence_ref is required for evidence stage")
+        object.__setattr__(self, "evidence_ref", evidence_ref)
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "capability-protocol.v2",
+            "domain": self.domain,
+            "capability_name": self.capability_name,
+            "stage": self.stage,
+            "risk_level": self.risk_level,
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "source_ref": self.source_ref,
+            "approval_required": self.approval_required,
+            "approval_phrase": self.approval_phrase,
+            "required_before_execute": list(self.required_before_execute),
+            "verification_refs": list(self.verification_refs),
+            "evidence_ref": self.evidence_ref,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class GitHubPagesDeployProposal:
     run_id: str
     task_ref: str
@@ -776,6 +867,30 @@ class GitHubPagesDeployProposal:
         )
 
     def to_payload(self) -> dict[str, object]:
+        capability_protocol = CapabilityProtocol(
+            domain="devops",
+            capability_name="github_pages.deploy",
+            stage="proposal",
+            risk_level="high",
+            run_id=self.run_id,
+            task_ref=self.task_ref,
+            source_ref=self.proposal_ref,
+            approval_required=True,
+            required_before_execute=self.required_before_execute,
+            verification_refs=(
+                self.landing_artifact_ref,
+                self.qa_report_ref,
+                self.site_entry_ref,
+                self.workflow_ref,
+            ),
+            metadata={
+                "publish_mode": self.publish_mode,
+                "target_repo_full_name": self.target_repo_full_name,
+                "target_branch": self.target_branch,
+                "publish_path": self.publish_path,
+                "unverified_external_state": list(self.unverified_external_state),
+            },
+        ).to_payload()
         return {
             "schema_version": "github-pages-deploy-proposal.v1",
             "run_id": self.run_id,
@@ -795,6 +910,7 @@ class GitHubPagesDeployProposal:
             "execution_status": "proposed_not_executed",
             "required_before_execute": list(self.required_before_execute),
             "unverified_external_state": list(self.unverified_external_state),
+            "capability_protocol": capability_protocol,
         }
 
 
@@ -857,7 +973,7 @@ class DevOpsOperationPlan:
         object.__setattr__(self, "commands", _required_sequence("commands", self.commands))
 
     def to_payload(self) -> dict[str, object]:
-        payload = {
+        base_payload = {
             "schema_version": "devops-operation-plan.v1",
             "operation_type": self.operation_type,
             "risk_level": self.risk_level,
@@ -871,10 +987,70 @@ class DevOpsOperationPlan:
             "files_to_write": [_metadata_payload(item) for item in self.files_to_write],
             "commands": list(self.commands),
         }
-        plan_sha256 = _canonical_payload_sha256(payload)
+        verification_refs = tuple(
+            str(item["source_ref"])
+            for item in self.files_to_write
+            if isinstance(item.get("source_ref"), str)
+        )
+        protocol_for_hash = CapabilityProtocol(
+            domain="devops",
+            capability_name="github_pages.deploy",
+            stage="execution_plan",
+            risk_level=self.risk_level,
+            run_id=self.run_id,
+            task_ref=self.task_ref,
+            source_ref=self.proposal_ref,
+            approval_required=True,
+            approval_phrase="pending approval phrase",
+            required_before_execute=(
+                "verify target checkout is a clean git worktree",
+                "verify source artifact hashes match the proposal",
+                "obtain exact approval phrase",
+            ),
+            verification_refs=(self.proposal_ref, *verification_refs),
+            metadata={
+                "operation_type": self.operation_type,
+                "target_repo_full_name": self.target_repo_full_name,
+                "target_repo_path": self.target_repo_path,
+                "target_branch": self.target_branch,
+                "publish_path": self.publish_path,
+                "commands": list(self.commands),
+            },
+        ).to_payload()
+        protocol_for_hash["approval_phrase"] = ""
+        plan_sha256 = _canonical_payload_sha256(
+            {**base_payload, "capability_protocol": protocol_for_hash}
+        )
+        approval_phrase = f"approve github-pages deploy {plan_sha256}"
+        capability_protocol = CapabilityProtocol(
+            domain="devops",
+            capability_name="github_pages.deploy",
+            stage="execution_plan",
+            risk_level=self.risk_level,
+            run_id=self.run_id,
+            task_ref=self.task_ref,
+            source_ref=self.proposal_ref,
+            approval_required=True,
+            approval_phrase=approval_phrase,
+            required_before_execute=(
+                "verify target checkout is a clean git worktree",
+                "verify source artifact hashes match the proposal",
+                "obtain exact approval phrase",
+            ),
+            verification_refs=(self.proposal_ref, *verification_refs),
+            metadata={
+                "operation_type": self.operation_type,
+                "target_repo_full_name": self.target_repo_full_name,
+                "target_repo_path": self.target_repo_path,
+                "target_branch": self.target_branch,
+                "publish_path": self.publish_path,
+                "commands": list(self.commands),
+            },
+        ).to_payload()
         return {
-            **payload,
-            "approval_phrase": f"approve github-pages deploy {plan_sha256}",
+            **base_payload,
+            "capability_protocol": capability_protocol,
+            "approval_phrase": approval_phrase,
             "plan_sha256": plan_sha256,
         }
 
@@ -942,6 +1118,25 @@ class DevOpsExecutionEvidence:
         )
 
     def to_payload(self) -> dict[str, object]:
+        capability_protocol = CapabilityProtocol(
+            domain="devops",
+            capability_name="github_pages.deploy",
+            stage="evidence",
+            risk_level="high",
+            run_id=self.run_id,
+            task_ref=self.task_ref,
+            source_ref=self.plan_ref,
+            approval_required=False,
+            evidence_ref=self.evidence_ref,
+            metadata={
+                "operation_type": self.operation_type,
+                "target_repo_full_name": self.target_repo_full_name,
+                "target_branch": self.target_branch,
+                "git_commit_sha": self.git_commit_sha,
+                "commands_executed": list(self.commands_executed),
+                "files_written_count": len(self.files_written),
+            },
+        ).to_payload()
         return {
             "schema_version": "devops-execution-evidence.v1",
             "operation_type": self.operation_type,
@@ -956,6 +1151,7 @@ class DevOpsExecutionEvidence:
             "git_commit_sha": self.git_commit_sha,
             "files_written": [_metadata_payload(item) for item in self.files_written],
             "commands_executed": list(self.commands_executed),
+            "capability_protocol": capability_protocol,
         }
 
 
@@ -1471,8 +1667,12 @@ class WorkItemCommit:
 
 
 __all__ = [
+    "CAPABILITY_DOMAINS",
+    "CAPABILITY_PROTOCOL_STAGES",
+    "CAPABILITY_RISK_LEVELS",
     "SUPERVISOR_OUTCOMES",
     "SUPERVISOR_PHASES",
+    "CapabilityProtocol",
     "CompanyGoalRun",
     "CompanySpec",
     "CompanyTaskTemplate",

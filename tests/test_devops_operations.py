@@ -132,6 +132,21 @@ class DevOpsOperationTests(unittest.TestCase):
             f"approve github-pages deploy {plan['plan_sha256']}",
             plan["approval_phrase"],
         )
+        capability_protocol = plan["capability_protocol"]
+        self.assertEqual("capability-protocol.v2", capability_protocol["schema_version"])
+        self.assertEqual("devops", capability_protocol["domain"])
+        self.assertEqual("github_pages.deploy", capability_protocol["capability_name"])
+        self.assertEqual("execution_plan", capability_protocol["stage"])
+        self.assertEqual("high", capability_protocol["risk_level"])
+        self.assertTrue(capability_protocol["approval_required"])
+        self.assertEqual(proposal["proposal_ref"], capability_protocol["source_ref"])
+        self.assertEqual(plan["approval_phrase"], capability_protocol["approval_phrase"])
+        self.assertIn(proposal["site_entry_ref"], capability_protocol["verification_refs"])
+        self.assertIn(proposal["workflow_ref"], capability_protocol["verification_refs"])
+        self.assertEqual(
+            "owner/site-target",
+            capability_protocol["metadata"]["target_repo_full_name"],
+        )
         self.assertTrue(Path(plan["plan_path"]).exists())
 
     def test_prepare_plan_rejects_missing_target_repo_full_name(self) -> None:
@@ -222,6 +237,42 @@ class DevOpsOperationTests(unittest.TestCase):
         self.assertFalse((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
         self.assertEqual(initial_head, self.run_git(target_repo, "rev-parse", "HEAD"))
 
+    def test_execute_plan_rejects_nested_protocol_approval_mismatch_without_mutation(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+        initial_head = self.run_git(target_repo, "rev-parse", "HEAD")
+        plan = prepare_github_pages_deploy_execution_plan_files(
+            workspace_path=workspace,
+            run_id="run_abc",
+            proposal_ref=proposal["proposal_ref"],
+            target_repo_full_name="owner/site-target",
+            target_repo_path=target_repo,
+            target_branch="main",
+        )
+        plan_path = Path(plan["plan_path"])
+        stored_plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        stored_plan["capability_protocol"]["approval_phrase"] = (
+            "approve github-pages deploy " + "0" * 64
+        )
+        plan_path.write_text(
+            json.dumps(stored_plan, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(DevOpsOperationError, "approval phrase"):
+            execute_github_pages_deploy_plan_files(
+                workspace_path=workspace,
+                run_id="run_abc",
+                plan_ref=plan["plan_ref"],
+                approval_phrase=plan["approval_phrase"],
+            )
+
+        self.assertFalse((target_repo / "site" / "index.html").exists())
+        self.assertFalse((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
+        self.assertEqual(initial_head, self.run_git(target_repo, "rev-parse", "HEAD"))
+
     def test_execute_plan_copies_files_commits_and_records_evidence(self) -> None:
         root = self.temp_root()
         workspace = root / "workspace"
@@ -255,6 +306,28 @@ class DevOpsOperationTests(unittest.TestCase):
         self.assertTrue((target_repo / ".github" / "workflows" / "workroom-pages.yml").exists())
         self.assertTrue(Path(evidence["evidence_path"]).exists())
         self.assertEqual(["git add", "git commit"], evidence["commands_executed"])
+        capability_protocol = evidence["capability_protocol"]
+        self.assertEqual("capability-protocol.v2", capability_protocol["schema_version"])
+        self.assertEqual("devops", capability_protocol["domain"])
+        self.assertEqual("github_pages.deploy", capability_protocol["capability_name"])
+        self.assertEqual("evidence", capability_protocol["stage"])
+        self.assertEqual("high", capability_protocol["risk_level"])
+        self.assertFalse(capability_protocol["approval_required"])
+        self.assertEqual(plan["plan_ref"], capability_protocol["source_ref"])
+        self.assertEqual(evidence["evidence_ref"], capability_protocol["evidence_ref"])
+        self.assertEqual(
+            "owner/site-target",
+            capability_protocol["metadata"]["target_repo_full_name"],
+        )
+        self.assertEqual("main", capability_protocol["metadata"]["target_branch"])
+        self.assertEqual(
+            evidence["git_commit_sha"],
+            capability_protocol["metadata"]["git_commit_sha"],
+        )
+        self.assertEqual(
+            ["git add", "git commit"],
+            capability_protocol["metadata"]["commands_executed"],
+        )
 
     def test_execute_plan_is_idempotent_after_evidence_exists(self) -> None:
         root = self.temp_root()

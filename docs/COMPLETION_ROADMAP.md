@@ -112,6 +112,11 @@ These milestones are complete enough to be treated as foundation:
     Supervisor phases, outcomes, and one-turn transition plans are explicit and
     persisted with supervisor turns.
 
+14. Capability Protocols v2.
+    High-stakes capability records use generic proposal, approval,
+    execution-plan, and evidence protocol metadata while preserving the current
+    no-loop, no-implicit-effect boundary.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -174,7 +179,7 @@ Exit criteria:
 
 ### 4. Capability Protocols v2
 
-Status: Next.
+Status: Done.
 
 Goal: strengthen high-stakes capability protocols for DevOps, social, growth,
 and other external-effect domains.
@@ -191,7 +196,7 @@ Exit criteria:
 
 ### 5. Second Company Spec v1
 
-Status: Later.
+Status: Next.
 
 Goal: prove the runtime is not Business-Validation-specific by adding one
 additional company spec that uses different task templates and run variables.
@@ -266,9 +271,9 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Capability Protocols v2
+Second Company Spec v1
 ```
 
 Before implementing it, create an implementation plan under `docs/plans/`.
-Keep the work bounded to proposal, approval, execution, and evidence contracts;
-do not add background execution or implicit external effects.
+Keep the work bounded to proving the runtime is not Business-Validation-specific;
+do not add new high-stakes external execution.

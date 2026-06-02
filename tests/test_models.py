@@ -6,6 +6,10 @@ import math
 import unittest
 
 from agency_workroom.models import (
+    CAPABILITY_DOMAINS,
+    CAPABILITY_PROTOCOL_STAGES,
+    CAPABILITY_RISK_LEVELS,
+    CapabilityProtocol,
     SUPERVISOR_OUTCOMES,
     SUPERVISOR_PHASES,
     CompanyGoalRun,
@@ -296,6 +300,104 @@ class NextToolRecommendationModelTests(unittest.TestCase):
         )
 
 
+class CapabilityProtocolModelTests(unittest.TestCase):
+    def test_capability_protocol_payload_is_stable_and_copies_metadata(self) -> None:
+        metadata = {"commands": ["git add", "git commit"], "count": 2}
+        protocol = CapabilityProtocol(
+            domain="devops",
+            capability_name="github_pages.deploy",
+            stage="execution_plan",
+            risk_level="high",
+            run_id="run_abc",
+            task_ref="workroom-item://github-pages",
+            source_ref="workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+            approval_required=True,
+            approval_phrase="approve github-pages deploy " + "a" * 64,
+            required_before_execute=(
+                "verify target checkout is clean",
+                "obtain exact approval phrase",
+            ),
+            verification_refs=(
+                "workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+            ),
+            metadata=metadata,
+        )
+        metadata["commands"].append("changed")
+
+        self.assertEqual(
+            protocol.to_payload(),
+            {
+                "schema_version": "capability-protocol.v2",
+                "domain": "devops",
+                "capability_name": "github_pages.deploy",
+                "stage": "execution_plan",
+                "risk_level": "high",
+                "run_id": "run_abc",
+                "task_ref": "workroom-item://github-pages",
+                "source_ref": (
+                    "workroom-artifact://runs/run_abc/github_pages/ccc/"
+                    "deploy_proposal.json"
+                ),
+                "approval_required": True,
+                "approval_phrase": "approve github-pages deploy " + "a" * 64,
+                "required_before_execute": [
+                    "verify target checkout is clean",
+                    "obtain exact approval phrase",
+                ],
+                "verification_refs": [
+                    "workroom-artifact://runs/run_abc/github_pages/ccc/site/index.html",
+                ],
+                "evidence_ref": "",
+                "metadata": {
+                    "commands": ["git add", "git commit"],
+                    "count": 2,
+                },
+            },
+        )
+
+    def test_capability_protocol_constants_are_stable(self) -> None:
+        self.assertEqual(("devops", "social", "growth"), CAPABILITY_DOMAINS)
+        self.assertEqual(
+            ("proposal", "approval", "execution_plan", "evidence"),
+            CAPABILITY_PROTOCOL_STAGES,
+        )
+        self.assertEqual(("low", "medium", "high"), CAPABILITY_RISK_LEVELS)
+
+    def test_capability_protocol_rejects_unknown_stage(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "stage"):
+            CapabilityProtocol(
+                domain="devops",
+                capability_name="github_pages.deploy",
+                stage="execute",
+                risk_level="high",
+                run_id="run_abc",
+                task_ref="workroom-item://github-pages",
+            )
+
+    def test_capability_protocol_requires_approval_phrase_for_high_risk_plan(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "approval_phrase"):
+            CapabilityProtocol(
+                domain="devops",
+                capability_name="github_pages.deploy",
+                stage="execution_plan",
+                risk_level="high",
+                run_id="run_abc",
+                task_ref="workroom-item://github-pages",
+                approval_required=True,
+            )
+
+    def test_capability_protocol_requires_evidence_ref_for_evidence_stage(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "evidence_ref"):
+            CapabilityProtocol(
+                domain="devops",
+                capability_name="github_pages.deploy",
+                stage="evidence",
+                risk_level="high",
+                run_id="run_abc",
+                task_ref="workroom-item://github-pages",
+            )
+
+
 class GitHubPagesDeployProposalModelTests(unittest.TestCase):
     def test_github_pages_deploy_proposal_payload_is_stable(self) -> None:
         proposal = GitHubPagesDeployProposal(
@@ -372,6 +474,10 @@ class DevOpsOperationModelTests(unittest.TestCase):
         canonical = dict(payload)
         canonical.pop("plan_sha256")
         canonical.pop("approval_phrase")
+        canonical["capability_protocol"] = {
+            **canonical["capability_protocol"],
+            "approval_phrase": "",
+        }
         expected_hash = hashlib.sha256(
             json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
@@ -383,6 +489,11 @@ class DevOpsOperationModelTests(unittest.TestCase):
             f"approve github-pages deploy {expected_hash}",
             payload["approval_phrase"],
         )
+        self.assertEqual(
+            payload["approval_phrase"],
+            payload["capability_protocol"]["approval_phrase"],
+        )
+        self.assertEqual("execution_plan", payload["capability_protocol"]["stage"])
         self.assertEqual(
             [
                 {
@@ -457,6 +568,32 @@ class DevOpsOperationModelTests(unittest.TestCase):
                     },
                 ],
                 "commands_executed": ["git add", "git commit"],
+                "capability_protocol": {
+                    "schema_version": "capability-protocol.v2",
+                    "domain": "devops",
+                    "capability_name": "github_pages.deploy",
+                    "stage": "evidence",
+                    "risk_level": "high",
+                    "run_id": "run_abc",
+                    "task_ref": "workroom-item://github-pages",
+                    "source_ref": "workroom-artifact://runs/run_abc/devops/aaa/operation_plan.json",
+                    "approval_required": False,
+                    "approval_phrase": "",
+                    "required_before_execute": [],
+                    "verification_refs": [],
+                    "evidence_ref": (
+                        "workroom-artifact://runs/run_abc/devops/aaa/"
+                        "execution_evidence.json"
+                    ),
+                    "metadata": {
+                        "operation_type": "github_pages.deploy_to_checkout",
+                        "target_repo_full_name": "owner/site-target",
+                        "target_branch": "main",
+                        "git_commit_sha": "c" * 40,
+                        "commands_executed": ["git add", "git commit"],
+                        "files_written_count": 1,
+                    },
+                },
             },
         )
 

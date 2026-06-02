@@ -124,6 +124,12 @@ evidence, and completes the blocked GitHub Pages task. This slice does not push
 to remotes, create/delete repositories, configure Pages settings, or use the
 Workroom repository as a default deploy target.
 
+High-stakes capability records also carry generic protocol metadata for the
+proposal, approval, execution-plan, and evidence stages. Codex can inspect
+that metadata to trace which task, proposal, approval gate, execution plan, and
+evidence artifact belong together. The metadata is contract evidence only; it
+does not authorize Workroom to deploy, post, or call external APIs implicitly.
+
 ## First Validation Team
 
 Workroom includes a local business-validation team workflow. It accepts a

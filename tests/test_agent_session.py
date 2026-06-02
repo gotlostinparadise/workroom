@@ -1379,11 +1379,28 @@ class AgentSessionTests(unittest.TestCase):
             ["target_repo_full_name", "target_repo_path"],
             fourth["approval_request"]["missing_inputs"],
         )
+        capability_protocol = fourth["approval_request"]["capability_protocol"]
+        self.assertEqual("capability-protocol.v2", capability_protocol["schema_version"])
+        self.assertEqual("devops", capability_protocol["domain"])
+        self.assertEqual("github_pages.deploy", capability_protocol["capability_name"])
+        self.assertEqual("approval", capability_protocol["stage"])
+        self.assertTrue(capability_protocol["approval_required"])
+        self.assertEqual(fourth["result_ref"], capability_protocol["source_ref"])
+        self.assertEqual(
+            capability_protocol,
+            fourth["metadata"]["capability_protocol"],
+        )
         github_pages_task = self.task_by_category(state, "github_pages")
         self.assertEqual("blocked", github_pages_task["status"])
         self.assertFalse(
             any(
                 "/devops/" in ref and ref.endswith("/execution_evidence.json")
+                for ref in github_pages_task["result_refs"]
+            )
+        )
+        self.assertFalse(
+            any(
+                "/devops/" in ref and ref.endswith("/operation_plan.json")
                 for ref in github_pages_task["result_refs"]
             )
         )
