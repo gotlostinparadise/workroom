@@ -128,6 +128,11 @@ These milestones are complete enough to be treated as foundation:
     from startup to landing artifact, QA report, deploy proposal, approval
     blocker, summary, and durable goal-run report evidence.
 
+17. Replay, Audit, and Evaluation v1.
+    Persisted Workroom runs can be replayed, audited, and evaluated through
+    read-only MCP/session tools that distinguish completed local work,
+    approval-gated work, blockers, and recommended next actions.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -237,7 +242,7 @@ Exit criteria:
 
 ### 7. Replay, Audit, and Evaluation v1
 
-Status: Next.
+Status: Done.
 
 Goal: make completed runs inspectable enough that Codex and a reviewer can
 evaluate what happened, why it happened, and what remains blocked.
@@ -252,7 +257,7 @@ Exit criteria:
 
 ### 8. MCP Usability and Configuration v1
 
-Status: Later.
+Status: Next.
 
 Goal: make Workroom easy for Codex to use as an external MCP tool without
 turning it into a standalone CLI product.
@@ -282,9 +287,9 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Replay, Audit, and Evaluation v1
+MCP Usability and Configuration v1
 ```
 
 Before implementing it, create an implementation plan under `docs/plans/`.
-Keep the work bounded to replay/audit reporting over persisted Workroom files;
-do not add hidden schedulers, loops, or unapproved external effects.
+Keep the work bounded to Codex-facing MCP setup, configuration, and response
+ergonomics; do not add hidden schedulers, loops, or unapproved external effects.

@@ -14,16 +14,19 @@ import agency_workroom.agent_session as agent_session
 from agency_workroom.company_registry import get_company_spec
 from agency_workroom.agent_session import (
     advance_company_goal,
+    audit_company_goal_run,
     create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
+    evaluate_company_goal_run,
     get_company_state,
     list_next_actions,
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
     record_work_result,
     recommend_next_tool_call,
+    replay_company_goal_run,
     run_next_local_step,
     execute_github_pages_deploy,
     start_company_run,
@@ -1608,6 +1611,45 @@ class AgentSessionTests(unittest.TestCase):
             "private practical e2e goal",
             ledger_path.read_text(encoding="utf-8"),
         )
+
+    def test_replay_audit_and_evaluate_company_goal_run_are_read_only(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="private inspection goal",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+        for _ in range(4):
+            advance_company_goal(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+        before = self.workspace_file_snapshot(workspace_path)
+
+        replay = replay_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        audit = audit_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        evaluation = evaluate_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(before, self.workspace_file_snapshot(workspace_path))
+        self.assertEqual("workroom-run-replay.v1", replay["schema_version"])
+        self.assertEqual("workroom-run-audit.v1", audit["schema_version"])
+        self.assertEqual("workroom-run-evaluation.v1", evaluation["schema_version"])
+        self.assertTrue(audit["passed"])
+        self.assertEqual("approval_required", evaluation["overall_status"])
+        self.assertTrue(evaluation["approval_gated_work"])
+        self.assertTrue(evaluation["recommended_next_actions"])
 
     def test_advance_company_goal_blocks_before_local_step_when_any_task_is_blocked(self) -> None:
         assert_external_kernel_dependency(self)

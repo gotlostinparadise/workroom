@@ -11,15 +11,18 @@ from agency_workroom import (
     WorkItemDraft,
     WorkroomKernelGateway,
     advance_company_goal,
+    audit_company_goal_run,
     create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     execute_github_pages_deploy,
+    evaluate_company_goal_run,
     get_company_state,
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     record_work_result,
     recommend_next_tool_call,
+    replay_company_goal_run,
     run_next_local_step,
     start_company_goal,
     summarize_run,
@@ -857,6 +860,61 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.assertTrue(any("/github_pages/" in ref for ref in payload["task_artifact_refs"]))
         self.assertIn("# Goal Run Report", markdown_text)
         self.assertIn("explicit approval", markdown_text)
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_practical_e2e_goal_run_can_be_replayed_audited_and_evaluated(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private replay audit evaluation marker"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        for _ in range(4):
+            advance_company_goal(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+        before = self.workspace_file_snapshot(workspace_path)
+
+        replay = replay_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        audit = audit_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        evaluation = evaluate_company_goal_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(before, self.workspace_file_snapshot(workspace_path))
+        self.assertEqual("approval_required", replay["phase"])
+        self.assertTrue(audit["passed"])
+        self.assertEqual([], audit["findings"])
+        self.assertEqual("approval_required", evaluation["overall_status"])
+        completed_categories = {
+            item["category"] for item in evaluation["completed_local_work"]
+        }
+        self.assertIn("landing_page", completed_categories)
+        self.assertIn("testing", completed_categories)
+        approval_categories = {
+            item["category"] for item in evaluation["approval_gated_work"]
+        }
+        self.assertIn("github_pages", approval_categories)
+        blocked_categories = {item["category"] for item in evaluation["blocked_work"]}
+        self.assertIn("github_pages", blocked_categories)
+        recommended_tools = {
+            item["recommended_tool"] for item in evaluation["recommended_next_actions"]
+        }
+        self.assertIn("prepare_github_pages_deploy_execution_plan", recommended_tools)
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
     def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[tuple[str, str], ...]:

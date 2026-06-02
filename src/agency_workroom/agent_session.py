@@ -16,6 +16,11 @@ from .github_pages_deploy import (
     prepare_github_pages_deploy_proposal_files,
 )
 from .goal_run_report import create_goal_run_report_files
+from .run_inspection import (
+    audit_company_goal_run_files,
+    evaluate_company_goal_run_files,
+    replay_company_goal_run_files,
+)
 from .company_registry import DEFAULT_COMPANY_SPEC_ID, default_company_spec
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
@@ -1034,6 +1039,51 @@ def create_goal_run_report(*, run_id: str, workspace_path: str) -> dict[str, obj
     )
 
 
+def replay_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run = load_company_goal_run(clean_workspace_path, clean_run_id)
+    recommendation = recommend_next_tool_call(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    return replay_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        recommendation=recommendation,
+    )
+
+
+def audit_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    replay = replay_company_goal_run(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    return audit_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        replay=replay,
+    )
+
+
+def evaluate_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run = load_company_goal_run(clean_workspace_path, clean_run_id)
+    summary = summarize_run(run_id=clean_run_id, workspace_path=clean_workspace_path)
+    recommendation = recommend_next_tool_call(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    return evaluate_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        summary=summary,
+        recommendation=recommendation,
+    )
+
+
 def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WorkroomModelError(f"{name} is required")
@@ -1660,17 +1710,20 @@ __all__ = [
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
+    "audit_company_goal_run",
     "create_goal_run_report",
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",
     "execute_github_pages_deploy",
+    "evaluate_company_goal_run",
     "get_company_state",
     "list_next_actions",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "recommend_next_tool_call",
+    "replay_company_goal_run",
     "run_next_local_step",
     "start_company_run",
     "start_company_goal",

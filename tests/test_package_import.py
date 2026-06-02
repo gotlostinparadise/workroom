@@ -46,6 +46,17 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("create_goal_run_report", agency_workroom.__all__)
         self.assertIn("GOAL_RUN_REPORT_PREFIX", agency_workroom.__all__)
 
+    def test_run_inspection_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.replay_company_goal_run))
+        self.assertTrue(callable(agency_workroom.audit_company_goal_run))
+        self.assertTrue(callable(agency_workroom.evaluate_company_goal_run))
+        self.assertTrue(callable(agency_workroom.replay_company_goal_run_files))
+        self.assertTrue(callable(agency_workroom.audit_company_goal_run_files))
+        self.assertTrue(callable(agency_workroom.evaluate_company_goal_run_files))
+        self.assertIn("replay_company_goal_run", agency_workroom.__all__)
+        self.assertIn("audit_company_goal_run", agency_workroom.__all__)
+        self.assertIn("evaluate_company_goal_run", agency_workroom.__all__)
+
 
 if __name__ == "__main__":
     unittest.main()

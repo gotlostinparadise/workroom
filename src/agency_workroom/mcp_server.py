@@ -21,6 +21,9 @@ TOOL_NAMES = (
     "execute_github_pages_deploy",
     "summarize_run",
     "create_goal_run_report",
+    "replay_company_goal_run",
+    "audit_company_goal_run",
+    "evaluate_company_goal_run",
 )
 
 
@@ -206,6 +209,33 @@ def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
 def create_goal_run_report(run_id: str, workspace_path: str) -> dict[str, object]:
     """Create a local durable report for a Workroom company run."""
     return agent_session.create_goal_run_report(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def replay_company_goal_run(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Replay persisted local Workroom records for a company run."""
+    return agent_session.replay_company_goal_run(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def audit_company_goal_run(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Audit persisted local Workroom records for a company run."""
+    return agent_session.audit_company_goal_run(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def evaluate_company_goal_run(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Evaluate progress, traceability, blockers, and approval gates for a run."""
+    return agent_session.evaluate_company_goal_run(
         run_id=run_id,
         workspace_path=workspace_path,
     )

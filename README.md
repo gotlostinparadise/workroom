@@ -64,6 +64,9 @@ The MCP tools are agent-facing:
 - `execute_github_pages_deploy`
 - `summarize_run`
 - `create_goal_run_report`
+- `replay_company_goal_run`
+- `audit_company_goal_run`
+- `evaluate_company_goal_run`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -144,6 +147,14 @@ persisted run state, supervisor turns, role-work records, handoffs, decisions,
 and task artifact refs. It does not advance the run, deploy, post, or call
 external APIs. A reproducible local sequence is documented in
 [`docs/examples/practical-e2e-goal-run-v1.md`](docs/examples/practical-e2e-goal-run-v1.md).
+
+`replay_company_goal_run`, `audit_company_goal_run`, and
+`evaluate_company_goal_run` are read-only inspection tools. They reconstruct a
+run from persisted workspace files, check traceability and approval-gate
+invariants, and summarize completed local work, approval-gated work, blockers,
+and recommended next actions. They do not write files or exercise external
+effects. A reproducible inspection sequence is documented in
+[`docs/examples/replay-audit-evaluation-v1.md`](docs/examples/replay-audit-evaluation-v1.md).
 
 ## First Validation Team
 
