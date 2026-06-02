@@ -153,12 +153,53 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("role-work-spec.v1", landing_work_spec["schema_version"])
         self.assertEqual(landing_task["task_ref"], landing_work_spec["task_ref"])
         self.assertEqual(
-            "target audience to validate",
+            "people described by the goal: private goal payload",
             landing_work_spec["company_context"]["target_audience"],
         )
 
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
+
+    def test_start_company_goal_derives_context_from_goal_intake(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        goal = (
+            "Validate whether solo founders will pay for Workroom as a "
+            "Codex-accessible AI company runtime"
+        )
+
+        response = start_company_goal(
+            goal=goal,
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(root / "workspace"),
+        )
+        request_variables = response["plan"]["request"]["variables"]
+        landing_task = self.task_by_category(response, "landing_page")
+        landing_work_spec = landing_task["metadata"]["role_work_spec"]
+
+        self.assertEqual("solo founders", request_variables["audience"])
+        self.assertEqual(
+            "Workroom as a Codex-accessible AI company runtime",
+            request_variables["offer"],
+        )
+        self.assertIn("willingness to pay", request_variables["success_criteria"])
+        self.assertEqual(
+            "solo founders",
+            response["plan"]["company_brief"]["target_audience"],
+        )
+        self.assertEqual(
+            "Workroom as a Codex-accessible AI company runtime",
+            response["plan"]["company_brief"]["offer"],
+        )
+        self.assertEqual(
+            "solo founders",
+            landing_work_spec["company_context"]["target_audience"],
+        )
+        self.assertEqual(
+            "Workroom as a Codex-accessible AI company runtime",
+            landing_work_spec["company_context"]["offer"],
+        )
 
     def test_mcp_manifest_and_config_check_are_read_only(self) -> None:
         root = self.temp_root()
@@ -1505,7 +1546,7 @@ class AgentSessionTests(unittest.TestCase):
         self.assertIn("artifact_expectations", work_spec)
         self.assertIn("acceptance_criteria", work_spec)
         self.assertEqual(
-            "target audience to validate",
+            "people described by the goal: a business hypothesis",
             work_spec["company_context"]["target_audience"],
         )
         self.assertEqual(

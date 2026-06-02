@@ -16,6 +16,7 @@ from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
 )
+from .goal_intake import workflow_request_from_goal
 from .goal_run_report import create_goal_run_report_files
 from .run_inspection import (
     audit_company_goal_run_files,
@@ -107,14 +108,7 @@ def _run_id_for_company(user_id: str, goal: str, company_spec: CompanySpec) -> s
 
 
 def _request_from_goal(goal: str) -> WorkflowRequest:
-    return WorkflowRequest(
-        hypothesis=goal,
-        audience="target audience to validate",
-        offer="business validation offer",
-        constraints="local first slice; no external posting or deployment",
-        channels=("landing_page", "threads", "github_pages"),
-        success_criteria="evidence sufficient for a continue, pivot, or stop decision",
-    )
+    return workflow_request_from_goal(goal)
 
 
 def _task_metadata_for_run_state(

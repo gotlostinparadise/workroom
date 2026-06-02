@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v4.
+Status: Canonical plan v5.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -143,6 +143,11 @@ These milestones are complete enough to be treated as foundation:
     attaches role-specific work specs to planned tasks, preserves those specs
     in run state, and passes them into durable role-work requests during
     bounded supervisor turns.
+
+20. Goal Intake and Context Extraction v1.
+    Public `start_company_goal` derives Business Validation audience, offer,
+    success criteria, constraints, and provenance metadata from the user's goal
+    through a deterministic local adapter instead of hardcoded placeholders.
 
 ## Milestone Plan
 
@@ -297,6 +302,29 @@ Exit criteria:
   spec and compact company brief.
 - The public MCP shape is unchanged.
 - No Kernel changes, hidden loops, or new external effects are added.
+
+### 10. Goal Intake and Context Extraction v1
+
+Status: Done.
+
+Goal: make the public single-goal startup path produce useful Business
+Validation context before planning, briefing, role delegation, and artifact
+generation.
+
+Exit criteria:
+
+- `start_company_goal(goal, user_id, ledger_path, workspace_path)` keeps the
+  same public arguments.
+- A deterministic local intake adapter converts structured validation goals
+  into `WorkflowRequest` audience, offer, success criteria, constraints, and
+  provenance metadata.
+- Fallback goals avoid the old generic placeholders.
+- Company brief, role work specs, and landing artifacts receive the extracted
+  context.
+- The same Workroom dogfood goal produces landing HTML without
+  `business validation offer` or `target audience to validate`.
+- No Kernel changes, hidden loops, external API calls, or new external effects
+  are added.
 
 ## Plan Change Rules
 

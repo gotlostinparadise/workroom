@@ -35,6 +35,10 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("compact_company_brief", agency_workroom.__all__)
         self.assertIn("role_work_spec_for_task", agency_workroom.__all__)
 
+    def test_goal_intake_helper_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.workflow_request_from_goal))
+        self.assertIn("workflow_request_from_goal", agency_workroom.__all__)
+
     def test_supervisor_state_machine_models_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.SupervisorTransition))
         self.assertTrue(callable(agency_workroom.plan_supervisor_transition))

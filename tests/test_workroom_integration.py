@@ -353,6 +353,48 @@ class WorkroomIntegrationTests(unittest.TestCase):
         ledger_text = ledger_path.read_text(encoding="utf-8")
         self.assertNotIn(private_goal, ledger_text)
 
+    def test_goal_intake_dogfood_landing_artifact_uses_extracted_context(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        goal = (
+            "Validate whether solo founders will pay for Workroom as a "
+            "Codex-accessible AI company runtime"
+        )
+
+        started = start_company_goal(
+            goal=goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        artifact_path = Path(
+            turn["execution"]["result"]["artifact"]["artifact_path"]
+        )
+        html = artifact_path.read_text(encoding="utf-8")
+        work_spec = turn["role_work_request"]["inputs"]["work_spec"]
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("role-work-spec.v1", work_spec["schema_version"])
+        self.assertEqual(
+            "solo founders",
+            work_spec["company_context"]["target_audience"],
+        )
+        self.assertEqual(
+            "Workroom as a Codex-accessible AI company runtime",
+            work_spec["company_context"]["offer"],
+        )
+        self.assertIn("Workroom", html)
+        self.assertIn("Codex-accessible AI company runtime", html)
+        self.assertIn("solo founders", html)
+        self.assertNotIn("business validation offer", html)
+        self.assertNotIn("target audience to validate", html)
+
     def test_agent_tool_flow_creates_landing_qa_report(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()

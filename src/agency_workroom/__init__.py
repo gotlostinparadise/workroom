@@ -50,6 +50,7 @@ from .company_briefing import (
     compact_company_brief,
     role_work_spec_for_task,
 )
+from .goal_intake import workflow_request_from_goal
 from .company_registry import (
     DEFAULT_COMPANY_SPEC_ID,
     default_company_spec,
@@ -203,4 +204,5 @@ __all__ = [
     "workroom_mcp_tool_manifest",
     "write_role_work_request",
     "write_role_work_result",
+    "workflow_request_from_goal",
 ]

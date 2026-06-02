@@ -23,10 +23,10 @@ The company brief contains shared goal context:
   "schema_version": "company-brief.v1",
   "company_spec_id": "business_validation",
   "company_spec_version": "v1",
-  "objective": "Validate a business hypothesis",
-  "target_audience": "target audience to validate",
-  "offer": "business validation offer",
-  "success_criteria": "evidence sufficient for a continue, pivot, or stop decision",
+  "objective": "Validate whether solo founders will pay for Workroom as a Codex-accessible AI company runtime",
+  "target_audience": "solo founders",
+  "offer": "Workroom as a Codex-accessible AI company runtime",
+  "success_criteria": "local evidence of willingness to pay from solo founders for Workroom as a Codex-accessible AI company runtime",
   "approval_boundaries": [
     "stop at approval gate before deploy, posting, repo, or account effects"
   ]
@@ -46,15 +46,15 @@ title:
   "category": "landing_page",
   "objective": "Draft the landing-page structure, core promise, sections, CTA, and copy needed to validate the offer.",
   "company_context": {
-    "target_audience": "target audience to validate",
-    "offer": "business validation offer",
-    "success_criteria": "evidence sufficient for a continue, pivot, or stop decision"
+    "target_audience": "solo founders",
+    "offer": "Workroom as a Codex-accessible AI company runtime",
+    "success_criteria": "local evidence of willingness to pay from solo founders for Workroom as a Codex-accessible AI company runtime"
   },
   "artifact_expectations": [
     "landing page HTML artifact with clear headline, offer, CTA, and sections"
   ],
   "acceptance_criteria": [
-    "states business validation offer for target audience to validate",
+    "states Workroom as a Codex-accessible AI company runtime for solo founders",
     "keeps external effects behind approval gates"
   ]
 }
