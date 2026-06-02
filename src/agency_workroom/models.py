@@ -33,11 +33,6 @@ SUPERVISOR_OUTCOMES = (
     "needs_human_decision",
     "complete",
 )
-SUPERVISOR_LOCAL_STEP_TOOLS = (
-    "create_landing_artifact",
-    "create_landing_qa_report",
-    "prepare_github_pages_deploy_proposal",
-)
 _SUPERVISOR_RECORD_KINDS = frozenset({"none", "handoff", "decision"})
 
 
@@ -1034,8 +1029,8 @@ class SupervisorTransition:
         if not isinstance(self.selected_tool, str):
             raise WorkroomModelError("selected_tool must be a string")
         selected_tool = self.selected_tool.strip()
-        if outcome == "local_step" and selected_tool not in SUPERVISOR_LOCAL_STEP_TOOLS:
-            raise WorkroomModelError("selected_tool is not an allowed local step tool")
+        if outcome == "local_step" and not selected_tool:
+            raise WorkroomModelError("selected_tool is required for local step outcome")
         object.__setattr__(self, "selected_tool", selected_tool)
         if not isinstance(self.delegated_role, str):
             raise WorkroomModelError("delegated_role must be a string")
@@ -1476,7 +1471,6 @@ class WorkItemCommit:
 
 
 __all__ = [
-    "SUPERVISOR_LOCAL_STEP_TOOLS",
     "SUPERVISOR_OUTCOMES",
     "SUPERVISOR_PHASES",
     "CompanyGoalRun",

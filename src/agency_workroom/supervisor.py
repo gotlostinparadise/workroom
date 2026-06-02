@@ -102,6 +102,21 @@ def plan_supervisor_transition(
             task_ref="",
             result_ref="",
         )
+    if phase_before == "blocked":
+        return _build_supervisor_transition(
+            run=run,
+            phase_before=phase_before,
+            outcome="blocked",
+            action_type="blocked",
+            selected_tool="",
+            delegated_role="goal_supervisor",
+            reason=reason,
+            recommendation=recommendation,
+            requires_approval=False,
+            record_kind="decision",
+            task_ref=_task_ref_for_first_blocked_task(run),
+            result_ref="",
+        )
     if recommended_tool in local_step_tool_names:
         task_ref = _task_ref_from_recommendation(recommendation)
         return _build_supervisor_transition(

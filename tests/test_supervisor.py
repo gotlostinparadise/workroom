@@ -318,6 +318,39 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual("workroom-item://landing", transition.task_ref)
         self.assertEqual("goal_supervisor", transition.delegated_role)
 
+    def test_plan_supervisor_transition_blocked_phase_overrides_local_step_recommendation(self) -> None:
+        tasks = self.make_tasks()
+        run = self.make_run(
+            (
+                tasks[0],
+                replace(
+                    tasks[1],
+                    status="blocked",
+                    blocker_summary="QA environment unavailable",
+                ),
+                *tasks[2:],
+            )
+        )
+        recommendation = {
+            "recommended_tool": "create_landing_artifact",
+            "arguments": {"task_ref": "workroom-item://landing"},
+            "reason": "landing_page task is ready and has no landing artifact",
+            "blocked": False,
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("blocked", transition.outcome)
+        self.assertEqual("blocked", transition.action_type)
+        self.assertEqual("decision", transition.record_kind)
+        self.assertEqual("workroom-item://testing", transition.task_ref)
+        self.assertEqual("", transition.selected_tool)
+
     def test_plan_supervisor_transition_for_human_decision(self) -> None:
         run = self.make_run(
             self.make_tasks(

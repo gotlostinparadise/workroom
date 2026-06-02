@@ -32,6 +32,7 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.plan_supervisor_transition))
         self.assertIn("local_production", agency_workroom.SUPERVISOR_PHASES)
         self.assertIn("local_step", agency_workroom.SUPERVISOR_OUTCOMES)
+        self.assertFalse(hasattr(agency_workroom, "SUPERVISOR_LOCAL_STEP_TOOLS"))
 
 
 if __name__ == "__main__":

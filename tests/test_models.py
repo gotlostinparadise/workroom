@@ -678,22 +678,23 @@ class SupervisorTransitionModelTests(unittest.TestCase):
                 task_ref="workroom-item://landing",
             )
 
-    def test_supervisor_transition_rejects_disallowed_local_step_tool(self) -> None:
-        with self.assertRaisesRegex(WorkroomModelError, "selected_tool"):
-            SupervisorTransition(
-                transition_id="transition_abc",
-                run_id="run_abc",
-                phase_before="local_production",
-                outcome="local_step",
-                action_type="local_step_executed",
-                selected_tool="execute_github_pages_deploy",
-                delegated_role="devops_operator",
-                reason="not allowed",
-                recommendation={},
-                requires_approval=False,
-                record_kind="handoff",
-                task_ref="workroom-item://github-pages",
-            )
+    def test_supervisor_transition_model_does_not_own_active_local_tool_allowlist(self) -> None:
+        transition = SupervisorTransition(
+            transition_id="transition_abc",
+            run_id="run_abc",
+            phase_before="local_production",
+            outcome="local_step",
+            action_type="local_step_executed",
+            selected_tool="create_future_local_artifact",
+            delegated_role="future_role",
+            reason="future local step is ready",
+            recommendation={},
+            requires_approval=False,
+            record_kind="handoff",
+            task_ref="workroom-item://future",
+        )
+
+        self.assertEqual("create_future_local_artifact", transition.selected_tool)
 
     def test_supervisor_transition_requires_approval_flag_for_approval_outcome(self) -> None:
         with self.assertRaisesRegex(WorkroomModelError, "requires_approval"):

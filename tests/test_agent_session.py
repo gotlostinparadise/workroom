@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1388,6 +1389,40 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertTrue(Path(fourth["turn_path"]).exists())
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_advance_company_goal_blocks_before_local_step_when_any_task_is_blocked(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        run = load_company_goal_run(workspace_path, started["run_id"])
+        blocked_tasks = tuple(
+            replace(
+                task,
+                status="blocked",
+                blocker_summary="QA environment unavailable",
+            )
+            if task.category == "testing"
+            else task
+            for task in run.tasks
+        )
+        save_company_goal_run(
+            workspace_path,
+            replace(run, tasks=blocked_tasks),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("blocked", turn["transition"]["outcome"])
+        self.assertEqual("blocked", turn["action_type"])
+        self.assertEqual("decision", turn["transition"]["record_kind"])
+        self.assertNotIn("execution", turn)
+        self.assertNotIn("role_work_request_ref", turn)
+        self.assertEqual("qa", turn["decision"]["owner_department"])
+        self.assertEqual("blocker_resolution", turn["decision"]["decision_type"])
+        self.assertTrue(Path(turn["decision_path"]).exists())
 
 
 if __name__ == "__main__":
