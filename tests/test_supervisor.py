@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ from agency_workroom.supervisor import (
     build_role_work_result,
     build_supervisor_snapshot,
     detect_goal_phase,
+    plan_supervisor_transition,
     write_decision_record,
     write_handoff_record,
     write_role_work_request,
@@ -49,6 +51,7 @@ class SupervisorCoreTests(unittest.TestCase):
         github_pages_status: str = "planned",
         github_pages_refs: tuple[str, ...] = (),
         github_pages_blocker: str = "",
+        threads_status: str = "planned",
     ) -> tuple[TaskState, ...]:
         return (
             TaskState(
@@ -81,8 +84,15 @@ class SupervisorCoreTests(unittest.TestCase):
                 role_id="threads_operator",
                 category="threads",
                 title="Prepare Threads campaign",
-                status="planned",
+                status=threads_status,
             ),
+        )
+
+    def local_tools(self) -> tuple[str, ...]:
+        return (
+            "create_landing_artifact",
+            "create_landing_qa_report",
+            "prepare_github_pages_deploy_proposal",
         )
 
     def test_detect_goal_phase_from_current_pipeline_state(self) -> None:
@@ -208,6 +218,165 @@ class SupervisorCoreTests(unittest.TestCase):
             },
             snapshot["current_handoff"],
         )
+
+    def test_plan_supervisor_transition_for_local_step(self) -> None:
+        run = self.make_run(self.make_tasks())
+        recommendation = {
+            "recommended_tool": "create_landing_artifact",
+            "arguments": {"task_ref": "workroom-item://landing"},
+            "reason": "landing_page task is ready and has no landing artifact",
+            "blocked": False,
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("local_step", transition.outcome)
+        self.assertEqual("local_step_executed", transition.action_type)
+        self.assertEqual("create_landing_artifact", transition.selected_tool)
+        self.assertEqual("landing_builder", transition.delegated_role)
+        self.assertEqual("handoff", transition.record_kind)
+        self.assertEqual("workroom-item://landing", transition.task_ref)
+        self.assertFalse(transition.requires_approval)
+
+    def test_plan_supervisor_transition_for_approval_required(self) -> None:
+        proposal_ref = (
+            "workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json"
+        )
+        run = self.make_run(
+            self.make_tasks(
+                landing_status="completed",
+                landing_refs=("workroom-artifact://runs/run_abc/landing_page/aaa/index.html",),
+                testing_status="completed",
+                testing_refs=("workroom-artifact://runs/run_abc/landing_qa/bbb/qa_report.json",),
+                github_pages_status="blocked",
+                github_pages_refs=(proposal_ref,),
+                github_pages_blocker="deploy proposal created",
+            )
+        )
+        recommendation = {
+            "recommended_tool": "",
+            "arguments": {},
+            "reason": "github_pages task is blocked",
+            "blocked": True,
+            "blocker_summary": "deploy proposal created",
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("approval_required", transition.outcome)
+        self.assertEqual("approval_required", transition.action_type)
+        self.assertEqual(
+            "prepare_github_pages_deploy_execution_plan",
+            transition.selected_tool,
+        )
+        self.assertEqual("devops_operator", transition.delegated_role)
+        self.assertEqual("decision", transition.record_kind)
+        self.assertEqual("workroom-item://github-pages", transition.task_ref)
+        self.assertEqual(proposal_ref, transition.result_ref)
+        self.assertTrue(transition.requires_approval)
+
+    def test_plan_supervisor_transition_for_blocked_task(self) -> None:
+        tasks = self.make_tasks()
+        run = self.make_run(
+            (
+                replace(
+                    tasks[0],
+                    status="blocked",
+                    blocker_summary="landing copy is missing",
+                ),
+                *tasks[1:],
+            )
+        )
+        recommendation = {
+            "recommended_tool": "",
+            "arguments": {},
+            "reason": "landing_page task is blocked",
+            "blocked": True,
+            "blocker_summary": "landing copy is missing",
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("blocked", transition.outcome)
+        self.assertEqual("blocked", transition.action_type)
+        self.assertEqual("decision", transition.record_kind)
+        self.assertEqual("workroom-item://landing", transition.task_ref)
+        self.assertEqual("goal_supervisor", transition.delegated_role)
+
+    def test_plan_supervisor_transition_for_human_decision(self) -> None:
+        run = self.make_run(
+            self.make_tasks(
+                landing_status="completed",
+                landing_refs=("workroom-artifact://runs/run_abc/landing_page/aaa/index.html",),
+                testing_status="completed",
+                testing_refs=("workroom-artifact://runs/run_abc/landing_qa/bbb/qa_report.json",),
+                github_pages_status="completed",
+                github_pages_refs=(
+                    "workroom-artifact://runs/run_abc/github_pages/ccc/deploy_proposal.json",
+                ),
+            )
+        )
+        recommendation = {
+            "recommended_tool": "",
+            "arguments": {},
+            "reason": "no local recommended tool call is available",
+            "blocked": False,
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("needs_human_decision", transition.outcome)
+        self.assertEqual("needs_human_decision", transition.action_type)
+        self.assertEqual("decision", transition.record_kind)
+        self.assertEqual("strategy", transition.delegated_role)
+
+    def test_plan_supervisor_transition_for_complete_run(self) -> None:
+        run = self.make_run(
+            self.make_tasks(
+                landing_status="completed",
+                testing_status="completed",
+                github_pages_status="completed",
+                threads_status="completed",
+            )
+        )
+        recommendation = {
+            "recommended_tool": "",
+            "arguments": {},
+            "reason": "no local recommended tool call is available",
+            "blocked": False,
+        }
+
+        transition = plan_supervisor_transition(
+            run=run,
+            phase_before=detect_goal_phase(run),
+            recommendation=recommendation,
+            local_step_tool_names=self.local_tools(),
+        )
+
+        self.assertEqual("complete", transition.outcome)
+        self.assertEqual("complete", transition.action_type)
+        self.assertEqual("none", transition.record_kind)
+        self.assertEqual("goal_supervisor", transition.delegated_role)
 
     def test_write_supervisor_turn_creates_artifact_and_ref(self) -> None:
         root = self.temp_root()

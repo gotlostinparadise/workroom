@@ -29,6 +29,7 @@ class PackageImportTests(unittest.TestCase):
 
     def test_supervisor_state_machine_models_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.SupervisorTransition))
+        self.assertTrue(callable(agency_workroom.plan_supervisor_transition))
         self.assertIn("local_production", agency_workroom.SUPERVISOR_PHASES)
         self.assertIn("local_step", agency_workroom.SUPERVISOR_OUTCOMES)
 

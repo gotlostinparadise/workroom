@@ -74,6 +74,7 @@ from .session_store import (
 from .supervisor import (
     build_role_work_request,
     build_role_work_result,
+    plan_supervisor_transition,
     write_role_work_request,
     write_role_work_result,
 )
@@ -141,6 +142,7 @@ __all__ = [
     "list_next_actions",
     "load_company_goal_run",
     "plan_business_validation_workflow",
+    "plan_supervisor_transition",
     "plan_workflow_from_company_spec",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",

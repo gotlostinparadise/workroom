@@ -12,6 +12,7 @@ from .models import (
     HandoffRecord,
     RoleWorkRequest,
     RoleWorkResult,
+    SupervisorTransition,
     SupervisorTurn,
     TaskState,
 )
@@ -75,6 +76,93 @@ def build_supervisor_snapshot(run: CompanyGoalRun) -> dict[str, object]:
         ),
         "current_handoff": _handoff_for_phase(phase, current_department),
     }
+
+
+def plan_supervisor_transition(
+    *,
+    run: CompanyGoalRun,
+    phase_before: str,
+    recommendation: Mapping[str, object],
+    local_step_tool_names: tuple[str, ...],
+) -> SupervisorTransition:
+    recommended_tool = str(recommendation.get("recommended_tool", ""))
+    reason = str(recommendation.get("reason", "no safe supervisor action is available"))
+    if phase_before == "complete":
+        return _build_supervisor_transition(
+            run=run,
+            phase_before=phase_before,
+            outcome="complete",
+            action_type="complete",
+            selected_tool="",
+            delegated_role="goal_supervisor",
+            reason="company goal run is complete",
+            recommendation=recommendation,
+            requires_approval=False,
+            record_kind="none",
+            task_ref="",
+            result_ref="",
+        )
+    if recommended_tool in local_step_tool_names:
+        task_ref = _task_ref_from_recommendation(recommendation)
+        return _build_supervisor_transition(
+            run=run,
+            phase_before=phase_before,
+            outcome="local_step",
+            action_type="local_step_executed",
+            selected_tool=recommended_tool,
+            delegated_role=_delegated_role_for_local_tool(recommended_tool),
+            reason=reason,
+            recommendation=recommendation,
+            requires_approval=False,
+            record_kind="handoff",
+            task_ref=task_ref,
+            result_ref="",
+        )
+    if bool(recommendation.get("blocked", False)) and phase_before == "approval_required":
+        proposal_ref = _result_ref_for_kind(run, "github_pages_deploy_proposal") or ""
+        return _build_supervisor_transition(
+            run=run,
+            phase_before=phase_before,
+            outcome="approval_required",
+            action_type="approval_required",
+            selected_tool="prepare_github_pages_deploy_execution_plan",
+            delegated_role="devops_operator",
+            reason="GitHub Pages task is blocked pending DevOps execution plan approval",
+            recommendation=recommendation,
+            requires_approval=True,
+            record_kind="decision",
+            task_ref=_task_ref_for_category(run, "github_pages"),
+            result_ref=proposal_ref,
+        )
+    if bool(recommendation.get("blocked", False)):
+        return _build_supervisor_transition(
+            run=run,
+            phase_before=phase_before,
+            outcome="blocked",
+            action_type="blocked",
+            selected_tool="",
+            delegated_role="goal_supervisor",
+            reason=reason,
+            recommendation=recommendation,
+            requires_approval=False,
+            record_kind="decision",
+            task_ref=_task_ref_for_first_blocked_task(run),
+            result_ref="",
+        )
+    return _build_supervisor_transition(
+        run=run,
+        phase_before=phase_before,
+        outcome="needs_human_decision",
+        action_type="needs_human_decision",
+        selected_tool="",
+        delegated_role="strategy",
+        reason=reason,
+        recommendation=recommendation,
+        requires_approval=False,
+        record_kind="decision",
+        task_ref="",
+        result_ref="",
+    )
 
 
 def build_approval_required_turn(
@@ -455,11 +543,86 @@ def supervisor_id_for(run_id: str) -> str:
     return f"{SUPERVISOR_ID_PREFIX}{run_id}"
 
 
+def _build_supervisor_transition(
+    *,
+    run: CompanyGoalRun,
+    phase_before: str,
+    outcome: str,
+    action_type: str,
+    selected_tool: str,
+    delegated_role: str,
+    reason: str,
+    recommendation: Mapping[str, object],
+    requires_approval: bool,
+    record_kind: str,
+    task_ref: str,
+    result_ref: str,
+) -> SupervisorTransition:
+    transition_id = _record_id(
+        "transition",
+        {
+            "run_id": run.run_id,
+            "phase_before": phase_before,
+            "outcome": outcome,
+            "action_type": action_type,
+            "selected_tool": selected_tool,
+            "task_ref": task_ref,
+            "result_ref": result_ref,
+        },
+    )
+    return SupervisorTransition(
+        transition_id=transition_id,
+        run_id=run.run_id,
+        phase_before=phase_before,
+        outcome=outcome,
+        action_type=action_type,
+        selected_tool=selected_tool,
+        delegated_role=delegated_role,
+        reason=reason,
+        recommendation=recommendation,
+        requires_approval=requires_approval,
+        record_kind=record_kind,
+        task_ref=task_ref,
+        result_ref=result_ref,
+    )
+
+
 def _task_for_category(run: CompanyGoalRun, category: str) -> TaskState:
     for task in run.tasks:
         if task.category == category:
             return task
     raise WorkroomStateError(f"{category} task state not found")
+
+
+def _task_ref_for_category(run: CompanyGoalRun, category: str) -> str:
+    return _task_for_category(run, category).task_ref
+
+
+def _task_ref_for_first_blocked_task(run: CompanyGoalRun) -> str:
+    for task in run.tasks:
+        if task.status == "blocked":
+            return task.task_ref
+    return ""
+
+
+def _task_ref_from_recommendation(recommendation: Mapping[str, object]) -> str:
+    arguments = recommendation.get("arguments")
+    if not isinstance(arguments, Mapping):
+        return ""
+    task_ref = arguments.get("task_ref")
+    if isinstance(task_ref, str):
+        return task_ref
+    return ""
+
+
+def _delegated_role_for_local_tool(tool_name: str) -> str:
+    if tool_name == "create_landing_artifact":
+        return "landing_builder"
+    if tool_name == "create_landing_qa_report":
+        return "qa_tester"
+    if tool_name == "prepare_github_pages_deploy_proposal":
+        return "devops_operator"
+    return "goal_supervisor"
 
 
 def _result_ref_for_kind(run: CompanyGoalRun, kind: str) -> str | None:
@@ -704,6 +867,7 @@ __all__ = [
     "build_role_work_result",
     "build_supervisor_snapshot",
     "detect_goal_phase",
+    "plan_supervisor_transition",
     "supervisor_id_for",
     "write_decision_record",
     "write_handoff_record",
