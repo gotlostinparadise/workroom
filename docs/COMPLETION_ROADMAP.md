@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v1.
+Status: Canonical plan v2.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -99,7 +99,16 @@ These milestones are complete enough to be treated as foundation:
     `WorkflowRequest` is now a Business Validation adapter, not the generic
     planning contract.
 
-## Remaining Milestones
+11. Company Start Contract and Registry v1.
+    Company startup uses a registered default `CompanySpec` and generic
+    `RunContext` internally while preserving the current public
+    `start_company_goal` MCP shape.
+
+12. Role Delegation Contract v1.
+    Supervisor turns can write local role-work request/result artifacts and
+    attach their refs to turn metadata without autonomous role-agent execution.
+
+## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
 
@@ -129,7 +138,7 @@ Exit criteria:
 
 ### 2. Role Delegation Contract v1
 
-Status: Next.
+Status: Done.
 
 Goal: define how the supervisor delegates work to role agents and how role
 agents return durable results, without adding autonomous background execution.
@@ -144,7 +153,7 @@ Exit criteria:
 
 ### 3. Supervisor State Machine v2
 
-Status: Later.
+Status: Next.
 
 Goal: make the supervisor's turn logic explicit enough to support more than the
 current Business Validation happy path.
@@ -253,8 +262,9 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Role Delegation Contract v1
+Supervisor State Machine v2
 ```
 
-Before implementing it, create an implementation plan under `docs/plans/` and
-execute it with TDD in an isolated worktree.
+Before implementing it, create an implementation plan under `docs/plans/`,
+model the state-machine contract explicitly, and execute it with TDD in an
+isolated worktree.

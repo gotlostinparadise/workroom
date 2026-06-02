@@ -92,6 +92,12 @@ crosses a department boundary or reaches an approval/decision point. Codex can
 inspect `runs/<run_id>/handoffs/` and `runs/<run_id>/decisions/` refs to see
 what was transferred, which artifacts support it, and what decision is pending.
 
+Role delegation is recorded as local evidence, not autonomous execution.
+Bounded supervisor turns write `RoleWorkRequest` and `RoleWorkResult` artifacts
+under `runs/<run_id>/role_work/`, then attach those refs to supervisor turn
+metadata. These records show which role received work and which artifacts came
+back; they do not start background role agents or call external services.
+
 The second local capability is `create_landing_qa_report`: it checks the
 landing draft, writes `qa_report.json`, and records the QA report ref without
 deploying it.
