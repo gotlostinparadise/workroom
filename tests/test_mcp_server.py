@@ -21,6 +21,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "record_work_result",
                 "create_landing_artifact",
                 "create_landing_qa_report",
+                "create_release_checklist_artifact",
                 "prepare_github_pages_deploy_proposal",
                 "prepare_github_pages_deploy_execution_plan",
                 "execute_github_pages_deploy",
@@ -61,6 +62,21 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertEqual("", schema["properties"]["context_json"]["default"])
         self.assertNotIn("company_spec_id", schema["required"])
         self.assertNotIn("context_json", schema["required"])
+
+    def test_release_checklist_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        release_tool = next(
+            tool for tool in tools if tool.name == "create_release_checklist_artifact"
+        )
+        schema = release_tool.inputSchema
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(schema["required"]),
+        )
+        self.assertIn("run_id", schema["properties"])
+        self.assertIn("task_ref", schema["properties"])
+        self.assertIn("workspace_path", schema["properties"])
 
     def test_list_company_specs_tool_delegates_to_session_discovery(self) -> None:
         result = mcp_server.list_company_specs()

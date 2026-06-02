@@ -36,6 +36,13 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
         return "approval_required"
     if blocked_tasks:
         return "blocked"
+    release_plan_task = _optional_task_for_category(run, "release_plan")
+    if (
+        release_plan_task is not None
+        and release_plan_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "release_checklist") is None
+    ):
+        return "local_production"
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
@@ -78,7 +85,12 @@ def build_supervisor_snapshot(run: CompanyGoalRun) -> dict[str, object]:
             current_department,
             departments_by_id,
         ),
-        "current_handoff": _handoff_for_phase(phase, current_department),
+        "current_handoff": _handoff_for_phase(
+            phase,
+            current_department,
+            run,
+            role_departments,
+        ),
     }
 
 
@@ -688,6 +700,8 @@ def _delegated_role_for_local_tool(tool_name: str) -> str:
         return "landing_builder"
     if tool_name == "create_landing_qa_report":
         return "qa_tester"
+    if tool_name == "create_release_checklist_artifact":
+        return "release_lead"
     if tool_name == "prepare_github_pages_deploy_proposal":
         return "devops_operator"
     return "goal_supervisor"
@@ -710,6 +724,8 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/github_pages/" in ref and ref.endswith("/deploy_proposal.json")
     if kind == "devops_execution_evidence":
         return "/devops/" in ref and ref.endswith("/execution_evidence.json")
+    if kind == "release_checklist":
+        return "/release_hardening/" in ref and ref.endswith("/release_checklist.md")
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -811,13 +827,40 @@ def _department_blockers(
     return blockers
 
 
+def _first_open_task(run: CompanyGoalRun) -> TaskState | None:
+    for task in run.tasks:
+        if task.status in {"planned", "in_progress"}:
+            return task
+    return None
+
+
+def _next_department_after_task(
+    run: CompanyGoalRun,
+    current_task: TaskState,
+    role_departments: dict[str, str],
+) -> str:
+    found_current = False
+    for task in run.tasks:
+        if task.task_ref == current_task.task_ref:
+            found_current = True
+            continue
+        if found_current and task.status in {"planned", "in_progress"}:
+            return role_departments.get(task.role_id, "coordination")
+    return ""
+
+
 def _current_department_for_phase(
     phase: str,
     run: CompanyGoalRun,
     role_departments: dict[str, str],
 ) -> str:
+    if phase == "local_production":
+        if _has_task_categories(run, ("landing_page", "testing", "github_pages")):
+            return "product"
+        task = _first_open_task(run)
+        if task is not None:
+            return role_departments.get(task.role_id, "unknown")
     phase_departments = {
-        "local_production": "product",
         "qa": "qa",
         "deploy_preparation": "devops",
         "approval_required": "devops",
@@ -844,13 +887,33 @@ def _authority_level_for_department(
     return "local_only"
 
 
-def _handoff_for_phase(phase: str, current_department: str) -> dict[str, str]:
-    handoffs = {
-        "local_production": {
-            "from_department": "product",
-            "to_department": "qa",
+def _handoff_for_phase(
+    phase: str,
+    current_department: str,
+    run: CompanyGoalRun,
+    role_departments: dict[str, str],
+) -> dict[str, str]:
+    if phase == "local_production":
+        if _has_task_categories(run, ("landing_page", "testing", "github_pages")):
+            return {
+                "from_department": "product",
+                "to_department": "qa",
+                "status": "pending",
+            }
+        task = _first_open_task(run)
+        to_department = ""
+        if task is not None:
+            to_department = _next_department_after_task(
+                run,
+                task,
+                role_departments,
+            )
+        return {
+            "from_department": current_department,
+            "to_department": to_department or "coordination",
             "status": "pending",
-        },
+        }
+    handoffs = {
         "qa": {
             "from_department": "qa",
             "to_department": "devops",

@@ -17,6 +17,7 @@ TOOL_NAMES = (
     "record_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_release_checklist_artifact",
     "prepare_github_pages_deploy_proposal",
     "prepare_github_pages_deploy_execution_plan",
     "execute_github_pages_deploy",
@@ -175,6 +176,20 @@ def create_landing_qa_report(
 
 
 @mcp.tool()
+def create_release_checklist_artifact(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local release checklist artifact for a Release Hardening task."""
+    return agent_session.create_release_checklist_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
 def prepare_github_pages_deploy_proposal(
     run_id: str,
     task_ref: str,
@@ -316,9 +331,10 @@ if __name__ == "__main__":
 __all__ = [
     "TOOL_NAMES",
     "advance_company_goal",
+    "create_goal_run_report",
     "create_landing_artifact",
     "create_landing_qa_report",
-    "create_goal_run_report",
+    "create_release_checklist_artifact",
     "execute_github_pages_deploy",
     "get_company_state",
     "get_mcp_tool_manifest",

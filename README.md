@@ -59,6 +59,7 @@ The MCP tools are agent-facing:
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
+- `create_release_checklist_artifact`
 - `prepare_github_pages_deploy_proposal`
 - `prepare_github_pages_deploy_execution_plan`
 - `execute_github_pages_deploy`
@@ -116,6 +117,13 @@ hardening checklist under the run workspace. Codex can call the read-only
 same local startup path. This does not deploy, push, post, or call external
 APIs.
 
+Release Hardening participates in the same recommendation and local-step MCP
+path as the default company. After startup, `recommend_next_tool_call` can
+recommend `create_release_checklist_artifact` for the `release_plan` task, and
+`run_next_local_step` or `advance_company_goal` can execute that one local
+artifact step. Workroom then stops; quality gates, release notes, and readiness
+decisions need their own future local routes or human decisions.
+
 `context_json` is a JSON object string for Workroom-local run variables. For
 example:
 
@@ -136,7 +144,8 @@ executing that tool.
 
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
-GitHub Pages deploy proposal preparation, but it does not loop, push to GitHub,
+GitHub Pages deploy proposal preparation for Business Validation, or release
+checklist creation for Release Hardening. It does not loop, push to GitHub,
 post externally, or run unapproved tools such as raw result recording.
 
 `advance_company_goal` is the first goal-specific supervisor tool. It performs

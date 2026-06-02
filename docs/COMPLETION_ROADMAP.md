@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v8.
+Status: Canonical plan v9.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -122,8 +122,8 @@ These milestones are complete enough to be treated as foundation:
 15. Second Company Spec v1.
     Release Hardening is registered as the second bundled `CompanySpec`.
     It starts through the generic `RunContext` path, writes a local release
-    checklist artifact through Workroom state, and fails closed to a supervisor
-    decision rather than executing Business Validation local steps.
+    checklist artifact through Workroom state, and does not execute Business
+    Validation local steps.
 
 16. Practical End-to-End Goal Run v1.
     A bounded Business Validation run can be reproduced through MCP tool calls
@@ -166,6 +166,11 @@ These milestones are complete enough to be treated as foundation:
     returns a `goal-intake-work-request.v1` for Codex. Workroom plans company
     work only after Codex calls `submit_goal_intake_result` with structured
     fields. The deterministic parser is demoted to compatibility helper status.
+
+24. Release Local Step Routing v1.
+    Release Hardening can advance its first `release_plan` task through
+    `recommend_next_tool_call`, `run_next_local_step`, `advance_company_goal`,
+    and the MCP surface by creating a local release checklist artifact.
 
 ## Milestone Plan
 
@@ -404,6 +409,28 @@ Exit criteria:
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
 
+### 14. Release Local Step Routing v1
+
+Status: Done.
+
+Goal: route the existing Release Hardening checklist artifact through the same
+MCP recommendation, local-step, and supervisor path as Business Validation's
+safe local artifact steps.
+
+Exit criteria:
+
+- `recommend_next_tool_call` recommends `create_release_checklist_artifact` for
+  a planned Release Hardening `release_plan` task with no checklist artifact.
+- The recommendation remains read-only.
+- `run_next_local_step` executes the release checklist route once and then
+  stops.
+- `advance_company_goal` records supervisor, role-work, and release-to-QA
+  handoff evidence for the release checklist step.
+- The MCP server and manifest expose `create_release_checklist_artifact`.
+- Business Validation local-step behavior remains unchanged.
+- No Kernel changes, hidden loops, external API calls, or new external effects
+  are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -420,6 +447,6 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that makes the MCP goal-company runtime more generally useful
-for Codex without adding hidden loops, unapproved external effects, or Kernel
-product behavior.
+the smallest slice that adds another role-specific local route, decision
+contract, or review artifact path for non-default company specs without adding
+hidden loops, unapproved external effects, or Kernel product behavior.

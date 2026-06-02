@@ -222,7 +222,7 @@ class SupervisorCoreTests(unittest.TestCase):
             snapshot["current_handoff"],
         )
 
-    def test_release_hardening_snapshot_and_advance_fail_closed_without_local_step(
+    def test_release_hardening_snapshot_and_advance_routes_first_local_step(
         self,
     ) -> None:
         root = self.temp_root()
@@ -253,17 +253,32 @@ class SupervisorCoreTests(unittest.TestCase):
         )
         reloaded = load_company_goal_run(workspace_path, started["run_id"])
 
-        self.assertEqual("decision", snapshot["phase"])
+        self.assertEqual("local_production", snapshot["phase"])
+        self.assertEqual("release", snapshot["current_department"])
         self.assertEqual(
             {"release", "qa", "docs", "coordination"},
             set(snapshot["department_status"]),
         )
-        self.assertEqual("needs_human_decision", advanced["transition"]["outcome"])
-        self.assertEqual("", advanced["transition"]["selected_tool"])
-        self.assertIn("decision_ref", advanced)
-        self.assertNotIn("role_work_request_ref", advanced)
         self.assertEqual(
-            ["planned", "planned", "planned", "planned"],
+            {
+                "from_department": "release",
+                "to_department": "qa",
+                "status": "pending",
+            },
+            snapshot["current_handoff"],
+        )
+        self.assertEqual("local_step", advanced["transition"]["outcome"])
+        self.assertEqual(
+            "create_release_checklist_artifact",
+            advanced["transition"]["selected_tool"],
+        )
+        self.assertEqual("release_lead", advanced["delegated_role"])
+        self.assertIn("role_work_request_ref", advanced)
+        self.assertIn("role_work_result_ref", advanced)
+        self.assertEqual("release", advanced["handoff"]["from_department"])
+        self.assertEqual("qa", advanced["handoff"]["to_department"])
+        self.assertEqual(
+            ["completed", "planned", "planned", "planned"],
             [task.status for task in reloaded.tasks],
         )
 

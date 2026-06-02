@@ -89,6 +89,7 @@ GOAL_RUN_REPORT_PREFIX = "workroom-artifact://"
 LOCAL_STEP_TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_release_checklist_artifact",
     "prepare_github_pages_deploy_proposal",
 )
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
@@ -565,6 +566,12 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
             blocker_summary="goal intake is required",
         ).to_payload()
     run = load_company_goal_run(workspace_path, run_id)
+    release_recommendation = _release_checklist_recommendation(
+        run=run,
+        workspace_path=workspace_path,
+    )
+    if release_recommendation is not None:
+        return release_recommendation
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         blocked_task = _first_blocked_task(run)
         if blocked_task is not None:
@@ -735,6 +742,8 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
         result = create_landing_artifact(**arguments)
     elif recommended_tool == "create_landing_qa_report":
         result = create_landing_qa_report(**arguments)
+    elif recommended_tool == "create_release_checklist_artifact":
+        result = create_release_checklist_artifact(**arguments)
     elif recommended_tool == "prepare_github_pages_deploy_proposal":
         result = prepare_github_pages_deploy_proposal(**arguments)
     else:
@@ -1492,6 +1501,16 @@ def _task_for_category(run: CompanyGoalRun, category: str) -> TaskState:
     raise WorkroomStateError(f"{category} task state not found")
 
 
+def _optional_task_for_category(
+    run: CompanyGoalRun,
+    category: str,
+) -> TaskState | None:
+    for task in run.tasks:
+        if task.category == category:
+            return task
+    return None
+
+
 def _task_for_ref(run: CompanyGoalRun, task_ref: str) -> TaskState:
     clean_task_ref = _required_text("task_ref", task_ref)
     for task in run.tasks:
@@ -1539,7 +1558,55 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/github_pages/" in ref
             and ref.endswith("/deploy_proposal.json")
         )
+    if kind == "release_checklist":
+        return (
+            ref.startswith(RELEASE_CHECKLIST_ARTIFACT_PREFIX)
+            and "/release_hardening/" in ref
+            and ref.endswith("/release_checklist.md")
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
+
+
+def _release_checklist_recommendation(
+    *,
+    run: CompanyGoalRun,
+    workspace_path: str,
+) -> dict[str, object] | None:
+    release_task = _optional_task_for_category(run, "release_plan")
+    if release_task is None:
+        return None
+    checklist_ref = _result_ref_for_kind(run, "release_checklist")
+    if release_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="release_plan task is blocked",
+            blocker_summary=release_task.blocker_summary,
+        )
+    if checklist_ref is None:
+        if release_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="create_release_checklist_artifact",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": release_task.task_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason="release_plan task is ready and has no release checklist",
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if release_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="release checklist artifact ref",
+                reason=(
+                    "release_plan task is completed without a release checklist "
+                    "artifact ref"
+                ),
+            )
+    return None
 
 
 def _blocked_recommendation(
@@ -1795,15 +1862,24 @@ def _build_handoff_for_phase(
     reason: str,
     recommendation: dict[str, object],
 ):
-    handoffs = {
-        "local_production": ("product", "qa", "completed", False),
-        "qa": ("qa", "devops", "completed", False),
-        "deploy_preparation": ("devops", "approval_gate", "approval_required", True),
-    }
-    handoff = handoffs.get(phase)
-    if handoff is None or not artifact_refs:
+    if not artifact_refs:
         return None
-    from_department, to_department, status, requires_approval = handoff
+    if phase in {"local_production", "qa"}:
+        from_department = _department_for_task_ref(run, task_ref)
+        to_department = (
+            _department_for_recommendation_task_ref(run, recommendation)
+            or _next_department_after_task_ref(run, task_ref)
+            or "coordination"
+        )
+        status = "completed"
+        requires_approval = False
+    elif phase == "deploy_preparation":
+        from_department = "devops"
+        to_department = "approval_gate"
+        status = "approval_required"
+        requires_approval = True
+    else:
+        return None
     return build_handoff_record(
         run=run,
         phase=phase,
@@ -1920,6 +1996,33 @@ def _department_for_task_ref(run: CompanyGoalRun, task_ref: str) -> str:
         ):
             return role["department_id"]
     return "coordination"
+
+
+def _next_department_after_task_ref(run: CompanyGoalRun, task_ref: str) -> str:
+    task_index = None
+    for index, task in enumerate(run.tasks):
+        if task.task_ref == task_ref:
+            task_index = index
+            break
+    if task_index is None:
+        return ""
+    for task in run.tasks[task_index + 1 :]:
+        if task.status in _NEXT_ACTION_STATUSES:
+            return _department_for_task_ref(run, task.task_ref)
+    return ""
+
+
+def _department_for_recommendation_task_ref(
+    run: CompanyGoalRun,
+    recommendation: Mapping[str, object],
+) -> str:
+    arguments = recommendation.get("arguments")
+    if not isinstance(arguments, Mapping):
+        return ""
+    task_ref = arguments.get("task_ref")
+    if not isinstance(task_ref, str) or not task_ref.strip():
+        return ""
+    return _department_for_task_ref(run, task_ref)
 
 
 def _supervisor_turn_id(
