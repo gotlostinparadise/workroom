@@ -60,6 +60,7 @@ The MCP tools are agent-facing:
 - `create_landing_artifact`
 - `create_landing_qa_report`
 - `create_release_checklist_artifact`
+- `create_release_quality_gate_report`
 - `prepare_github_pages_deploy_proposal`
 - `prepare_github_pages_deploy_execution_plan`
 - `execute_github_pages_deploy`
@@ -119,9 +120,11 @@ APIs.
 
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
-recommend `create_release_checklist_artifact` for the `release_plan` task, and
-`run_next_local_step` or `advance_company_goal` can execute that one local
-artifact step. Workroom then stops; quality gates, release notes, and readiness
+recommend `create_release_checklist_artifact` for the `release_plan` task, then
+`create_release_quality_gate_report` for the `quality_gates` task after the
+checklist exists. `run_next_local_step` or `advance_company_goal` executes one
+local artifact step per call and records role-work and handoff evidence.
+Workroom then stops after the quality gate report; release notes and readiness
 decisions need their own future local routes or human decisions.
 
 `context_json` is a JSON object string for Workroom-local run variables. For

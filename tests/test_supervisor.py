@@ -252,6 +252,12 @@ class SupervisorCoreTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         reloaded = load_company_goal_run(workspace_path, started["run_id"])
+        qa_snapshot = build_supervisor_snapshot(reloaded)
+        advanced_again = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second_reloaded = load_company_goal_run(workspace_path, started["run_id"])
 
         self.assertEqual("local_production", snapshot["phase"])
         self.assertEqual("release", snapshot["current_department"])
@@ -280,6 +286,20 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual(
             ["completed", "planned", "planned", "planned"],
             [task.status for task in reloaded.tasks],
+        )
+        self.assertEqual("qa", qa_snapshot["phase"])
+        self.assertEqual("qa", qa_snapshot["current_department"])
+        self.assertEqual("local_step", advanced_again["transition"]["outcome"])
+        self.assertEqual(
+            "create_release_quality_gate_report",
+            advanced_again["transition"]["selected_tool"],
+        )
+        self.assertEqual("quality_reviewer", advanced_again["delegated_role"])
+        self.assertEqual("qa", advanced_again["handoff"]["from_department"])
+        self.assertEqual("docs", advanced_again["handoff"]["to_department"])
+        self.assertEqual(
+            ["completed", "completed", "planned", "planned"],
+            [task.status for task in second_reloaded.tasks],
         )
 
     def test_plan_supervisor_transition_for_local_step(self) -> None:

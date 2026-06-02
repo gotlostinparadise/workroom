@@ -54,6 +54,10 @@ from .models import (
 )
 from .planner import run_context_from_workflow_request
 from .release_artifact import create_release_checklist_artifact_files
+from .release_quality import (
+    ReleaseQualityError,
+    create_release_quality_gate_report_files,
+)
 from .session_store import (
     WorkroomStateError,
     load_goal_intake_run,
@@ -85,11 +89,13 @@ GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_CHECKLIST_ARTIFACT_PREFIX = "workroom-artifact://"
+RELEASE_QUALITY_GATE_REPORT_PREFIX = "workroom-artifact://"
 GOAL_RUN_REPORT_PREFIX = "workroom-artifact://"
 LOCAL_STEP_TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",
+    "create_release_quality_gate_report",
     "prepare_github_pages_deploy_proposal",
 )
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
@@ -572,6 +578,12 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
     )
     if release_recommendation is not None:
         return release_recommendation
+    release_quality_recommendation = _release_quality_gate_recommendation(
+        run=run,
+        workspace_path=workspace_path,
+    )
+    if release_quality_recommendation is not None:
+        return release_quality_recommendation
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         blocked_task = _first_blocked_task(run)
         if blocked_task is not None:
@@ -744,6 +756,8 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
         result = create_landing_qa_report(**arguments)
     elif recommended_tool == "create_release_checklist_artifact":
         result = create_release_checklist_artifact(**arguments)
+    elif recommended_tool == "create_release_quality_gate_report":
+        result = create_release_quality_gate_report(**arguments)
     elif recommended_tool == "prepare_github_pages_deploy_proposal":
         result = prepare_github_pages_deploy_proposal(**arguments)
     else:
@@ -1133,6 +1147,84 @@ def create_release_checklist_artifact(
     )
     save_company_goal_run(workspace_path, updated_run)
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_release_quality_gate_report(
+    *,
+    run_id: str,
+    task_ref: str,
+    checklist_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_checklist_ref = _required_text("checklist_ref", checklist_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "quality_gates":
+        raise WorkroomStateError("task is not a quality_gates task")
+    if not _artifact_ref_recorded_in_run(run, clean_checklist_ref):
+        raise WorkroomStateError("release checklist is not recorded in run state")
+    _release_checklist_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_checklist_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_QUALITY_GATE_REPORT_PREFIX)
+            and "/release_hardening/" in ref
+            and ref.endswith("/quality_gate_report.json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        report = _release_quality_gate_report_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            report_ref=existing_ref,
+            checklist_ref=clean_checklist_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "report": report,
+        }
+    try:
+        report = create_release_quality_gate_report_files(
+            workspace_path=workspace_path,
+            run_id=run.run_id,
+            task=current_task,
+            checklist_ref=clean_checklist_ref,
+            plan=dict(run.plan),
+        )
+    except ReleaseQualityError as exc:
+        raise WorkroomStateError("release quality gate report failed") from exc
+    passed = bool(report["passed"])
+    updated_task = _task_with_result(
+        current_task,
+        result_ref=str(report["report_ref"]),
+        status="completed" if passed else "blocked",
+        blocker_summary="" if passed else "release quality gate report failed",
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "report": report}
 
 
 def create_landing_qa_report(
@@ -1564,6 +1656,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/release_hardening/" in ref
             and ref.endswith("/release_checklist.md")
         )
+    if kind == "release_quality_gate_report":
+        return (
+            ref.startswith(RELEASE_QUALITY_GATE_REPORT_PREFIX)
+            and "/release_hardening/" in ref
+            and ref.endswith("/quality_gate_report.json")
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -1604,6 +1702,55 @@ def _release_checklist_recommendation(
                 reason=(
                     "release_plan task is completed without a release checklist "
                     "artifact ref"
+                ),
+            )
+    return None
+
+
+def _release_quality_gate_recommendation(
+    *,
+    run: CompanyGoalRun,
+    workspace_path: str,
+) -> dict[str, object] | None:
+    quality_task = _optional_task_for_category(run, "quality_gates")
+    if quality_task is None:
+        return None
+    checklist_ref = _result_ref_for_kind(run, "release_checklist")
+    report_ref = _result_ref_for_kind(run, "release_quality_gate_report")
+    if quality_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="quality_gates task is blocked",
+            blocker_summary=quality_task.blocker_summary,
+        )
+    if checklist_ref is None:
+        return None
+    if report_ref is None:
+        if quality_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="create_release_quality_gate_report",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": quality_task.task_ref,
+                    "checklist_ref": checklist_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason=(
+                    "release checklist exists and quality_gates task has no "
+                    "quality gate report"
+                ),
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if quality_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="release quality gate report ref",
+                reason=(
+                    "quality_gates task is completed without a release quality "
+                    "gate report ref"
                 ),
             )
     return None
@@ -2198,6 +2345,44 @@ def _release_checklist_payload_for_existing_ref(
     return payload
 
 
+def _release_quality_gate_report_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    report_ref: str,
+    checklist_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/quality_gate_report.json"
+    if not report_ref.startswith(prefix) or not report_ref.endswith(suffix):
+        raise WorkroomStateError("release quality gate report ref is invalid")
+    parts = report_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "release_hardening"
+        or parts[3] != "quality_gate_report.json"
+    ):
+        raise WorkroomStateError("release quality gate report ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("release quality gate report metadata is corrupt") from exc
+    if payload.get("report_ref") != report_ref:
+        raise WorkroomStateError("release quality gate report metadata does not match ref")
+    if payload.get("checklist_ref") != checklist_ref:
+        raise WorkroomStateError("release quality gate report checklist does not match")
+    return payload
+
+
 def _landing_qa_report_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -2291,6 +2476,7 @@ __all__ = [
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
+    "RELEASE_QUALITY_GATE_REPORT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
@@ -2298,6 +2484,7 @@ __all__ = [
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",
+    "create_release_quality_gate_report",
     "execute_github_pages_deploy",
     "evaluate_company_goal_run",
     "get_company_state",

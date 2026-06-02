@@ -43,6 +43,14 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
         and _result_ref_for_kind(run, "release_checklist") is None
     ):
         return "local_production"
+    release_quality_task = _optional_task_for_category(run, "quality_gates")
+    if (
+        release_quality_task is not None
+        and release_quality_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "release_checklist") is not None
+        and _result_ref_for_kind(run, "release_quality_gate_report") is None
+    ):
+        return "qa"
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
@@ -702,6 +710,8 @@ def _delegated_role_for_local_tool(tool_name: str) -> str:
         return "qa_tester"
     if tool_name == "create_release_checklist_artifact":
         return "release_lead"
+    if tool_name == "create_release_quality_gate_report":
+        return "quality_reviewer"
     if tool_name == "prepare_github_pages_deploy_proposal":
         return "devops_operator"
     return "goal_supervisor"
@@ -726,6 +736,10 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/devops/" in ref and ref.endswith("/execution_evidence.json")
     if kind == "release_checklist":
         return "/release_hardening/" in ref and ref.endswith("/release_checklist.md")
+    if kind == "release_quality_gate_report":
+        return "/release_hardening/" in ref and ref.endswith(
+            "/quality_gate_report.json"
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
