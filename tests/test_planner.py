@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from agency_workroom.company_specs import business_validation_company_spec
+from agency_workroom.company_specs import (
+    business_validation_company_spec,
+    release_hardening_company_spec,
+)
 from agency_workroom.models import (
     CompanySpec,
     CompanyTaskTemplate,
@@ -41,6 +44,44 @@ class BusinessValidationPlannerTests(unittest.TestCase):
                 "team_management",
             ],
             [template.category for template in spec.task_templates],
+        )
+
+    def test_release_hardening_company_spec_is_distinct_from_business_validation(self) -> None:
+        spec = release_hardening_company_spec()
+
+        self.assertEqual("release_hardening", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Release Hardening", spec.display_name)
+        self.assertEqual(
+            [
+                "release_plan",
+                "quality_gates",
+                "release_notes",
+                "coordination",
+            ],
+            [template.category for template in spec.task_templates],
+        )
+        self.assertEqual(
+            {"release", "qa", "docs", "coordination"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {
+                "release_lead",
+                "quality_reviewer",
+                "docs_writer",
+                "coordination_manager",
+            },
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertFalse(
+            {"landing_page", "testing", "github_pages"}.intersection(
+                template.category for template in spec.task_templates
+            )
+        )
+        self.assertEqual(
+            "release_hardening",
+            spec.metadata["reference_vertical"],
         )
 
     def test_generic_company_spec_planner_creates_tasks_from_templates(self) -> None:

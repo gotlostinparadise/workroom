@@ -22,9 +22,19 @@ class CompanyRegistryTests(unittest.TestCase):
     def test_list_company_specs_returns_registered_spec_payloads(self) -> None:
         specs = list_company_specs()
 
-        self.assertEqual(1, len(specs))
-        self.assertEqual("business_validation", specs[0]["spec_id"])
-        self.assertEqual("v1", specs[0]["version"])
+        self.assertEqual(
+            ["business_validation", "release_hardening"],
+            [spec["spec_id"] for spec in specs],
+        )
+        self.assertEqual(["v1", "v1"], [spec["version"] for spec in specs])
+
+    def test_release_hardening_spec_is_registered_without_changing_default(self) -> None:
+        spec = get_company_spec("release_hardening")
+
+        self.assertEqual("business_validation", DEFAULT_COMPANY_SPEC_ID)
+        self.assertEqual("release_hardening", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Release Hardening", spec.display_name)
 
     def test_get_company_spec_rejects_unknown_spec(self) -> None:
         with self.assertRaisesRegex(WorkroomModelError, "unknown company spec"):

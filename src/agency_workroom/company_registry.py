@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .company_specs import business_validation_company_spec
+from .company_specs import (
+    business_validation_company_spec,
+    release_hardening_company_spec,
+)
 from .models import CompanySpec, WorkroomModelError
 
 DEFAULT_COMPANY_SPEC_ID = "business_validation"
 
 _COMPANY_SPEC_FACTORIES: dict[str, Callable[[], CompanySpec]] = {
     DEFAULT_COMPANY_SPEC_ID: business_validation_company_spec,
+    "release_hardening": release_hardening_company_spec,
 }
 
 

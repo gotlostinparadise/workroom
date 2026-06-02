@@ -34,6 +34,13 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("local_step", agency_workroom.SUPERVISOR_OUTCOMES)
         self.assertFalse(hasattr(agency_workroom, "SUPERVISOR_LOCAL_STEP_TOOLS"))
 
+    def test_release_hardening_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.release_hardening_company_spec))
+        self.assertTrue(callable(agency_workroom.create_release_checklist_artifact))
+        self.assertIn("release_hardening_company_spec", agency_workroom.__all__)
+        self.assertIn("create_release_checklist_artifact", agency_workroom.__all__)
+        self.assertIn("RELEASE_CHECKLIST_ARTIFACT_PREFIX", agency_workroom.__all__)
+
 
 if __name__ == "__main__":
     unittest.main()

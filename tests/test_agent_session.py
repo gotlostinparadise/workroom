@@ -11,10 +11,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 import agency_workroom.agent_session as agent_session
+from agency_workroom.company_registry import get_company_spec
 from agency_workroom.agent_session import (
     advance_company_goal,
     create_landing_artifact,
     create_landing_qa_report,
+    create_release_checklist_artifact,
     get_company_state,
     list_next_actions,
     prepare_github_pages_deploy_proposal,
@@ -198,6 +200,55 @@ class AgentSessionTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         self.assertEqual("release_hardening", state["company_spec_id"])
+
+    def test_start_company_run_accepts_registered_release_hardening_spec(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        context = RunContext(
+            goal="Harden release candidate",
+            summary="Release hardening workflow for a private release candidate",
+            variables={
+                "release_name": "private release codename",
+                "owner": "platform release desk",
+                "target_date": "2026-06-30",
+            },
+            metadata={"kind": "release-hardening.context.v1"},
+        )
+
+        response = start_company_run(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec=get_company_spec("release_hardening"),
+            run_context=context,
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("release_hardening", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual("run-context.v1", response["plan"]["request"]["schema_version"])
+        self.assertNotIn("adapter", response["plan"]["request"]["metadata"])
+        self.assertEqual(
+            ["release_plan", "quality_gates", "release_notes", "coordination"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertFalse(
+            {"landing_page", "testing", "github_pages"}.intersection(
+                task["category"] for task in response["tasks"]
+            )
+        )
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("private release codename", ledger_text)
+        self.assertNotIn("platform release desk", ledger_text)
+
+        state = get_company_state(
+            run_id=response["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual("release_hardening", state["company_spec_id"])
+        self.assertEqual("v1", state["company_spec_version"])
 
     def test_start_company_goal_is_idempotent_for_same_goal(self) -> None:
         assert_external_kernel_dependency(self)
@@ -408,6 +459,96 @@ class AgentSessionTests(unittest.TestCase):
 
         self.assertEqual(first["artifact"], second["artifact"])
         self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+
+    def test_create_release_checklist_artifact_completes_release_plan_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        context = RunContext(
+            goal="Harden release candidate",
+            summary="Release hardening workflow",
+            variables={
+                "release_name": "Workroom v0.2",
+                "owner": "platform release desk",
+                "target_date": "2026-06-30",
+            },
+            metadata={"kind": "release-hardening.context.v1"},
+        )
+        started = start_company_run(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec=get_company_spec("release_hardening"),
+            run_context=context,
+        )
+        release_task = next(
+            task for task in started["tasks"] if task["category"] == "release_plan"
+        )
+
+        first = create_release_checklist_artifact(
+            run_id=started["run_id"],
+            task_ref=release_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_release_checklist_artifact(
+            run_id=started["run_id"],
+            task_ref=release_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertIn(
+            first["artifact"]["artifact_ref"],
+            first["task"]["result_refs"],
+        )
+        self.assertTrue(Path(first["artifact"]["artifact_path"]).exists())
+        self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = next(
+            task for task in state["tasks"] if task["category"] == "release_plan"
+        )
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
+    def test_create_release_checklist_artifact_rejects_non_release_plan_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_run(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec=get_company_spec("release_hardening"),
+            run_context=RunContext(
+                goal="Harden release candidate",
+                summary="Release hardening workflow",
+                variables={
+                    "release_name": "Workroom v0.2",
+                    "owner": "platform release desk",
+                    "target_date": "2026-06-30",
+                },
+            ),
+        )
+        qa_task = next(
+            task for task in started["tasks"] if task["category"] == "quality_gates"
+        )
+
+        with self.assertRaises(WorkroomStateError):
+            create_release_checklist_artifact(
+                run_id=started["run_id"],
+                task_ref=qa_task["task_ref"],
+                workspace_path=str(workspace_path),
+            )
 
     def test_create_landing_qa_report_completes_testing_task(self) -> None:
         assert_external_kernel_dependency(self)

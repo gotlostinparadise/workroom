@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agency_workroom.models import CompanyGoalRun, SupervisorTurn, TaskState
+from agency_workroom.agent_session import advance_company_goal, start_company_run
+from agency_workroom.company_registry import get_company_spec
+from agency_workroom.models import CompanyGoalRun, RunContext, SupervisorTurn, TaskState
+from agency_workroom.session_store import load_company_goal_run
 from agency_workroom.supervisor import (
     build_approval_required_turn,
     build_decision_record,
@@ -217,6 +220,51 @@ class SupervisorCoreTests(unittest.TestCase):
                 "status": "approval_required",
             },
             snapshot["current_handoff"],
+        )
+
+    def test_release_hardening_snapshot_and_advance_fail_closed_without_local_step(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_run(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec=get_company_spec("release_hardening"),
+            run_context=RunContext(
+                goal="Harden release candidate",
+                summary="Release hardening workflow",
+                variables={
+                    "release_name": "Workroom v0.2",
+                    "owner": "platform release desk",
+                    "target_date": "2026-06-30",
+                },
+                metadata={"kind": "release-hardening.context.v1"},
+            ),
+        )
+        run = load_company_goal_run(workspace_path, started["run_id"])
+
+        snapshot = build_supervisor_snapshot(run)
+        advanced = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        reloaded = load_company_goal_run(workspace_path, started["run_id"])
+
+        self.assertEqual("decision", snapshot["phase"])
+        self.assertEqual(
+            {"release", "qa", "docs", "coordination"},
+            set(snapshot["department_status"]),
+        )
+        self.assertEqual("needs_human_decision", advanced["transition"]["outcome"])
+        self.assertEqual("", advanced["transition"]["selected_tool"])
+        self.assertIn("decision_ref", advanced)
+        self.assertNotIn("role_work_request_ref", advanced)
+        self.assertEqual(
+            ["planned", "planned", "planned", "planned"],
+            [task.status for task in reloaded.tasks],
         )
 
     def test_plan_supervisor_transition_for_local_step(self) -> None:

@@ -117,6 +117,12 @@ These milestones are complete enough to be treated as foundation:
     execution-plan, and evidence protocol metadata while preserving the current
     no-loop, no-implicit-effect boundary.
 
+15. Second Company Spec v1.
+    Release Hardening is registered as the second bundled `CompanySpec`.
+    It starts through the generic `RunContext` path, writes a local release
+    checklist artifact through Workroom state, and fails closed to a supervisor
+    decision rather than executing Business Validation local steps.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -196,7 +202,7 @@ Exit criteria:
 
 ### 5. Second Company Spec v1
 
-Status: Next.
+Status: Done.
 
 Goal: prove the runtime is not Business-Validation-specific by adding one
 additional company spec that uses different task templates and run variables.
@@ -211,7 +217,7 @@ Exit criteria:
 
 ### 6. Practical End-to-End Goal Run v1
 
-Status: Later.
+Status: Next.
 
 Goal: run a realistic goal through the system from startup to local artifacts,
 QA, deployment proposal, handoffs, decisions, and summary evidence.

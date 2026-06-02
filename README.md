@@ -72,6 +72,13 @@ The first local capability is `create_landing_artifact`: it writes a landing
 page draft under the run workspace and records a Workroom-local artifact ref
 without deploying it.
 
+Workroom also includes a second bundled company spec, `release_hardening`.
+It uses release, QA, documentation, and coordination roles with release-specific
+task categories. Its local artifact path can write a deterministic release
+hardening checklist under the run workspace. This spec is available through
+the Python runtime/registry path in this slice; it is not added as a new public
+MCP tool and it does not deploy, push, post, or call external APIs.
+
 `recommend_next_tool_call` is read-only: it returns a recommended Workroom MCP
 tool name and arguments for Codex to review or call separately, without
 executing that tool.
@@ -137,9 +144,11 @@ structured hypothesis request and creates planned work items for hypothesis
 research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
-Business Validation is the default registered `CompanySpec`. A company spec
-defines the departments, roles, task templates, and metadata that create a
-goal-specific company run. The current reference vertical keeps the existing
+Business Validation is the default registered `CompanySpec`. Release Hardening
+is the second registered `CompanySpec` and proves the runtime can start and
+inspect a non-Business-Validation company with different vocabulary. A company
+spec defines the departments, roles, task templates, and metadata that create
+a goal-specific company run. The current reference vertical keeps the existing
 validation behavior, but startup now routes through the generic company start
 contract so future company types can use the same runtime path.
 

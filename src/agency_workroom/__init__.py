@@ -7,9 +7,11 @@ from .agent_session import (
     LANDING_ARTIFACT_PREFIX,
     LANDING_QA_REPORT_PREFIX,
     LOCAL_STEP_TOOL_NAMES,
+    RELEASE_CHECKLIST_ARTIFACT_PREFIX,
     advance_company_goal,
     create_landing_artifact,
     create_landing_qa_report,
+    create_release_checklist_artifact,
     execute_github_pages_deploy,
     get_company_state,
     list_next_actions,
@@ -23,7 +25,10 @@ from .agent_session import (
     summarize_run,
 )
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
-from .company_specs import business_validation_company_spec
+from .company_specs import (
+    business_validation_company_spec,
+    release_hardening_company_spec,
+)
 from .company_registry import (
     DEFAULT_COMPANY_SPEC_ID,
     default_company_spec,
@@ -111,6 +116,7 @@ __all__ = [
     "RoleWorkResult",
     "RunContext",
     "REQUIRED_VALIDATION_ROLES",
+    "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "SUPERVISOR_OUTCOMES",
     "SUPERVISOR_PHASES",
     "SupervisorTransition",
@@ -133,6 +139,7 @@ __all__ = [
     "build_role_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_release_checklist_artifact",
     "default_validation_team",
     "default_company_spec",
     "execute_github_pages_deploy",
@@ -148,6 +155,7 @@ __all__ = [
     "prepare_github_pages_deploy_proposal",
     "record_work_result",
     "recommend_next_tool_call",
+    "release_hardening_company_spec",
     "run_next_local_step",
     "run_context_from_workflow_request",
     "run_company_workflow",

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from .models import CompanySpec, CompanyTaskTemplate, TeamBlueprint
+from .models import (
+    CompanySpec,
+    CompanyTaskTemplate,
+    Department,
+    TeamBlueprint,
+    TeamRole,
+)
 from .team import default_validation_team
 
 
@@ -95,4 +101,121 @@ def business_validation_company_spec(
     )
 
 
-__all__ = ["business_validation_company_spec"]
+def release_hardening_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="release_hardening_team",
+        departments=(
+            Department(
+                department_id="release",
+                display_name="Release Department",
+                purpose="Coordinate release readiness and launch constraints",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="qa",
+                display_name="Quality Department",
+                purpose="Verify release quality gates and residual risks",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="docs",
+                display_name="Documentation Department",
+                purpose="Prepare release-facing notes and operator guidance",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="coordination",
+                display_name="Coordination Department",
+                purpose="Track blockers, decisions, and final readiness",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="release_lead",
+                display_name="Release Lead",
+                responsibilities="Coordinate release hardening and readiness checks",
+                department_id="release",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="quality_reviewer",
+                display_name="Quality Reviewer",
+                responsibilities="Review quality gates and risk acceptance evidence",
+                department_id="qa",
+                authority_scope="local_only",
+            ),
+            TeamRole(
+                role_id="docs_writer",
+                display_name="Docs Writer",
+                responsibilities="Draft release notes and operator-facing guidance",
+                department_id="docs",
+                authority_scope="local_only",
+            ),
+            TeamRole(
+                role_id="coordination_manager",
+                display_name="Coordination Manager",
+                responsibilities="Track blockers, decisions, and handoffs",
+                department_id="coordination",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="release_hardening",
+        version="v1",
+        display_name="Release Hardening",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="release_lead",
+                category="release_plan",
+                title="Prepare release hardening checklist",
+                summary_template=(
+                    "Prepare a hardening checklist for {release_name}, owned by "
+                    "{owner}, targeting {target_date}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "release_checklist"},
+            ),
+            CompanyTaskTemplate(
+                role_id="quality_reviewer",
+                category="quality_gates",
+                title="Review release quality gates",
+                summary_template=(
+                    "Define quality gates and residual-risk checks for "
+                    "{release_name} before {target_date}."
+                ),
+                priority="high",
+                metadata={"depends_on": "release_plan"},
+            ),
+            CompanyTaskTemplate(
+                role_id="docs_writer",
+                category="release_notes",
+                title="Draft release notes",
+                summary_template=(
+                    "Draft release notes for {release_name} that explain scope, "
+                    "operator impact, and rollback notes."
+                ),
+                metadata={"depends_on": "release_plan"},
+            ),
+            CompanyTaskTemplate(
+                role_id="coordination_manager",
+                category="coordination",
+                title="Coordinate release readiness decision",
+                summary_template=(
+                    "Track blockers and prepare a readiness decision for "
+                    "{release_name} with {owner}."
+                ),
+                metadata={"decision_type": "release_readiness"},
+            ),
+        ),
+        metadata={"reference_vertical": "release_hardening"},
+    )
+
+
+__all__ = ["business_validation_company_spec", "release_hardening_company_spec"]

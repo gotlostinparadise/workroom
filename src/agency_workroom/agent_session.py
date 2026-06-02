@@ -31,6 +31,7 @@ from .models import (
     WorkroomModelError,
 )
 from .planner import run_context_from_workflow_request
+from .release_artifact import create_release_checklist_artifact_files
 from .session_store import (
     WorkroomStateError,
     load_company_goal_run,
@@ -59,6 +60,7 @@ DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
+RELEASE_CHECKLIST_ARTIFACT_PREFIX = "workroom-artifact://"
 LOCAL_STEP_TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
@@ -206,6 +208,15 @@ def list_next_actions(*, run_id: str, workspace_path: str) -> dict[str, object]:
 
 def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, object]:
     run = load_company_goal_run(workspace_path, run_id)
+    if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
+        blocked_task = _first_blocked_task(run)
+        if blocked_task is not None:
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason=f"{blocked_task.category} task is blocked",
+                blocker_summary=blocked_task.blocker_summary,
+            )
+        return _no_local_recommendation(run.run_id)
     landing_task = _task_for_category(run, "landing_page")
     testing_task = _task_for_category(run, "testing")
     github_pages_task = _task_for_category(run, "github_pages")
@@ -673,6 +684,68 @@ def create_landing_artifact(
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
 
 
+def create_release_checklist_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "release_plan":
+        raise WorkroomStateError("task is not a release_plan task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_CHECKLIST_ARTIFACT_PREFIX)
+            and "/release_hardening/" in ref
+            and ref.endswith("/release_checklist.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _release_checklist_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_release_checklist_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
 def create_landing_qa_report(
     *,
     run_id: str,
@@ -973,6 +1046,18 @@ def _task_for_ref(run: CompanyGoalRun, task_ref: str) -> TaskState:
         if task.task_ref == clean_task_ref:
             return task
     raise WorkroomStateError(f"task state not found: {clean_task_ref}")
+
+
+def _has_task_categories(run: CompanyGoalRun, categories: tuple[str, ...]) -> bool:
+    run_categories = {task.category for task in run.tasks}
+    return all(category in run_categories for category in categories)
+
+
+def _first_blocked_task(run: CompanyGoalRun) -> TaskState | None:
+    for task in run.tasks:
+        if task.status == "blocked":
+            return task
+    return None
 
 
 def _result_ref_for_kind(run: CompanyGoalRun, kind: str) -> str | None:
@@ -1431,6 +1516,41 @@ def _landing_artifact_payload_for_existing_ref(
     return payload
 
 
+def _release_checklist_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/release_checklist.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("release checklist artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "release_hardening"
+        or parts[3] != "release_checklist.md"
+    ):
+        raise WorkroomStateError("release checklist artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("release checklist artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError("release checklist artifact metadata does not match ref")
+    return payload
+
+
 def _landing_qa_report_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -1522,10 +1642,12 @@ __all__ = [
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
+    "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_release_checklist_artifact",
     "execute_github_pages_deploy",
     "get_company_state",
     "list_next_actions",

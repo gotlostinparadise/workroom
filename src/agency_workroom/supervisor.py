@@ -27,14 +27,17 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
     if all(task.status == "completed" for task in run.tasks):
         return "complete"
     blocked_tasks = tuple(task for task in run.tasks if task.status == "blocked")
-    github_pages_task = _task_for_category(run, "github_pages")
+    github_pages_task = _optional_task_for_category(run, "github_pages")
     if (
-        github_pages_task.status == "blocked"
+        github_pages_task is not None
+        and github_pages_task.status == "blocked"
         and _result_ref_for_kind(run, "github_pages_deploy_proposal") is not None
     ):
         return "approval_required"
     if blocked_tasks:
         return "blocked"
+    if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
+        return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
         return "local_production"
     if _result_ref_for_kind(run, "landing_qa_report") is None:
@@ -645,6 +648,18 @@ def _task_for_category(run: CompanyGoalRun, category: str) -> TaskState:
         if task.category == category:
             return task
     raise WorkroomStateError(f"{category} task state not found")
+
+
+def _optional_task_for_category(run: CompanyGoalRun, category: str) -> TaskState | None:
+    for task in run.tasks:
+        if task.category == category:
+            return task
+    return None
+
+
+def _has_task_categories(run: CompanyGoalRun, categories: tuple[str, ...]) -> bool:
+    run_categories = {task.category for task in run.tasks}
+    return all(category in run_categories for category in categories)
 
 
 def _task_ref_for_category(run: CompanyGoalRun, category: str) -> str:
