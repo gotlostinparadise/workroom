@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v5.
+Status: Canonical plan v6.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -148,6 +148,11 @@ These milestones are complete enough to be treated as foundation:
     Public `start_company_goal` derives Business Validation audience, offer,
     success criteria, constraints, and provenance metadata from the user's goal
     through a deterministic local adapter instead of hardcoded placeholders.
+
+21. MCP Company Selection v1.
+    Codex can discover registered company specs through a read-only MCP tool and
+    start a selected company with optional `company_spec_id` while preserving the
+    default Business Validation startup behavior.
 
 ## Milestone Plan
 
@@ -326,6 +331,25 @@ Exit criteria:
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
 
+### 11. MCP Company Selection v1
+
+Status: Done.
+
+Goal: expose registered company specs through the supported local MCP surface so
+Codex can explicitly choose which company to spawn for a goal.
+
+Exit criteria:
+
+- `list_company_specs` is a read-only MCP/session tool.
+- The tool returns the default company spec id and registered spec payloads.
+- `start_company_goal` accepts optional `company_spec_id` while preserving the
+  omitted-argument default behavior.
+- `company_spec_id="release_hardening"` starts the registered Release Hardening
+  company through the normal startup path.
+- Unknown company spec ids fail closed.
+- No Kernel changes, hidden loops, external API calls, or new external effects
+  are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -341,6 +365,7 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Select the next bounded Workroom milestone from live repository truth, then
-create design and implementation plans under `docs/plans/` before changing
-runtime behavior.
+Select the next bounded Workroom milestone from live repository truth. Prefer
+the smallest slice that makes the MCP goal-company runtime more generally useful
+for Codex without adding hidden loops, unapproved external effects, or Kernel
+product behavior.

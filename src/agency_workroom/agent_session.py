@@ -23,7 +23,12 @@ from .run_inspection import (
     evaluate_company_goal_run_files,
     replay_company_goal_run_files,
 )
-from .company_registry import DEFAULT_COMPANY_SPEC_ID, default_company_spec
+from .company_registry import (
+    DEFAULT_COMPANY_SPEC_ID,
+    default_company_spec,
+    get_company_spec,
+    list_company_specs as registered_company_specs,
+)
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
@@ -111,6 +116,31 @@ def _request_from_goal(goal: str) -> WorkflowRequest:
     return workflow_request_from_goal(goal)
 
 
+def _run_context_from_company_selection(
+    *,
+    goal: str,
+    company_spec: CompanySpec,
+) -> RunContext:
+    clean_goal = _required_text("goal", goal)
+    return RunContext(
+        goal=clean_goal,
+        summary=f"{company_spec.display_name} workflow for goal: {clean_goal}",
+        variables={
+            "goal": clean_goal,
+            "subject": clean_goal,
+            "release_name": clean_goal,
+            "owner": "Codex operator",
+            "target_date": "not specified",
+            "company_spec_id": company_spec.spec_id,
+            "company_spec_version": company_spec.version,
+        },
+        metadata={
+            "schema_version": "company-selection-context.v1",
+            "source": "start_company_goal.company_spec_id",
+        },
+    )
+
+
 def _task_metadata_for_run_state(
     *,
     task_metadata: Mapping[str, object],
@@ -189,17 +219,27 @@ def start_company_goal(
     user_id: str,
     ledger_path: str,
     workspace_path: str,
+    company_spec_id: str = "",
 ) -> dict[str, object]:
     clean_goal = _required_text("goal", goal)
-    company_spec = default_company_spec()
-    request = _request_from_goal(clean_goal)
-    run_context = run_context_from_workflow_request(
-        request=request,
-        summary=(
-            f"{company_spec.display_name} workflow for hypothesis: "
-            f"{request.hypothesis}"
-        ),
-    )
+    if isinstance(company_spec_id, str) and not company_spec_id.strip():
+        company_spec = default_company_spec()
+    else:
+        company_spec = get_company_spec(company_spec_id)
+    if company_spec.spec_id == DEFAULT_COMPANY_SPEC_ID:
+        request = _request_from_goal(clean_goal)
+        run_context = run_context_from_workflow_request(
+            request=request,
+            summary=(
+                f"{company_spec.display_name} workflow for hypothesis: "
+                f"{request.hypothesis}"
+            ),
+        )
+    else:
+        run_context = _run_context_from_company_selection(
+            goal=clean_goal,
+            company_spec=company_spec,
+        )
     return start_company_run(
         goal=clean_goal,
         user_id=user_id,
@@ -208,6 +248,17 @@ def start_company_goal(
         company_spec=company_spec,
         run_context=run_context,
     )
+
+
+def list_company_spec_options() -> dict[str, object]:
+    return {
+        "schema_version": "workroom-company-spec-list.v1",
+        "default_company_spec_id": DEFAULT_COMPANY_SPEC_ID,
+        "company_specs": list(registered_company_specs()),
+        "writes_files": False,
+        "creates_directories": False,
+        "calls_external_services": False,
+    }
 
 
 def get_company_state(*, run_id: str, workspace_path: str) -> dict[str, object]:
@@ -1813,6 +1864,7 @@ __all__ = [
     "evaluate_company_goal_run",
     "get_company_state",
     "get_mcp_tool_manifest",
+    "list_company_spec_options",
     "list_next_actions",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",

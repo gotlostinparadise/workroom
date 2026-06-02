@@ -69,6 +69,7 @@ The MCP tools are agent-facing:
 - `evaluate_company_goal_run`
 - `get_mcp_tool_manifest`
 - `check_workroom_mcp_config`
+- `list_company_specs`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
 uses Codex `config.toml` MCP server settings:
@@ -92,7 +93,8 @@ Recommended first calls:
 1. `get_mcp_tool_manifest`
 2. `check_workroom_mcp_config` with absolute ledger/workspace paths whose
    parent directories already exist
-3. `start_company_goal`
+3. `list_company_specs`
+4. `start_company_goal`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -105,9 +107,13 @@ without deploying it.
 Workroom also includes a second bundled company spec, `release_hardening`.
 It uses release, QA, documentation, and coordination roles with release-specific
 task categories. Its local artifact path can write a deterministic release
-hardening checklist under the run workspace. This spec is available through
-the Python runtime/registry path in this slice; it is not added as a new public
-MCP tool and it does not deploy, push, post, or call external APIs.
+hardening checklist under the run workspace. Codex can call the read-only
+`list_company_specs` tool to discover registered specs, then call
+`start_company_goal` with optional `company_spec_id`. Omitting the argument keeps
+the default `business_validation` company. Passing
+`company_spec_id="release_hardening"` starts the release company through the
+same local startup path. This does not deploy, push, post, or call external
+APIs.
 
 `recommend_next_tool_call` is read-only: it returns a recommended Workroom MCP
 tool name and arguments for Codex to review or call separately, without

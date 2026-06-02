@@ -26,6 +26,7 @@ TOOL_NAMES = (
     "evaluate_company_goal_run",
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
+    "list_company_specs",
 )
 
 
@@ -35,6 +36,7 @@ def start_company_goal(
     user_id: str,
     ledger_path: str,
     workspace_path: str,
+    company_spec_id: str = "",
 ) -> dict[str, object]:
     """Start a local Workroom company run for a Codex goal."""
     return agent_session.start_company_goal(
@@ -42,6 +44,7 @@ def start_company_goal(
         user_id=user_id,
         ledger_path=ledger_path,
         workspace_path=workspace_path,
+        company_spec_id=company_spec_id,
     )
 
 
@@ -261,6 +264,12 @@ def check_workroom_mcp_config(
     )
 
 
+@mcp.tool()
+def list_company_specs() -> dict[str, object]:
+    """List registered Workroom company specs Codex can select at startup."""
+    return agent_session.list_company_spec_options()
+
+
 def main() -> None:
     mcp.run()
 
@@ -278,6 +287,7 @@ __all__ = [
     "execute_github_pages_deploy",
     "get_company_state",
     "get_mcp_tool_manifest",
+    "list_company_specs",
     "list_next_actions",
     "main",
     "mcp",

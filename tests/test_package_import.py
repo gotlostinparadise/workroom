@@ -79,6 +79,12 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("get_mcp_tool_manifest", agency_workroom.__all__)
         self.assertIn("check_workroom_mcp_config", agency_workroom.__all__)
 
+    def test_company_spec_option_helper_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.list_company_specs))
+        self.assertTrue(callable(agency_workroom.list_company_spec_options))
+        self.assertIn("list_company_specs", agency_workroom.__all__)
+        self.assertIn("list_company_spec_options", agency_workroom.__all__)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -38,6 +38,7 @@ class McpManifestTests(unittest.TestCase):
             "evaluate_company_goal_run",
             "get_mcp_tool_manifest",
             "check_workroom_mcp_config",
+            "list_company_specs",
         ):
             self.assertFalse(tools[name]["mutates_workroom_state"], name)
             self.assertEqual("none", tools[name]["external_effect_risk"], name)
@@ -59,6 +60,22 @@ class McpManifestTests(unittest.TestCase):
             tools["execute_github_pages_deploy"]["external_effect_risk"],
         )
         self.assertIn("approval_phrase", tools["execute_github_pages_deploy"]["required_arguments"])
+
+    def test_tool_manifest_exposes_company_selection_arguments(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+
+        self.assertEqual([], tools["list_company_specs"]["required_arguments"])
+        self.assertEqual([], tools["list_company_specs"]["optional_arguments"])
+        self.assertIn("list_company_specs", tools["start_company_goal"]["recommended_after"])
+        self.assertNotIn(
+            "company_spec_id",
+            tools["start_company_goal"]["required_arguments"],
+        )
+        self.assertIn(
+            "company_spec_id",
+            tools["start_company_goal"]["optional_arguments"],
+        )
 
     def test_validate_workroom_mcp_config_rejects_blank_relative_and_equal_paths(self) -> None:
         blank = validate_workroom_mcp_config(ledger_path="", workspace_path="")

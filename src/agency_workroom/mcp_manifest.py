@@ -24,6 +24,7 @@ _TOOL_ORDER = (
     "evaluate_company_goal_run",
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
+    "list_company_specs",
 )
 
 _READ_ONLY_TOOLS = {
@@ -36,6 +37,7 @@ _READ_ONLY_TOOLS = {
     "evaluate_company_goal_run",
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
+    "list_company_specs",
 }
 
 _HIGH_STAKES_TOOLS = {"execute_github_pages_deploy"}
@@ -82,10 +84,24 @@ _TOOL_ARGUMENTS = {
     "evaluate_company_goal_run": ("run_id", "workspace_path"),
     "get_mcp_tool_manifest": (),
     "check_workroom_mcp_config": ("ledger_path", "workspace_path"),
+    "list_company_specs": (),
+}
+
+_OPTIONAL_TOOL_ARGUMENTS = {
+    "start_company_goal": ("company_spec_id",),
+    "prepare_github_pages_deploy_proposal": (
+        "target_repo_full_name",
+        "target_branch",
+        "publish_path",
+    ),
+    "prepare_github_pages_deploy_execution_plan": (
+        "target_branch",
+        "publish_path",
+    ),
 }
 
 _RECOMMENDED_AFTER = {
-    "start_company_goal": ("check_workroom_mcp_config",),
+    "start_company_goal": ("check_workroom_mcp_config", "list_company_specs"),
     "get_company_state": ("start_company_goal",),
     "list_next_actions": ("start_company_goal",),
     "recommend_next_tool_call": ("start_company_goal",),
@@ -105,6 +121,7 @@ _RECOMMENDED_AFTER = {
     "audit_company_goal_run": ("replay_company_goal_run",),
     "evaluate_company_goal_run": ("audit_company_goal_run",),
     "check_workroom_mcp_config": ("get_mcp_tool_manifest",),
+    "list_company_specs": ("get_mcp_tool_manifest",),
 }
 
 
@@ -204,13 +221,18 @@ def _tool_entry(name: str) -> dict[str, object]:
         "mutates_workroom_state": mutates,
         "external_effect_risk": _risk_for_tool(name),
         "required_arguments": list(_TOOL_ARGUMENTS[name]),
+        "optional_arguments": list(_OPTIONAL_TOOL_ARGUMENTS.get(name, ())),
         "recommended_after": list(_RECOMMENDED_AFTER.get(name, ())),
         "routing_note": _routing_note_for_tool(name),
     }
 
 
 def _phase_for_tool(name: str) -> str:
-    if name in {"get_mcp_tool_manifest", "check_workroom_mcp_config"}:
+    if name in {
+        "get_mcp_tool_manifest",
+        "check_workroom_mcp_config",
+        "list_company_specs",
+    }:
         return "setup"
     if name == "start_company_goal":
         return "startup"

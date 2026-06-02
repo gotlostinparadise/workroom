@@ -44,6 +44,7 @@ from agency_workroom.models import (
     TaskState,
     TeamBlueprint,
     TeamRole,
+    WorkroomModelError,
 )
 from agency_workroom.session_store import (
     WorkroomStateError,
@@ -230,6 +231,23 @@ class AgentSessionTests(unittest.TestCase):
         self.assertFalse(workspace_path.exists())
         self.assertNotIn(str(root), repr(config))
 
+    def test_list_company_spec_options_is_read_only(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        result = agent_session.list_company_spec_options()
+
+        self.assertEqual("workroom-company-spec-list.v1", result["schema_version"])
+        self.assertEqual("business_validation", result["default_company_spec_id"])
+        self.assertEqual(
+            ["business_validation", "release_hardening"],
+            [spec["spec_id"] for spec in result["company_specs"]],
+        )
+        self.assertFalse(result["writes_files"])
+        self.assertFalse(result["creates_directories"])
+        self.assertFalse(result["calls_external_services"])
+        self.assertFalse(workspace_path.exists())
+
     def test_start_company_run_accepts_generic_company_spec(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -337,6 +355,81 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertEqual("release_hardening", state["company_spec_id"])
         self.assertEqual("v1", state["company_spec_version"])
+
+    def test_start_company_goal_blank_company_spec_preserves_default_run_id(self) -> None:
+        assert_external_kernel_dependency(self)
+        goal = "Validate a business hypothesis"
+        first_root = self.temp_root()
+        second_root = self.temp_root()
+
+        default_response = start_company_goal(
+            goal=goal,
+            user_id="usr_codex",
+            ledger_path=str(first_root / "kernel.jsonl"),
+            workspace_path=str(first_root / "workspace"),
+        )
+        blank_response = start_company_goal(
+            goal=goal,
+            user_id="usr_codex",
+            ledger_path=str(second_root / "kernel.jsonl"),
+            workspace_path=str(second_root / "workspace"),
+            company_spec_id="",
+        )
+
+        self.assertEqual("business_validation", blank_response["company_spec_id"])
+        self.assertEqual(default_response["run_id"], blank_response["run_id"])
+        self.assertEqual(
+            default_response["plan"]["request"]["metadata"],
+            blank_response["plan"]["request"]["metadata"],
+        )
+
+    def test_start_company_goal_accepts_registered_release_hardening_spec(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="release_hardening",
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("release_hardening", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual(
+            ["release_plan", "quality_gates", "release_notes", "coordination"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            "company-selection-context.v1",
+            response["plan"]["request"]["metadata"]["schema_version"],
+        )
+        self.assertFalse(
+            {"landing_page", "testing", "github_pages"}.intersection(
+                task["category"] for task in response["tasks"]
+            )
+        )
+
+        state = get_company_state(
+            run_id=response["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual("release_hardening", state["company_spec_id"])
+
+    def test_start_company_goal_rejects_unknown_company_spec(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "unknown company spec"):
+            start_company_goal(
+                goal="Harden release candidate",
+                user_id="usr_codex",
+                ledger_path=str(root / "kernel.jsonl"),
+                workspace_path=str(root / "workspace"),
+                company_spec_id="missing",
+            )
 
     def test_start_company_goal_is_idempotent_for_same_goal(self) -> None:
         assert_external_kernel_dependency(self)
