@@ -33,6 +33,7 @@ from agency_workroom.agent_session import (
     execute_github_pages_deploy,
     start_company_run,
     start_company_goal,
+    submit_goal_intake_result,
     summarize_run,
 )
 from agency_workroom.landing_artifact import create_landing_artifact_files
@@ -76,13 +77,65 @@ class AgentSessionTests(unittest.TestCase):
 
     def started_run(self, root: Path) -> tuple[dict[str, object], Path]:
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
             workspace_path=str(workspace_path),
         )
         return started, workspace_path
+
+    def start_and_submit_company_goal(
+        self,
+        *,
+        goal: str,
+        user_id: str,
+        ledger_path: str,
+        workspace_path: str,
+        hypothesis: str | None = None,
+        audience: str | None = None,
+        offer: str | None = None,
+        constraints: str = "local first validation; no external effects",
+        channels: tuple[str, ...] = ("landing_page", "threads", "github_pages"),
+        success_criteria: str | None = None,
+    ) -> dict[str, object]:
+        started = start_company_goal(
+            goal=goal,
+            user_id=user_id,
+            ledger_path=ledger_path,
+            workspace_path=workspace_path,
+        )
+        phrase = self.goal_phrase(goal)
+        clean_audience = audience or f"people described by the goal: {phrase}"
+        clean_offer = offer or phrase
+        return submit_goal_intake_result(
+            run_id=started["run_id"],
+            workspace_path=workspace_path,
+            ledger_path=ledger_path,
+            hypothesis=hypothesis or goal,
+            audience=clean_audience,
+            offer=clean_offer,
+            constraints=constraints,
+            channels=channels,
+            success_criteria=success_criteria
+            or f"local evidence of validation interest from {clean_audience} for {clean_offer}",
+            assumptions=("Codex provided structured intake",),
+            risks=(),
+            unknowns=(),
+        )
+
+    def goal_phrase(self, goal: str) -> str:
+        for prefix in (
+            "Validate whether ",
+            "Validate if ",
+            "Validate ",
+            "Test whether ",
+            "Test if ",
+            "Test ",
+        ):
+            if goal.startswith(prefix):
+                return goal[len(prefix) :].strip()
+        return goal.strip()
 
     def task_by_category(
         self,
@@ -124,10 +177,64 @@ class AgentSessionTests(unittest.TestCase):
         self.run_git(repo, "commit", "-m", "Initial commit")
         return repo
 
-    def test_start_company_goal_creates_run_state_and_work_items(self) -> None:
+    def test_start_company_goal_creates_intake_request_without_kernel_work_items(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="private goal payload",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=response["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        recommendation = recommend_next_tool_call(
+            run_id=response["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("intake_required", response["status"])
+        self.assertEqual("intake_required", response["phase"])
+        self.assertEqual("submit_goal_intake_result", response["next_tool"])
+        self.assertEqual(
+            "goal-intake-work-request.v1",
+            response["intake_request"]["schema_version"],
+        )
+        self.assertEqual(response["intake_request"], state["intake_request"])
+        self.assertEqual("submit_goal_intake_result", recommendation["recommended_tool"])
+        self.assertTrue(recommendation["blocked"])
+        self.assertFalse(ledger_path.exists())
+
+    def test_advance_company_goal_blocks_until_codex_submits_intake(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Validate Workroom demand",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("intake_required", turn["action_type"])
+        self.assertEqual("intake_required", turn["phase_before"])
+        self.assertTrue(turn["blocked"])
+        self.assertEqual("submit_goal_intake_result", turn["recommended_tool"])
+
+    def test_submit_goal_intake_result_creates_run_state_and_work_items(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
-        response = start_company_goal(
+        response = self.start_and_submit_company_goal(
             goal="private goal payload",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -161,7 +268,7 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
 
-    def test_start_company_goal_derives_context_from_goal_intake(self) -> None:
+    def test_submit_goal_intake_result_uses_codex_submitted_context(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         goal = (
@@ -169,11 +276,18 @@ class AgentSessionTests(unittest.TestCase):
             "Codex-accessible AI company runtime"
         )
 
-        response = start_company_goal(
+        response = self.start_and_submit_company_goal(
             goal=goal,
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
             workspace_path=str(root / "workspace"),
+            hypothesis="Solo founders will pay for Workroom",
+            audience="solo founders",
+            offer="Workroom as a Codex-accessible AI company runtime",
+            success_criteria=(
+                "local evidence of willingness to pay from solo founders for "
+                "Workroom as a Codex-accessible AI company runtime"
+            ),
         )
         request_variables = response["plan"]["request"]["variables"]
         landing_task = self.task_by_category(response, "landing_page")
@@ -393,9 +507,13 @@ class AgentSessionTests(unittest.TestCase):
 
         self.assertEqual("business_validation", blank_response["company_spec_id"])
         self.assertEqual(default_response["run_id"], blank_response["run_id"])
+        self.assertEqual("intake_required", default_response["status"])
+        self.assertEqual("intake_required", blank_response["status"])
+        self.assertNotIn("plan", default_response)
+        self.assertNotIn("plan", blank_response)
         self.assertEqual(
-            default_response["plan"]["request"]["metadata"],
-            blank_response["plan"]["request"]["metadata"],
+            default_response["intake_request"]["metadata"],
+            blank_response["intake_request"]["metadata"],
         )
 
     def test_start_company_goal_accepts_registered_release_hardening_spec(self) -> None:
@@ -494,7 +612,9 @@ class AgentSessionTests(unittest.TestCase):
         self.assertNotIn("Workroom MCP selection v1", ledger_text)
         self.assertNotIn("Codex platform", ledger_text)
 
-    def test_start_company_goal_context_json_overrides_business_validation_context(self) -> None:
+    def test_start_company_goal_context_json_does_not_bypass_business_validation_intake(
+        self,
+    ) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
 
@@ -512,17 +632,14 @@ class AgentSessionTests(unittest.TestCase):
         )
 
         self.assertEqual("business_validation", response["company_spec_id"])
-        self.assertEqual(
-            "enterprise platform teams",
-            response["plan"]["request"]["variables"]["audience"],
-        )
-        self.assertEqual(
-            "managed Workroom runtime",
-            response["plan"]["company_brief"]["offer"],
-        )
+        self.assertEqual("intake_required", response["status"])
+        self.assertEqual("submit_goal_intake_result", response["next_tool"])
+        self.assertNotIn("plan", response)
         self.assertEqual(
             ("audience", "offer"),
-            tuple(response["plan"]["request"]["metadata"]["context_override_keys"]),
+            tuple(
+                response["intake_request"]["metadata"]["context_override_keys"]
+            ),
         )
 
     def test_start_company_goal_rejects_invalid_context_json(self) -> None:
@@ -564,7 +681,7 @@ class AgentSessionTests(unittest.TestCase):
         root = self.temp_root()
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
-        first = start_company_goal(
+        first = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -572,7 +689,7 @@ class AgentSessionTests(unittest.TestCase):
         )
         ledger_line_count = len(ledger_path.read_text(encoding="utf-8").splitlines())
 
-        second = start_company_goal(
+        second = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -590,7 +707,7 @@ class AgentSessionTests(unittest.TestCase):
     def test_state_and_next_actions_reload_from_workspace(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -618,7 +735,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         ledger_path = root / "kernel.jsonl"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -645,7 +762,7 @@ class AgentSessionTests(unittest.TestCase):
         root = self.temp_root()
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -682,7 +799,7 @@ class AgentSessionTests(unittest.TestCase):
     def test_summarize_run_counts_statuses(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -702,7 +819,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -726,7 +843,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -745,7 +862,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -863,7 +980,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -897,7 +1014,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -924,7 +1041,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -959,7 +1076,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -996,7 +1113,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -1035,7 +1152,7 @@ class AgentSessionTests(unittest.TestCase):
         root = self.temp_root()
         workspace_path = root / "workspace"
         private_goal = "Validate deploy path PRIVATE_AGENT_SESSION_MARKER"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -1095,7 +1212,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -1150,7 +1267,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -1184,7 +1301,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="Validate a business hypothesis",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),
@@ -1648,7 +1765,7 @@ class AgentSessionTests(unittest.TestCase):
         workspace_path = root / "workspace"
         target_repo = self.init_target_repo(root)
         private_goal = "private devops execution goal marker"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -1783,7 +1900,7 @@ class AgentSessionTests(unittest.TestCase):
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
         private_goal = "private supervisor approval marker"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -1883,7 +2000,7 @@ class AgentSessionTests(unittest.TestCase):
         root = self.temp_root()
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="private practical e2e goal",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -1942,7 +2059,7 @@ class AgentSessionTests(unittest.TestCase):
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         workspace_path = root / "workspace"
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="private inspection goal",
             user_id="usr_codex",
             ledger_path=str(root / "kernel.jsonl"),

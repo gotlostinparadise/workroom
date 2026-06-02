@@ -6,6 +6,7 @@ from pathlib import Path
 
 _TOOL_ORDER = (
     "start_company_goal",
+    "submit_goal_intake_result",
     "get_company_state",
     "list_next_actions",
     "recommend_next_tool_call",
@@ -44,6 +45,17 @@ _HIGH_STAKES_TOOLS = {"execute_github_pages_deploy"}
 
 _TOOL_ARGUMENTS = {
     "start_company_goal": ("goal", "user_id", "ledger_path", "workspace_path"),
+    "submit_goal_intake_result": (
+        "run_id",
+        "workspace_path",
+        "ledger_path",
+        "hypothesis",
+        "audience",
+        "offer",
+        "constraints",
+        "channels",
+        "success_criteria",
+    ),
     "get_company_state": ("run_id", "workspace_path"),
     "list_next_actions": ("run_id", "workspace_path"),
     "recommend_next_tool_call": ("run_id", "workspace_path"),
@@ -102,6 +114,7 @@ _OPTIONAL_TOOL_ARGUMENTS = {
 
 _RECOMMENDED_AFTER = {
     "start_company_goal": ("check_workroom_mcp_config", "list_company_specs"),
+    "submit_goal_intake_result": ("start_company_goal",),
     "get_company_state": ("start_company_goal",),
     "list_next_actions": ("start_company_goal",),
     "recommend_next_tool_call": ("start_company_goal",),
@@ -234,7 +247,7 @@ def _phase_for_tool(name: str) -> str:
         "list_company_specs",
     }:
         return "setup"
-    if name == "start_company_goal":
+    if name in {"start_company_goal", "submit_goal_intake_result"}:
         return "startup"
     if name in {"get_company_state", "list_next_actions", "recommend_next_tool_call"}:
         return "planning"

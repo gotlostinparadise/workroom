@@ -39,6 +39,16 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.workflow_request_from_goal))
         self.assertIn("workflow_request_from_goal", agency_workroom.__all__)
 
+    def test_codex_facing_intake_protocol_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.submit_goal_intake_result))
+        self.assertTrue(callable(agency_workroom.GoalIntakeWorkRequest))
+        self.assertTrue(callable(agency_workroom.GoalIntakeResult))
+        self.assertTrue(callable(agency_workroom.GoalIntakeRun))
+        self.assertIn("submit_goal_intake_result", agency_workroom.__all__)
+        self.assertIn("GoalIntakeWorkRequest", agency_workroom.__all__)
+        self.assertIn("GoalIntakeResult", agency_workroom.__all__)
+        self.assertIn("GoalIntakeRun", agency_workroom.__all__)
+
     def test_supervisor_state_machine_models_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.SupervisorTransition))
         self.assertTrue(callable(agency_workroom.plan_supervisor_transition))

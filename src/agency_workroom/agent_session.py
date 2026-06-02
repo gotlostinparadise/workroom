@@ -41,6 +41,9 @@ from .mcp_manifest import (
 from .models import (
     CompanyGoalRun,
     CompanySpec,
+    GoalIntakeResult,
+    GoalIntakeRun,
+    GoalIntakeWorkRequest,
     NextAction,
     NextToolRecommendation,
     RunContext,
@@ -53,8 +56,10 @@ from .planner import run_context_from_workflow_request
 from .release_artifact import create_release_checklist_artifact_files
 from .session_store import (
     WorkroomStateError,
+    load_goal_intake_run,
     load_company_goal_run,
     run_state_path,
+    save_goal_intake_run,
     save_company_goal_run,
 )
 from .supervisor import (
@@ -224,6 +229,43 @@ def _run_context_from_company_selection(
     )
 
 
+def _intake_request_for_goal(
+    *,
+    run_id: str,
+    goal: str,
+    company_spec: CompanySpec,
+    context_variables: Mapping[str, object] | None = None,
+) -> GoalIntakeWorkRequest:
+    metadata: dict[str, object] = {
+        "schema_version": "codex-facing-intake-protocol.v1",
+        "source": "start_company_goal",
+        "cognition_required": True,
+    }
+    if context_variables:
+        metadata["context_override_keys"] = tuple(sorted(context_variables))
+    return GoalIntakeWorkRequest(
+        run_id=run_id,
+        goal=goal,
+        company_spec_id=company_spec.spec_id,
+        company_spec_version=company_spec.version,
+        required_fields=(
+            "hypothesis",
+            "audience",
+            "offer",
+            "constraints",
+            "channels",
+            "success_criteria",
+        ),
+        instructions=(
+            "Codex is the cognition layer. Analyze the user's goal and call "
+            "submit_goal_intake_result with structured fields before Workroom "
+            "plans company work. Do not ask Workroom to infer semantic business "
+            "context from the goal string."
+        ),
+        metadata=metadata,
+    )
+
+
 def _task_metadata_for_run_state(
     *,
     task_metadata: Mapping[str, object],
@@ -258,10 +300,31 @@ def start_company_run(
         payload = existing_run.to_payload()
         payload["status"] = "existing"
         return payload
+    return _create_company_goal_run(
+        goal=clean_goal,
+        user_id=clean_user_id,
+        ledger_path=ledger_path,
+        workspace_path=workspace_path,
+        company_spec=company_spec,
+        run_context=run_context,
+        run_id=run_id,
+    )
+
+
+def _create_company_goal_run(
+    *,
+    goal: str,
+    user_id: str,
+    ledger_path: str,
+    workspace_path: str,
+    company_spec: CompanySpec,
+    run_context: RunContext,
+    run_id: str,
+) -> dict[str, object]:
     gateway = WorkroomKernelGateway.open(ledger_path, workspace_path)
     result = run_company_workflow(
         gateway=gateway,
-        declared_by_user_id=clean_user_id,
+        declared_by_user_id=user_id,
         company_spec=company_spec,
         run_context=run_context,
     )
@@ -281,8 +344,8 @@ def start_company_run(
     )
     run = CompanyGoalRun(
         run_id=run_id,
-        user_id=clean_user_id,
-        goal=clean_goal,
+        user_id=user_id,
+        goal=goal,
         company_spec_id=result.company_spec.spec_id,
         company_spec_version=result.company_spec.version,
         team=result.team.to_payload(),
@@ -306,37 +369,125 @@ def start_company_goal(
     context_json: str = "",
 ) -> dict[str, object]:
     clean_goal = _required_text("goal", goal)
+    clean_user_id = _required_text("user_id", user_id)
+    clean_ledger_path = _required_text("ledger_path", ledger_path)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
     context_variables = _context_variables_from_json(context_json)
     if isinstance(company_spec_id, str) and not company_spec_id.strip():
         company_spec = default_company_spec()
     else:
         company_spec = get_company_spec(company_spec_id)
-    if company_spec.spec_id == DEFAULT_COMPANY_SPEC_ID:
-        request = _request_from_goal(clean_goal)
-        run_context = run_context_from_workflow_request(
-            request=request,
-            summary=(
-                f"{company_spec.display_name} workflow for hypothesis: "
-                f"{request.hypothesis}"
-            ),
-        )
-        run_context = _run_context_with_overrides(
-            run_context=run_context,
-            context_variables=context_variables,
-        )
-    else:
+    run_id = _run_id_for_company(clean_user_id, clean_goal, company_spec)
+    existing_payload = _existing_startup_payload(clean_workspace_path, run_id)
+    if existing_payload is not None:
+        return existing_payload
+    if company_spec.spec_id != DEFAULT_COMPANY_SPEC_ID:
         run_context = _run_context_from_company_selection(
             goal=clean_goal,
             company_spec=company_spec,
             context_variables=context_variables,
         )
-    return start_company_run(
+        return start_company_run(
+            goal=clean_goal,
+            user_id=clean_user_id,
+            ledger_path=clean_ledger_path,
+            workspace_path=clean_workspace_path,
+            company_spec=company_spec,
+            run_context=run_context,
+        )
+    intake_request = _intake_request_for_goal(
+        run_id=run_id,
         goal=clean_goal,
-        user_id=user_id,
-        ledger_path=ledger_path,
-        workspace_path=workspace_path,
+        company_spec=company_spec,
+        context_variables=context_variables,
+    )
+    intake_run = GoalIntakeRun(
+        run_id=run_id,
+        user_id=clean_user_id,
+        goal=clean_goal,
+        company_spec_id=company_spec.spec_id,
+        company_spec_version=company_spec.version,
+        intake_request=intake_request,
+    )
+    save_goal_intake_run(clean_workspace_path, intake_run)
+    payload = intake_run.to_payload()
+    payload["status"] = "intake_required"
+    payload["next_tool"] = "submit_goal_intake_result"
+    return payload
+
+
+def submit_goal_intake_result(
+    *,
+    run_id: str,
+    workspace_path: str,
+    ledger_path: str,
+    hypothesis: str,
+    audience: str,
+    offer: str,
+    constraints: str,
+    channels: tuple[str, ...] | list[str],
+    success_criteria: str,
+    assumptions: tuple[str, ...] | list[str] = (),
+    risks: tuple[str, ...] | list[str] = (),
+    unknowns: tuple[str, ...] | list[str] = (),
+) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    clean_ledger_path = _required_text("ledger_path", ledger_path)
+    try:
+        existing_run = load_company_goal_run(clean_workspace_path, clean_run_id)
+        payload = existing_run.to_payload()
+        payload["status"] = "existing"
+        return payload
+    except WorkroomStateError as exc:
+        if "not a company run" not in str(exc):
+            pass
+    intake_run = load_goal_intake_run(clean_workspace_path, clean_run_id)
+    company_spec = get_company_spec(intake_run.company_spec_id)
+    if intake_run.company_spec_id != company_spec.spec_id:
+        raise WorkroomStateError(
+            f"unsupported intake company spec: {intake_run.company_spec_id}"
+        )
+    if company_spec.spec_id != DEFAULT_COMPANY_SPEC_ID:
+        raise WorkroomStateError(
+            f"unsupported intake company spec: {intake_run.company_spec_id}"
+        )
+    if intake_run.company_spec_version != company_spec.version:
+        raise WorkroomStateError(
+            "intake company spec version is no longer supported: "
+            f"{intake_run.company_spec_version}"
+        )
+    intake_result = GoalIntakeResult(
+        run_id=clean_run_id,
+        hypothesis=hypothesis,
+        audience=audience,
+        offer=offer,
+        constraints=constraints,
+        channels=channels,
+        success_criteria=success_criteria,
+        assumptions=assumptions,
+        risks=risks,
+        unknowns=unknowns,
+        metadata={
+            "intake_request_ref": f"workroom-intake://runs/{clean_run_id}",
+        },
+    )
+    request = intake_result.to_workflow_request()
+    run_context = run_context_from_workflow_request(
+        request=request,
+        summary=(
+            f"{company_spec.display_name} workflow for Codex-submitted intake: "
+            f"{request.hypothesis}"
+        ),
+    )
+    return _create_company_goal_run(
+        goal=intake_run.goal,
+        user_id=intake_run.user_id,
+        ledger_path=clean_ledger_path,
+        workspace_path=clean_workspace_path,
         company_spec=company_spec,
         run_context=run_context,
+        run_id=clean_run_id,
     )
 
 
@@ -355,10 +506,28 @@ def list_company_spec_options() -> dict[str, object]:
 
 
 def get_company_state(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    intake_run = _load_intake_run_if_present(workspace_path, run_id)
+    if intake_run is not None:
+        return _intake_run_response_payload(intake_run)
     return load_company_goal_run(workspace_path, run_id).to_payload()
 
 
 def list_next_actions(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    intake_run = _load_intake_run_if_present(workspace_path, run_id)
+    if intake_run is not None:
+        return {
+            "run_id": intake_run.run_id,
+            "next_actions": [
+                NextAction(
+                    task_ref=f"workroom-intake://runs/{intake_run.run_id}",
+                    role_id="codex",
+                    category="goal_intake",
+                    title="Submit structured goal intake",
+                    status="intake_required",
+                    requires_capability_module=False,
+                ).to_payload()
+            ],
+        }
     run = load_company_goal_run(workspace_path, run_id)
     actions = [
         NextAction(
@@ -376,6 +545,25 @@ def list_next_actions(*, run_id: str, workspace_path: str) -> dict[str, object]:
 
 
 def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    intake_run = _load_intake_run_if_present(workspace_path, run_id)
+    if intake_run is not None:
+        return NextToolRecommendation(
+            run_id=intake_run.run_id,
+            recommended_tool="submit_goal_intake_result",
+            arguments={
+                "run_id": intake_run.run_id,
+                "workspace_path": workspace_path,
+                "required_fields": list(intake_run.intake_request.required_fields),
+            },
+            reason=(
+                "Codex must submit structured goal intake before Workroom can "
+                "plan company work"
+            ),
+            missing_prerequisites=("Codex-submitted goal intake result",),
+            will_mutate_state=True,
+            blocked=True,
+            blocker_summary="goal intake is required",
+        ).to_payload()
     run = load_company_goal_run(workspace_path, run_id)
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         blocked_task = _first_blocked_task(run)
@@ -536,7 +724,7 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
             "executed_tool": "",
             "recommendation": recommendation,
             "result": {},
-            "blocked": False,
+            "blocked": bool(recommendation.get("blocked", False)),
             "reason": (
                 "recommended tool is not allowlisted for local execution: "
                 f"{recommended_tool}"
@@ -565,6 +753,24 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
 def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, object]:
     clean_run_id = _required_text("run_id", run_id)
     clean_workspace_path = _required_text("workspace_path", workspace_path)
+    intake_run = _load_intake_run_if_present(clean_workspace_path, clean_run_id)
+    if intake_run is not None:
+        recommendation = recommend_next_tool_call(
+            run_id=clean_run_id,
+            workspace_path=clean_workspace_path,
+        )
+        return {
+            "run_id": clean_run_id,
+            "phase_before": "intake_required",
+            "phase_after": "intake_required",
+            "action_type": "intake_required",
+            "selected_tool": "",
+            "recommended_tool": recommendation["recommended_tool"],
+            "recommendation": recommendation,
+            "blocked": True,
+            "reason": recommendation["reason"],
+            "intake_request": intake_run.intake_request.to_payload(),
+        }
     run_before = load_company_goal_run(clean_workspace_path, clean_run_id)
     phase_before = detect_goal_phase(run_before)
     recommendation = recommend_next_tool_call(
@@ -1760,6 +1966,42 @@ def _load_existing_run(workspace_path: str, run_id: str) -> CompanyGoalRun | Non
     return load_company_goal_run(workspace_path, run_id)
 
 
+def _load_intake_run_if_present(
+    workspace_path: str,
+    run_id: str,
+) -> GoalIntakeRun | None:
+    if not run_state_path(workspace_path, run_id).exists():
+        return None
+    try:
+        return load_goal_intake_run(workspace_path, run_id)
+    except WorkroomStateError as exc:
+        if "not an intake run" in str(exc):
+            return None
+        raise
+
+
+def _intake_run_response_payload(run: GoalIntakeRun) -> dict[str, object]:
+    payload = run.to_payload()
+    payload["status"] = "intake_required"
+    payload["next_tool"] = "submit_goal_intake_result"
+    return payload
+
+
+def _existing_startup_payload(
+    workspace_path: str,
+    run_id: str,
+) -> dict[str, object] | None:
+    if not run_state_path(workspace_path, run_id).exists():
+        return None
+    intake_run = _load_intake_run_if_present(workspace_path, run_id)
+    if intake_run is not None:
+        return _intake_run_response_payload(intake_run)
+    existing_run = load_company_goal_run(workspace_path, run_id)
+    payload = existing_run.to_payload()
+    payload["status"] = "existing"
+    return payload
+
+
 def _complete_task_with_result(task: TaskState, result_ref: str) -> TaskState:
     return _task_with_result(
         task,
@@ -1968,5 +2210,6 @@ __all__ = [
     "check_workroom_mcp_config",
     "start_company_run",
     "start_company_goal",
+    "submit_goal_intake_result",
     "summarize_run",
 ]

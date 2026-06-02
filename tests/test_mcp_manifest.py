@@ -45,6 +45,7 @@ class McpManifestTests(unittest.TestCase):
 
         for name in (
             "start_company_goal",
+            "submit_goal_intake_result",
             "advance_company_goal",
             "create_landing_artifact",
             "create_landing_qa_report",
@@ -60,6 +61,24 @@ class McpManifestTests(unittest.TestCase):
             tools["execute_github_pages_deploy"]["external_effect_risk"],
         )
         self.assertIn("approval_phrase", tools["execute_github_pages_deploy"]["required_arguments"])
+        self.assertEqual(
+            [
+                "run_id",
+                "workspace_path",
+                "ledger_path",
+                "hypothesis",
+                "audience",
+                "offer",
+                "constraints",
+                "channels",
+                "success_criteria",
+            ],
+            tools["submit_goal_intake_result"]["required_arguments"],
+        )
+        self.assertEqual(
+            ["start_company_goal"],
+            tools["submit_goal_intake_result"]["recommended_after"],
+        )
 
     def test_tool_manifest_exposes_company_selection_arguments(self) -> None:
         manifest = workroom_mcp_tool_manifest()

@@ -28,6 +28,7 @@ from agency_workroom import (
     replay_company_goal_run,
     run_next_local_step,
     start_company_goal,
+    submit_goal_intake_result,
     summarize_run,
 )
 from agency_workroom import mcp_server
@@ -45,6 +46,84 @@ class WorkroomIntegrationTests(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
         return Path(temp_dir.name)
+
+    def start_and_submit_company_goal(
+        self,
+        *,
+        goal: str,
+        user_id: str,
+        ledger_path: str,
+        workspace_path: str,
+        hypothesis: str | None = None,
+        audience: str | None = None,
+        offer: str | None = None,
+        constraints: str = "local first validation; no external effects",
+        channels: tuple[str, ...] = ("landing_page", "threads", "github_pages"),
+        success_criteria: str | None = None,
+    ) -> dict[str, object]:
+        started = start_company_goal(
+            goal=goal,
+            user_id=user_id,
+            ledger_path=ledger_path,
+            workspace_path=workspace_path,
+        )
+        phrase = self.goal_phrase(goal)
+        clean_audience = audience or f"people described by the goal: {phrase}"
+        clean_offer = offer or phrase
+        return submit_goal_intake_result(
+            run_id=started["run_id"],
+            workspace_path=workspace_path,
+            ledger_path=ledger_path,
+            hypothesis=hypothesis or goal,
+            audience=clean_audience,
+            offer=clean_offer,
+            constraints=constraints,
+            channels=channels,
+            success_criteria=success_criteria
+            or f"local evidence of validation interest from {clean_audience} for {clean_offer}",
+            assumptions=("Codex provided structured intake",),
+            risks=(),
+            unknowns=(),
+        )
+
+    def goal_phrase(self, goal: str) -> str:
+        for prefix in (
+            "Validate whether ",
+            "Validate if ",
+            "Validate ",
+            "Test whether ",
+            "Test if ",
+            "Test ",
+        ):
+            if goal.startswith(prefix):
+                return goal[len(prefix) :].strip()
+        return goal.strip()
+
+    def test_codex_facing_intake_starts_before_company_planning(self) -> None:
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+
+        started = start_company_goal(
+            goal="Validate whether solo founders will pay for Workroom",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("intake_required", started["status"])
+        self.assertEqual("goal-intake-run.v1", state["schema_version"])
+        self.assertEqual("submit_goal_intake_result", recommendation["recommended_tool"])
+        self.assertTrue(recommendation["blocked"])
+        self.assertFalse(ledger_path.exists())
 
     def run_git(self, repo: Path, *args: str) -> str:
         result = subprocess.run(
@@ -246,7 +325,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         ledger_path = root / "kernel.jsonl"
         workspace_path = root / "workspace"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal="private agent goal payload",
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -278,7 +357,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private company structure integration marker"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -322,7 +401,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private landing artifact goal payload"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -363,11 +442,18 @@ class WorkroomIntegrationTests(unittest.TestCase):
             "Codex-accessible AI company runtime"
         )
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
             workspace_path=str(workspace_path),
+            hypothesis="Solo founders will pay for Workroom",
+            audience="solo founders",
+            offer="Workroom as a Codex-accessible AI company runtime",
+            success_criteria=(
+                "local evidence of willingness to pay from solo founders for "
+                "Workroom as a Codex-accessible AI company runtime"
+            ),
         )
         turn = advance_company_goal(
             run_id=started["run_id"],
@@ -402,7 +488,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private landing QA goal payload"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -451,7 +537,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         repo_workflows_dir = Path.cwd() / ".github" / "workflows"
         workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -514,7 +600,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private recommendation orchestration marker"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -614,7 +700,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         repo_workflows_dir = Path.cwd() / ".github" / "workflows"
         workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -737,7 +823,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         repo_workflows_dir = Path.cwd() / ".github" / "workflows"
         workflows_before = self.workflow_file_snapshot(repo_workflows_dir)
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -804,7 +890,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private integration supervisor marker"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -899,7 +985,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private practical e2e integration marker"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),
@@ -958,7 +1044,7 @@ class WorkroomIntegrationTests(unittest.TestCase):
         workspace_path = root / "workspace"
         private_goal = "private replay audit evaluation marker"
 
-        started = start_company_goal(
+        started = self.start_and_submit_company_goal(
             goal=private_goal,
             user_id="usr_codex",
             ledger_path=str(ledger_path),

@@ -10,6 +10,7 @@ from agency_workroom.agent_session import (
     advance_company_goal,
     recommend_next_tool_call,
     start_company_goal,
+    submit_goal_intake_result,
     summarize_run,
 )
 from agency_workroom.run_inspection import (
@@ -162,6 +163,21 @@ class RunInspectionTests(unittest.TestCase):
             workspace_path=workspace_path,
         )
         run_id = str(started["run_id"])
+        submit_goal_intake_result(
+            run_id=run_id,
+            workspace_path=workspace_path,
+            ledger_path=ledger_path,
+            hypothesis="Replay the practical goal run",
+            audience="people described by the goal: Replay the practical goal run",
+            offer="Replay the practical goal run",
+            constraints="local first validation; no external effects",
+            channels=("landing_page", "threads", "github_pages"),
+            success_criteria=(
+                "local evidence of validation interest from people described by "
+                "the goal: Replay the practical goal run for Replay the practical "
+                "goal run"
+            ),
+        )
         for _ in range(4):
             advance_company_goal(run_id=run_id, workspace_path=workspace_path)
         run = load_company_goal_run(workspace_path, run_id)

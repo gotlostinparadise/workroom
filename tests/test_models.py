@@ -19,6 +19,9 @@ from agency_workroom.models import (
     Department,
     DevOpsExecutionEvidence,
     DevOpsOperationPlan,
+    GoalIntakeResult,
+    GoalIntakeRun,
+    GoalIntakeWorkRequest,
     GitHubPagesDeployProposal,
     HandoffRecord,
     NextAction,
@@ -1196,6 +1199,147 @@ class TeamWorkflowModelTests(unittest.TestCase):
                 channels=("landing_page",),
                 success_criteria="signups",
             )
+
+    def test_goal_intake_work_request_payload_is_stable(self) -> None:
+        request = GoalIntakeWorkRequest(
+            run_id="run_goal",
+            goal="Validate whether founders will pay for Workroom",
+            company_spec_id="business_validation",
+            company_spec_version="v1",
+            required_fields=("hypothesis", "audience", "offer"),
+            instructions="Codex should submit structured intake.",
+            metadata={"source": "start_company_goal"},
+        )
+
+        self.assertEqual(
+            {
+                "schema_version": "goal-intake-work-request.v1",
+                "run_id": "run_goal",
+                "goal": "Validate whether founders will pay for Workroom",
+                "company_spec_id": "business_validation",
+                "company_spec_version": "v1",
+                "required_fields": ["hypothesis", "audience", "offer"],
+                "instructions": "Codex should submit structured intake.",
+                "metadata": {"source": "start_company_goal"},
+            },
+            request.to_payload(),
+        )
+
+    def test_goal_intake_result_converts_to_workflow_request(self) -> None:
+        result = GoalIntakeResult(
+            run_id="run_goal",
+            hypothesis="Solo founders will pay for Workroom",
+            audience="solo founders",
+            offer="Workroom as a Codex-accessible company runtime",
+            constraints="local first validation",
+            channels=("landing_page", "threads"),
+            success_criteria="evidence of willingness to pay",
+            assumptions=("Codex remains the cognition layer",),
+            risks=("Founders may prefer a CLI",),
+            unknowns=("Price sensitivity",),
+            metadata={"submitted_by": "codex"},
+        )
+
+        request = result.to_workflow_request()
+
+        self.assertIsInstance(request, WorkflowRequest)
+        self.assertEqual("Solo founders will pay for Workroom", request.hypothesis)
+        self.assertEqual("solo founders", request.audience)
+        self.assertEqual("Workroom as a Codex-accessible company runtime", request.offer)
+        self.assertEqual(("landing_page", "threads"), request.channels)
+        self.assertEqual(
+            {
+                "schema_version": "goal-intake-result.v1",
+                "adapter": "codex.goal_intake_result",
+                "source": "submit_goal_intake_result",
+                "cognition_source": "codex",
+                "submitted_by": "codex",
+                "assumptions": ["Codex remains the cognition layer"],
+                "risks": ["Founders may prefer a CLI"],
+                "unknowns": ["Price sensitivity"],
+            },
+            request.to_payload()["metadata"],
+        )
+
+    def test_goal_intake_result_metadata_cannot_override_trusted_trace(self) -> None:
+        result = GoalIntakeResult(
+            run_id="run_goal",
+            hypothesis="Solo founders will pay for Workroom",
+            audience="solo founders",
+            offer="Workroom as a Codex-accessible company runtime",
+            constraints="local first validation",
+            channels=("landing_page",),
+            success_criteria="evidence of willingness to pay",
+            metadata={
+                "adapter": "caller.override",
+                "source": "caller",
+                "cognition_source": "parser",
+                "schema_version": "caller.v1",
+            },
+        )
+
+        metadata = result.to_workflow_request().to_payload()["metadata"]
+
+        self.assertEqual("goal-intake-result.v1", metadata["schema_version"])
+        self.assertEqual("codex.goal_intake_result", metadata["adapter"])
+        self.assertEqual("submit_goal_intake_result", metadata["source"])
+        self.assertEqual("codex", metadata["cognition_source"])
+
+    def test_goal_intake_result_rejects_blank_semantic_fields(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "audience is required"):
+            GoalIntakeResult(
+                run_id="run_goal",
+                hypothesis="Founders need Workroom",
+                audience="",
+                offer="Workroom",
+                constraints="local",
+                channels=("landing_page",),
+                success_criteria="signups",
+            )
+
+    def test_goal_intake_result_rejects_empty_channels(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "channels are required"):
+            GoalIntakeResult(
+                run_id="run_goal",
+                hypothesis="Founders need Workroom",
+                audience="founders",
+                offer="Workroom",
+                constraints="local",
+                channels=(),
+                success_criteria="signups",
+            )
+
+    def test_goal_intake_run_payload_preserves_intake_phase(self) -> None:
+        request = GoalIntakeWorkRequest(
+            run_id="run_goal",
+            goal="Validate Workroom demand",
+            company_spec_id="business_validation",
+            company_spec_version="v1",
+            required_fields=("hypothesis", "audience", "offer"),
+            instructions="Submit intake.",
+        )
+        run = GoalIntakeRun(
+            run_id="run_goal",
+            user_id="usr_codex",
+            goal="Validate Workroom demand",
+            company_spec_id="business_validation",
+            company_spec_version="v1",
+            intake_request=request,
+        )
+
+        self.assertEqual(
+            {
+                "schema_version": "goal-intake-run.v1",
+                "run_id": "run_goal",
+                "user_id": "usr_codex",
+                "goal": "Validate Workroom demand",
+                "company_spec_id": "business_validation",
+                "company_spec_version": "v1",
+                "phase": "intake_required",
+                "intake_request": request.to_payload(),
+            },
+            run.to_payload(),
+        )
 
     def test_workflow_task_converts_to_work_item_draft(self) -> None:
         task = WorkflowTask(

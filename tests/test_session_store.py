@@ -6,11 +6,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agency_workroom.models import CompanyGoalRun, TaskState, WorkroomModelError
+from agency_workroom.models import (
+    CompanyGoalRun,
+    GoalIntakeRun,
+    GoalIntakeWorkRequest,
+    TaskState,
+    WorkroomModelError,
+)
 from agency_workroom.session_store import (
     WorkroomStateError,
+    load_goal_intake_run,
     load_company_goal_run,
     run_state_path,
+    save_goal_intake_run,
     save_company_goal_run,
 )
 
@@ -45,6 +53,24 @@ class SessionStoreTests(unittest.TestCase):
             ],
         )
 
+    def sample_intake_run(self) -> GoalIntakeRun:
+        request = GoalIntakeWorkRequest(
+            run_id="run_intake",
+            goal="Validate Workroom demand",
+            company_spec_id="business_validation",
+            company_spec_version="v1",
+            required_fields=("hypothesis", "audience", "offer"),
+            instructions="Codex should submit structured intake.",
+        )
+        return GoalIntakeRun(
+            run_id="run_intake",
+            user_id="usr_codex",
+            goal="Validate Workroom demand",
+            company_spec_id="business_validation",
+            company_spec_version="v1",
+            intake_request=request,
+        )
+
     def test_save_and_load_company_goal_run(self) -> None:
         root = self.temp_root()
         run = self.sample_run()
@@ -54,6 +80,54 @@ class SessionStoreTests(unittest.TestCase):
 
         self.assertEqual(run_state_path(root, run.run_id), saved_path)
         self.assertEqual(run.to_payload(), loaded.to_payload())
+
+    def test_save_and_load_goal_intake_run(self) -> None:
+        root = self.temp_root()
+        run = self.sample_intake_run()
+
+        saved_path = save_goal_intake_run(root, run)
+        loaded = load_goal_intake_run(root, run.run_id)
+
+        self.assertEqual(run_state_path(root, run.run_id), saved_path)
+        self.assertEqual(run.to_payload(), loaded.to_payload())
+
+    def test_load_company_goal_run_rejects_goal_intake_state(self) -> None:
+        root = self.temp_root()
+        run = self.sample_intake_run()
+        save_goal_intake_run(root, run)
+
+        with self.assertRaisesRegex(WorkroomStateError, "run state is not a company run"):
+            load_company_goal_run(root, run.run_id)
+
+    def test_load_goal_intake_run_rejects_company_state(self) -> None:
+        root = self.temp_root()
+        run = self.sample_run()
+        save_company_goal_run(root, run)
+
+        with self.assertRaisesRegex(WorkroomStateError, "run state is not an intake run"):
+            load_goal_intake_run(root, run.run_id)
+
+    def test_load_corrupt_goal_intake_run_raises_state_error(self) -> None:
+        root = self.temp_root()
+        path = run_state_path(root, "run_bad")
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "goal-intake-run.v1",
+                    "run_id": "run_bad",
+                    "user_id": "usr_codex",
+                    "goal": "Validate Workroom demand",
+                    "company_spec_id": "business_validation",
+                    "company_spec_version": "v1",
+                    "phase": "intake_required",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(WorkroomStateError, "run state is corrupt"):
+            load_goal_intake_run(root, "run_bad")
 
     def test_run_id_rejects_path_traversal(self) -> None:
         root = self.temp_root()

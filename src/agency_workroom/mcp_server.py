@@ -8,6 +8,7 @@ mcp = FastMCP("Workroom")
 
 TOOL_NAMES = (
     "start_company_goal",
+    "submit_goal_intake_result",
     "get_company_state",
     "list_next_actions",
     "recommend_next_tool_call",
@@ -47,6 +48,38 @@ def start_company_goal(
         workspace_path=workspace_path,
         company_spec_id=company_spec_id,
         context_json=context_json,
+    )
+
+
+@mcp.tool()
+def submit_goal_intake_result(
+    run_id: str,
+    workspace_path: str,
+    ledger_path: str,
+    hypothesis: str,
+    audience: str,
+    offer: str,
+    constraints: str,
+    channels: list[str],
+    success_criteria: str,
+    assumptions: list[str] | None = None,
+    risks: list[str] | None = None,
+    unknowns: list[str] | None = None,
+) -> dict[str, object]:
+    """Submit Codex-produced structured goal intake and start company planning."""
+    return agent_session.submit_goal_intake_result(
+        run_id=run_id,
+        workspace_path=workspace_path,
+        ledger_path=ledger_path,
+        hypothesis=hypothesis,
+        audience=audience,
+        offer=offer,
+        constraints=constraints,
+        channels=channels,
+        success_criteria=success_criteria,
+        assumptions=assumptions or [],
+        risks=risks or [],
+        unknowns=unknowns or [],
     )
 
 
@@ -293,6 +326,7 @@ __all__ = [
     "list_next_actions",
     "main",
     "mcp",
+    "submit_goal_intake_result",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "recommend_next_tool_call",

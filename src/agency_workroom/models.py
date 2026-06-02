@@ -434,6 +434,189 @@ class WorkflowRequest:
 
 
 @dataclass(frozen=True)
+class GoalIntakeWorkRequest:
+    run_id: str
+    goal: str
+    company_spec_id: str
+    company_spec_version: str
+    required_fields: tuple[str, ...] | list[str]
+    instructions: str
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "goal", _required_text("goal", self.goal))
+        object.__setattr__(
+            self,
+            "company_spec_id",
+            _required_text("company_spec_id", self.company_spec_id),
+        )
+        object.__setattr__(
+            self,
+            "company_spec_version",
+            _required_text("company_spec_version", self.company_spec_version),
+        )
+        object.__setattr__(
+            self,
+            "required_fields",
+            _required_sequence("required_fields", self.required_fields),
+        )
+        object.__setattr__(
+            self,
+            "instructions",
+            _required_text("instructions", self.instructions),
+        )
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "goal-intake-work-request.v1",
+            "run_id": self.run_id,
+            "goal": self.goal,
+            "company_spec_id": self.company_spec_id,
+            "company_spec_version": self.company_spec_version,
+            "required_fields": list(self.required_fields),
+            "instructions": self.instructions,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class GoalIntakeResult:
+    run_id: str
+    hypothesis: str
+    audience: str
+    offer: str
+    constraints: str
+    channels: tuple[str, ...] | list[str]
+    success_criteria: str
+    assumptions: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    risks: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    unknowns: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(
+            self,
+            "hypothesis",
+            _required_text("hypothesis", self.hypothesis),
+        )
+        object.__setattr__(self, "audience", _required_text("audience", self.audience))
+        object.__setattr__(self, "offer", _required_text("offer", self.offer))
+        object.__setattr__(
+            self,
+            "constraints",
+            _required_text("constraints", self.constraints),
+        )
+        object.__setattr__(self, "channels", _required_sequence("channels", self.channels))
+        object.__setattr__(
+            self,
+            "success_criteria",
+            _required_text("success_criteria", self.success_criteria),
+        )
+        object.__setattr__(
+            self,
+            "assumptions",
+            _optional_text_sequence("assumptions", self.assumptions),
+        )
+        object.__setattr__(
+            self,
+            "risks",
+            _optional_text_sequence("risks", self.risks),
+        )
+        object.__setattr__(
+            self,
+            "unknowns",
+            _optional_text_sequence("unknowns", self.unknowns),
+        )
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "goal-intake-result.v1",
+            "run_id": self.run_id,
+            "hypothesis": self.hypothesis,
+            "audience": self.audience,
+            "offer": self.offer,
+            "constraints": self.constraints,
+            "channels": list(self.channels),
+            "success_criteria": self.success_criteria,
+            "assumptions": list(self.assumptions),
+            "risks": list(self.risks),
+            "unknowns": list(self.unknowns),
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+    def to_workflow_request(self) -> WorkflowRequest:
+        return WorkflowRequest(
+            hypothesis=self.hypothesis,
+            audience=self.audience,
+            offer=self.offer,
+            constraints=self.constraints,
+            channels=self.channels,
+            success_criteria=self.success_criteria,
+            metadata={
+                **_metadata_payload(self.metadata),
+                "schema_version": "goal-intake-result.v1",
+                "adapter": "codex.goal_intake_result",
+                "source": "submit_goal_intake_result",
+                "cognition_source": "codex",
+                "assumptions": list(self.assumptions),
+                "risks": list(self.risks),
+                "unknowns": list(self.unknowns),
+            },
+        )
+
+
+@dataclass(frozen=True)
+class GoalIntakeRun:
+    run_id: str
+    user_id: str
+    goal: str
+    company_spec_id: str
+    company_spec_version: str
+    intake_request: GoalIntakeWorkRequest
+    phase: str = "intake_required"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "user_id", _required_text("user_id", self.user_id))
+        object.__setattr__(self, "goal", _required_text("goal", self.goal))
+        object.__setattr__(
+            self,
+            "company_spec_id",
+            _required_text("company_spec_id", self.company_spec_id),
+        )
+        object.__setattr__(
+            self,
+            "company_spec_version",
+            _required_text("company_spec_version", self.company_spec_version),
+        )
+        if not isinstance(self.intake_request, GoalIntakeWorkRequest):
+            raise WorkroomModelError("intake_request must be a GoalIntakeWorkRequest")
+        object.__setattr__(
+            self,
+            "phase",
+            _required_text("phase", self.phase),
+        )
+        if self.phase != "intake_required":
+            raise WorkroomModelError("phase must be intake_required")
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "goal-intake-run.v1",
+            "run_id": self.run_id,
+            "user_id": self.user_id,
+            "goal": self.goal,
+            "company_spec_id": self.company_spec_id,
+            "company_spec_version": self.company_spec_version,
+            "phase": self.phase,
+            "intake_request": self.intake_request.to_payload(),
+        }
+
+
+@dataclass(frozen=True)
 class WorkflowTask:
     role_id: str
     category: str
@@ -1685,6 +1868,9 @@ __all__ = [
     "Department",
     "DevOpsExecutionEvidence",
     "DevOpsOperationPlan",
+    "GoalIntakeResult",
+    "GoalIntakeRun",
+    "GoalIntakeWorkRequest",
     "GitHubPagesDeployProposal",
     "HandoffRecord",
     "NextAction",

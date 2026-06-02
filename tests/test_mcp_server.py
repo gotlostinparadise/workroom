@@ -12,6 +12,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertEqual(
             (
                 "start_company_goal",
+                "submit_goal_intake_result",
                 "get_company_state",
                 "list_next_actions",
                 "recommend_next_tool_call",

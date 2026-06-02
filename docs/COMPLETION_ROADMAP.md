@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v7.
+Status: Canonical plan v8.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -40,6 +40,8 @@ The finished system should support:
 - high-stakes capability protocols for DevOps, social, growth, and other
   external-effect domains;
 - clear Codex-facing MCP tools with stable request and response shapes;
+- explicit Codex-facing cognition boundaries where Workroom requests structured
+  reasoning outputs instead of originating semantic business understanding;
 - practical end-to-end goal runs that can be reviewed and replayed.
 
 The finished system should not become:
@@ -158,6 +160,12 @@ These milestones are complete enough to be treated as foundation:
     Codex can see required context variables for each company spec and pass
     explicit Workroom-local `context_json` variables into `start_company_goal`
     without changing Kernel authority or adding external effects.
+
+23. Codex-Facing Intake Protocol v1.
+    `start_company_goal` now creates a durable `intake_required` state and
+    returns a `goal-intake-work-request.v1` for Codex. Workroom plans company
+    work only after Codex calls `submit_goal_intake_result` with structured
+    fields. The deterministic parser is demoted to compatibility helper status.
 
 ## Milestone Plan
 
@@ -315,7 +323,7 @@ Exit criteria:
 
 ### 10. Goal Intake and Context Extraction v1
 
-Status: Done.
+Status: Superseded by Codex-Facing Intake Protocol v1.
 
 Goal: make the public single-goal startup path produce useful Business
 Validation context before planning, briefing, role delegation, and artifact
@@ -372,6 +380,27 @@ Exit criteria:
 - Provided variables override fallback run context values and are visible in
   planned task summaries, task metadata, and company briefs.
 - Raw context values remain out of the Kernel ledger.
+
+### 13. Codex-Facing Intake Protocol v1
+
+Status: Done.
+
+Goal: correct the cognition boundary so Workroom asks Codex for structured goal
+intake instead of deriving semantic business context locally.
+
+Exit criteria:
+
+- `start_company_goal(goal, user_id, ledger_path, workspace_path)` creates a
+  durable `goal-intake-run.v1` state with `phase: intake_required`.
+- The response includes a `goal-intake-work-request.v1` describing the fields
+  Codex must provide.
+- `submit_goal_intake_result` accepts Codex-submitted structured context and
+  starts the normal company workflow through the existing Kernel boundary.
+- `get_company_state`, `list_next_actions`, `recommend_next_tool_call`, and
+  `advance_company_goal` fail closed or route to intake before submission.
+- Landing artifacts and role work specs use Codex-submitted context after
+  intake submission.
+- The deterministic parser is not called by the public startup path.
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
 
