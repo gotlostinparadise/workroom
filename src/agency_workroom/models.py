@@ -1060,6 +1060,118 @@ class SupervisorTurn:
 
 
 @dataclass(frozen=True)
+class RoleWorkRequest:
+    request_id: str
+    run_id: str
+    task_ref: str
+    role_id: str
+    department: str
+    objective: str
+    inputs: Mapping[str, object] = field(default_factory=dict)
+    artifact_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "request_id",
+            _required_text("request_id", self.request_id),
+        )
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
+        object.__setattr__(
+            self,
+            "department",
+            _required_text("department", self.department),
+        )
+        object.__setattr__(
+            self,
+            "objective",
+            _required_text("objective", self.objective),
+        )
+        object.__setattr__(self, "inputs", _metadata_copy(self.inputs))
+        object.__setattr__(
+            self,
+            "artifact_refs",
+            _optional_text_sequence("artifact_refs", self.artifact_refs),
+        )
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "role-work-request.v1",
+            "request_id": self.request_id,
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "role_id": self.role_id,
+            "department": self.department,
+            "objective": self.objective,
+            "inputs": _metadata_payload(self.inputs),
+            "artifact_refs": list(self.artifact_refs),
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class RoleWorkResult:
+    result_id: str
+    request_id: str
+    run_id: str
+    task_ref: str
+    role_id: str
+    status: str
+    summary: str
+    outputs: Mapping[str, object] = field(default_factory=dict)
+    artifact_refs: tuple[str, ...] | list[str] = field(default_factory=tuple)
+    blocker_summary: str = ""
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "result_id",
+            _required_text("result_id", self.result_id),
+        )
+        object.__setattr__(
+            self,
+            "request_id",
+            _required_text("request_id", self.request_id),
+        )
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        object.__setattr__(self, "task_ref", _required_text("task_ref", self.task_ref))
+        object.__setattr__(self, "role_id", _required_text("role_id", self.role_id))
+        object.__setattr__(self, "status", _required_text("status", self.status))
+        object.__setattr__(self, "summary", _required_text("summary", self.summary))
+        object.__setattr__(self, "outputs", _metadata_copy(self.outputs))
+        object.__setattr__(
+            self,
+            "artifact_refs",
+            _optional_text_sequence("artifact_refs", self.artifact_refs),
+        )
+        if not isinstance(self.blocker_summary, str):
+            raise WorkroomModelError("blocker_summary must be a string")
+        object.__setattr__(self, "blocker_summary", self.blocker_summary.strip())
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "role-work-result.v1",
+            "result_id": self.result_id,
+            "request_id": self.request_id,
+            "run_id": self.run_id,
+            "task_ref": self.task_ref,
+            "role_id": self.role_id,
+            "status": self.status,
+            "summary": self.summary,
+            "outputs": _metadata_payload(self.outputs),
+            "artifact_refs": list(self.artifact_refs),
+            "blocker_summary": self.blocker_summary,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class HandoffRecord:
     handoff_id: str
     run_id: str
@@ -1264,6 +1376,8 @@ __all__ = [
     "HandoffRecord",
     "NextAction",
     "NextToolRecommendation",
+    "RoleWorkRequest",
+    "RoleWorkResult",
     "RunContext",
     "SupervisorTurn",
     "TeamBlueprint",

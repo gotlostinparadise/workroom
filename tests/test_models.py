@@ -17,6 +17,8 @@ from agency_workroom.models import (
     HandoffRecord,
     NextAction,
     NextToolRecommendation,
+    RoleWorkRequest,
+    RoleWorkResult,
     RunContext,
     SupervisorTurn,
     TeamBlueprint,
@@ -998,6 +1000,109 @@ class TeamWorkflowModelTests(unittest.TestCase):
 
 
 class OperationalRecordModelTests(unittest.TestCase):
+    def test_role_work_request_payload_is_stable_and_copies_nested_payloads(self) -> None:
+        inputs = {"brief": {"goal": "Create landing page"}}
+        artifact_refs = ["workroom-artifact://runs/run_abc/context/brief.json"]
+        metadata = {"handoff": {"from": "strategy"}}
+        request = RoleWorkRequest(
+            request_id="role_req_abc",
+            run_id="run_abc",
+            task_ref="workroom-item://landing",
+            role_id="landing_builder",
+            department="product",
+            objective="Create landing page artifact",
+            inputs=inputs,
+            artifact_refs=artifact_refs,
+            metadata=metadata,
+        )
+        inputs["brief"]["goal"] = "changed"
+        artifact_refs.append("changed")
+        metadata["handoff"]["from"] = "changed"
+
+        self.assertEqual(
+            {
+                "schema_version": "role-work-request.v1",
+                "request_id": "role_req_abc",
+                "run_id": "run_abc",
+                "task_ref": "workroom-item://landing",
+                "role_id": "landing_builder",
+                "department": "product",
+                "objective": "Create landing page artifact",
+                "inputs": {"brief": {"goal": "Create landing page"}},
+                "artifact_refs": [
+                    "workroom-artifact://runs/run_abc/context/brief.json"
+                ],
+                "metadata": {"handoff": {"from": "strategy"}},
+            },
+            request.to_payload(),
+        )
+
+    def test_role_work_request_rejects_scalar_artifact_refs(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "artifact_refs"):
+            RoleWorkRequest(
+                request_id="role_req_abc",
+                run_id="run_abc",
+                task_ref="workroom-item://landing",
+                role_id="landing_builder",
+                department="product",
+                objective="Create landing page artifact",
+                artifact_refs="bad",
+            )
+
+    def test_role_work_result_payload_is_stable_and_copies_nested_payloads(self) -> None:
+        outputs = {"artifact": {"kind": "landing_page"}}
+        artifact_refs = ["workroom-artifact://runs/run_abc/landing_page/aaa/index.html"]
+        metadata = {"quality": {"escaped": True}}
+        result = RoleWorkResult(
+            result_id="role_result_abc",
+            request_id="role_req_abc",
+            run_id="run_abc",
+            task_ref="workroom-item://landing",
+            role_id="landing_builder",
+            status="completed",
+            summary="Landing page artifact created",
+            outputs=outputs,
+            artifact_refs=artifact_refs,
+            blocker_summary="",
+            metadata=metadata,
+        )
+        outputs["artifact"]["kind"] = "changed"
+        artifact_refs.append("changed")
+        metadata["quality"]["escaped"] = False
+
+        self.assertEqual(
+            {
+                "schema_version": "role-work-result.v1",
+                "result_id": "role_result_abc",
+                "request_id": "role_req_abc",
+                "run_id": "run_abc",
+                "task_ref": "workroom-item://landing",
+                "role_id": "landing_builder",
+                "status": "completed",
+                "summary": "Landing page artifact created",
+                "outputs": {"artifact": {"kind": "landing_page"}},
+                "artifact_refs": [
+                    "workroom-artifact://runs/run_abc/landing_page/aaa/index.html"
+                ],
+                "blocker_summary": "",
+                "metadata": {"quality": {"escaped": True}},
+            },
+            result.to_payload(),
+        )
+
+    def test_role_work_result_rejects_scalar_artifact_refs(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "artifact_refs"):
+            RoleWorkResult(
+                result_id="role_result_abc",
+                request_id="role_req_abc",
+                run_id="run_abc",
+                task_ref="workroom-item://landing",
+                role_id="landing_builder",
+                status="completed",
+                summary="Landing page artifact created",
+                artifact_refs="bad",
+            )
+
     def test_handoff_record_payload_is_stable_and_copies_metadata(self) -> None:
         artifact_refs = ["workroom-artifact://runs/run_abc/landing_page/aaa/index.html"]
         metadata = {"handoff": {"quality": "passed"}}
