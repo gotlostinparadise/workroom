@@ -108,12 +108,27 @@ Workroom also includes a second bundled company spec, `release_hardening`.
 It uses release, QA, documentation, and coordination roles with release-specific
 task categories. Its local artifact path can write a deterministic release
 hardening checklist under the run workspace. Codex can call the read-only
-`list_company_specs` tool to discover registered specs, then call
-`start_company_goal` with optional `company_spec_id`. Omitting the argument keeps
-the default `business_validation` company. Passing
+`list_company_specs` tool to discover registered specs and their
+`required_context_variables`, then call `start_company_goal` with optional
+`company_spec_id` and `context_json`. Omitting the arguments keeps the default
+`business_validation` company. Passing
 `company_spec_id="release_hardening"` starts the release company through the
 same local startup path. This does not deploy, push, post, or call external
 APIs.
+
+`context_json` is a JSON object string for Workroom-local run variables. For
+example:
+
+```json
+{
+  "release_name": "Workroom MCP selection v1",
+  "owner": "Codex platform",
+  "target_date": "2026-06-30"
+}
+```
+
+The values are stored in local Workroom run state and used to plan role work.
+They are not written as raw sensitive payloads into the Kernel ledger.
 
 `recommend_next_tool_call` is read-only: it returns a recommended Workroom MCP
 tool name and arguments for Codex to review or call separately, without

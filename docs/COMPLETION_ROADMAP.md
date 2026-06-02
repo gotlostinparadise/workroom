@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v6.
+Status: Canonical plan v7.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -153,6 +153,11 @@ These milestones are complete enough to be treated as foundation:
     Codex can discover registered company specs through a read-only MCP tool and
     start a selected company with optional `company_spec_id` while preserving the
     default Business Validation startup behavior.
+
+22. MCP Run Context Overrides v1.
+    Codex can see required context variables for each company spec and pass
+    explicit Workroom-local `context_json` variables into `start_company_goal`
+    without changing Kernel authority or adding external effects.
 
 ## Milestone Plan
 
@@ -347,6 +352,26 @@ Exit criteria:
 - `company_spec_id="release_hardening"` starts the registered Release Hardening
   company through the normal startup path.
 - Unknown company spec ids fail closed.
+- No Kernel changes, hidden loops, external API calls, or new external effects
+  are added.
+
+### 12. MCP Run Context Overrides v1
+
+Status: Done.
+
+Goal: let Codex provide explicit selected-company run variables at startup
+instead of relying on generic fallback context.
+
+Exit criteria:
+
+- `list_company_specs` exposes required context variables derived from company
+  task templates.
+- `start_company_goal` accepts optional `context_json`.
+- `context_json` must decode to a JSON object with non-empty string keys and
+  scalar JSON values.
+- Provided variables override fallback run context values and are visible in
+  planned task summaries, task metadata, and company briefs.
+- Raw context values remain out of the Kernel ledger.
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
 

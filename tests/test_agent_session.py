@@ -248,6 +248,21 @@ class AgentSessionTests(unittest.TestCase):
         self.assertFalse(result["calls_external_services"])
         self.assertFalse(workspace_path.exists())
 
+    def test_list_company_spec_options_exposes_required_context_variables(self) -> None:
+        result = agent_session.list_company_spec_options()
+        specs = {spec["spec_id"]: spec for spec in result["company_specs"]}
+
+        self.assertEqual(
+            ["audience", "hypothesis", "offer", "success_criteria"],
+            specs["business_validation"]["required_context_variables"],
+        )
+        self.assertEqual([], specs["business_validation"]["optional_context_variables"])
+        self.assertEqual(
+            ["owner", "release_name", "target_date"],
+            specs["release_hardening"]["required_context_variables"],
+        )
+        self.assertEqual([], specs["release_hardening"]["optional_context_variables"])
+
     def test_start_company_run_accepts_generic_company_spec(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -407,6 +422,17 @@ class AgentSessionTests(unittest.TestCase):
             "company-selection-context.v1",
             response["plan"]["request"]["metadata"]["schema_version"],
         )
+        self.assertEqual(
+            {
+                "release_name": "Harden release candidate",
+                "owner": "Codex operator",
+                "target_date": "not specified",
+            },
+            {
+                key: response["plan"]["request"]["variables"][key]
+                for key in ("release_name", "owner", "target_date")
+            },
+        )
         self.assertFalse(
             {"landing_page", "testing", "github_pages"}.intersection(
                 task["category"] for task in response["tasks"]
@@ -418,6 +444,108 @@ class AgentSessionTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         self.assertEqual("release_hardening", state["company_spec_id"])
+
+    def test_start_company_goal_applies_context_json_to_release_hardening_spec(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        context = {
+            "release_name": "Workroom MCP selection v1",
+            "owner": "Codex platform",
+            "target_date": "2026-06-30",
+        }
+
+        response = start_company_goal(
+            goal="Harden release candidate",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="release_hardening",
+            context_json=json.dumps(context),
+        )
+        release_plan = next(
+            task for task in response["plan"]["tasks"] if task["category"] == "release_plan"
+        )
+        quality_gates = next(
+            task for task in response["plan"]["tasks"] if task["category"] == "quality_gates"
+        )
+        release_state = self.task_by_category(response, "release_plan")
+
+        self.assertEqual("release_hardening", response["company_spec_id"])
+        self.assertEqual(
+            context,
+            {
+                key: response["plan"]["request"]["variables"][key]
+                for key in ("release_name", "owner", "target_date")
+            },
+        )
+        self.assertIn("Workroom MCP selection v1", release_plan["summary"])
+        self.assertIn("Codex platform", release_plan["summary"])
+        self.assertIn("2026-06-30", release_plan["summary"])
+        self.assertEqual("Workroom MCP selection v1", release_plan["metadata"]["release_name"])
+        self.assertEqual("Workroom MCP selection v1", release_state["metadata"]["release_name"])
+        self.assertIn("2026-06-30", quality_gates["summary"])
+        self.assertEqual(
+            ("owner", "release_name", "target_date"),
+            tuple(response["plan"]["request"]["metadata"]["context_override_keys"]),
+        )
+
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("Workroom MCP selection v1", ledger_text)
+        self.assertNotIn("Codex platform", ledger_text)
+
+    def test_start_company_goal_context_json_overrides_business_validation_context(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+
+        response = start_company_goal(
+            goal="Validate whether solo founders will pay for Workroom",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(root / "workspace"),
+            context_json=json.dumps(
+                {
+                    "audience": "enterprise platform teams",
+                    "offer": "managed Workroom runtime",
+                }
+            ),
+        )
+
+        self.assertEqual("business_validation", response["company_spec_id"])
+        self.assertEqual(
+            "enterprise platform teams",
+            response["plan"]["request"]["variables"]["audience"],
+        )
+        self.assertEqual(
+            "managed Workroom runtime",
+            response["plan"]["company_brief"]["offer"],
+        )
+        self.assertEqual(
+            ("audience", "offer"),
+            tuple(response["plan"]["request"]["metadata"]["context_override_keys"]),
+        )
+
+    def test_start_company_goal_rejects_invalid_context_json(self) -> None:
+        root = self.temp_root()
+        invalid_values = (
+            "{",
+            "[]",
+            json.dumps({"": "missing key"}),
+            json.dumps({"nested": {"value": "no"}}),
+            json.dumps({"items": ["no"]}),
+        )
+
+        for context_json in invalid_values:
+            with self.subTest(context_json=context_json):
+                with self.assertRaisesRegex(WorkroomModelError, "context_json"):
+                    start_company_goal(
+                        goal="Harden release candidate",
+                        user_id="usr_codex",
+                        ledger_path=str(root / "kernel.jsonl"),
+                        workspace_path=str(root / "workspace"),
+                        company_spec_id="release_hardening",
+                        context_json=context_json,
+                    )
 
     def test_start_company_goal_rejects_unknown_company_spec(self) -> None:
         root = self.temp_root()

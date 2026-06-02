@@ -43,19 +43,23 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertEqual(mcp_server.TOOL_NAMES, tuple(tool.name for tool in tools))
         self.assertTrue(all(tool.description for tool in tools))
 
-    def test_start_company_goal_accepts_optional_company_spec_id(self) -> None:
+    def test_start_company_goal_accepts_optional_startup_context_arguments(self) -> None:
         signature = inspect.signature(mcp_server.start_company_goal)
 
         self.assertEqual("", signature.parameters["company_spec_id"].default)
+        self.assertEqual("", signature.parameters["context_json"].default)
 
-    def test_start_company_goal_fastmcp_schema_marks_company_spec_optional(self) -> None:
+    def test_start_company_goal_fastmcp_schema_marks_context_arguments_optional(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())
         start_tool = next(tool for tool in tools if tool.name == "start_company_goal")
         schema = start_tool.inputSchema
 
         self.assertIn("company_spec_id", schema["properties"])
+        self.assertIn("context_json", schema["properties"])
         self.assertEqual("", schema["properties"]["company_spec_id"]["default"])
+        self.assertEqual("", schema["properties"]["context_json"]["default"])
         self.assertNotIn("company_spec_id", schema["required"])
+        self.assertNotIn("context_json", schema["required"])
 
     def test_list_company_specs_tool_delegates_to_session_discovery(self) -> None:
         result = mcp_server.list_company_specs()

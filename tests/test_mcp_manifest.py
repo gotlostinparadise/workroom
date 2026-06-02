@@ -76,6 +76,10 @@ class McpManifestTests(unittest.TestCase):
             "company_spec_id",
             tools["start_company_goal"]["optional_arguments"],
         )
+        self.assertIn(
+            "context_json",
+            tools["start_company_goal"]["optional_arguments"],
+        )
 
     def test_validate_workroom_mcp_config_rejects_blank_relative_and_equal_paths(self) -> None:
         blank = validate_workroom_mcp_config(ledger_path="", workspace_path="")

@@ -37,6 +37,7 @@ def start_company_goal(
     ledger_path: str,
     workspace_path: str,
     company_spec_id: str = "",
+    context_json: str = "",
 ) -> dict[str, object]:
     """Start a local Workroom company run for a Codex goal."""
     return agent_session.start_company_goal(
@@ -45,6 +46,7 @@ def start_company_goal(
         ledger_path=ledger_path,
         workspace_path=workspace_path,
         company_spec_id=company_spec_id,
+        context_json=context_json,
     )
 
 

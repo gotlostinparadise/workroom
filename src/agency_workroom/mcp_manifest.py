@@ -88,7 +88,7 @@ _TOOL_ARGUMENTS = {
 }
 
 _OPTIONAL_TOOL_ARGUMENTS = {
-    "start_company_goal": ("company_spec_id",),
+    "start_company_goal": ("company_spec_id", "context_json"),
     "prepare_github_pages_deploy_proposal": (
         "target_repo_full_name",
         "target_branch",

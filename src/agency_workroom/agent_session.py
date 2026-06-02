@@ -4,7 +4,9 @@ from collections import Counter
 from collections.abc import Mapping
 import hashlib
 import json
+import math
 from pathlib import Path
+from string import Formatter
 
 from .company_briefing import compact_company_brief
 from .devops_operations import (
@@ -116,10 +118,85 @@ def _request_from_goal(goal: str) -> WorkflowRequest:
     return workflow_request_from_goal(goal)
 
 
+def _required_context_variables_for(company_spec: CompanySpec) -> tuple[str, ...]:
+    variables: set[str] = set()
+    formatter = Formatter()
+    for template in company_spec.task_templates:
+        for _literal, field_name, _format_spec, _conversion in formatter.parse(
+            template.summary_template
+        ):
+            if not field_name:
+                continue
+            name = field_name.split(".", 1)[0].split("[", 1)[0]
+            if name:
+                variables.add(name)
+    return tuple(sorted(variables))
+
+
+def _company_spec_option_payload(company_spec: CompanySpec) -> dict[str, object]:
+    payload = company_spec.to_payload()
+    payload["required_context_variables"] = list(
+        _required_context_variables_for(company_spec)
+    )
+    payload["optional_context_variables"] = []
+    return payload
+
+
+def _context_variables_from_json(context_json: str) -> dict[str, object]:
+    if not isinstance(context_json, str):
+        raise WorkroomModelError("context_json must be text")
+    clean_json = context_json.strip()
+    if not clean_json:
+        return {}
+    try:
+        decoded = json.loads(clean_json)
+    except json.JSONDecodeError as exc:
+        raise WorkroomModelError("context_json must be valid JSON") from exc
+    if not isinstance(decoded, Mapping):
+        raise WorkroomModelError("context_json must decode to an object")
+    variables: dict[str, object] = {}
+    for key, value in decoded.items():
+        if not isinstance(key, str) or not key.strip():
+            raise WorkroomModelError("context_json keys must be non-empty strings")
+        clean_key = key.strip()
+        if isinstance(value, (Mapping, list, tuple)):
+            raise WorkroomModelError("context_json values must be scalar JSON values")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise WorkroomModelError("context_json values must be finite")
+        if value is None or isinstance(value, (str, int, float, bool)):
+            variables[clean_key] = value
+            continue
+        raise WorkroomModelError("context_json values must be scalar JSON values")
+    return variables
+
+
+def _run_context_with_overrides(
+    *,
+    run_context: RunContext,
+    context_variables: Mapping[str, object],
+) -> RunContext:
+    if not context_variables:
+        return run_context
+    override_keys = tuple(sorted(context_variables))
+    return RunContext(
+        goal=run_context.goal,
+        summary=run_context.summary,
+        variables={
+            **run_context.variables,
+            **context_variables,
+        },
+        metadata={
+            **run_context.metadata,
+            "context_override_keys": override_keys,
+        },
+    )
+
+
 def _run_context_from_company_selection(
     *,
     goal: str,
     company_spec: CompanySpec,
+    context_variables: Mapping[str, object],
 ) -> RunContext:
     clean_goal = _required_text("goal", goal)
     return RunContext(
@@ -133,10 +210,16 @@ def _run_context_from_company_selection(
             "target_date": "not specified",
             "company_spec_id": company_spec.spec_id,
             "company_spec_version": company_spec.version,
+            **context_variables,
         },
         metadata={
             "schema_version": "company-selection-context.v1",
             "source": "start_company_goal.company_spec_id",
+            **(
+                {"context_override_keys": tuple(sorted(context_variables))}
+                if context_variables
+                else {}
+            ),
         },
     )
 
@@ -220,8 +303,10 @@ def start_company_goal(
     ledger_path: str,
     workspace_path: str,
     company_spec_id: str = "",
+    context_json: str = "",
 ) -> dict[str, object]:
     clean_goal = _required_text("goal", goal)
+    context_variables = _context_variables_from_json(context_json)
     if isinstance(company_spec_id, str) and not company_spec_id.strip():
         company_spec = default_company_spec()
     else:
@@ -235,10 +320,15 @@ def start_company_goal(
                 f"{request.hypothesis}"
             ),
         )
+        run_context = _run_context_with_overrides(
+            run_context=run_context,
+            context_variables=context_variables,
+        )
     else:
         run_context = _run_context_from_company_selection(
             goal=clean_goal,
             company_spec=company_spec,
+            context_variables=context_variables,
         )
     return start_company_run(
         goal=clean_goal,
@@ -254,7 +344,10 @@ def list_company_spec_options() -> dict[str, object]:
     return {
         "schema_version": "workroom-company-spec-list.v1",
         "default_company_spec_id": DEFAULT_COMPANY_SPEC_ID,
-        "company_specs": list(registered_company_specs()),
+        "company_specs": [
+            _company_spec_option_payload(get_company_spec(str(spec["spec_id"])))
+            for spec in registered_company_specs()
+        ],
         "writes_files": False,
         "creates_directories": False,
         "calls_external_services": False,
