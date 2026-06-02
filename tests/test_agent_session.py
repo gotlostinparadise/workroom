@@ -144,6 +144,18 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(8, len(response["tasks"]))
         self.assertEqual(8, len(response["commits"]))
         self.assertTrue(response["run_id"].startswith("run_"))
+        self.assertEqual("company-brief.v1", response["plan"]["company_brief"]["schema_version"])
+        self.assertTrue(
+            all("role_work_spec" in task["metadata"] for task in response["tasks"])
+        )
+        landing_task = self.task_by_category(response, "landing_page")
+        landing_work_spec = landing_task["metadata"]["role_work_spec"]
+        self.assertEqual("role-work-spec.v1", landing_work_spec["schema_version"])
+        self.assertEqual(landing_task["task_ref"], landing_work_spec["task_ref"])
+        self.assertEqual(
+            "target audience to validate",
+            landing_work_spec["company_context"]["target_audience"],
+        )
 
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
@@ -1478,6 +1490,27 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             [turn["result_ref"]],
             turn["role_work_result"]["artifact_refs"],
+        )
+        role_work_request = turn["role_work_request"]
+        persisted_request = json.loads(
+            Path(turn["role_work_request_path"]).read_text(encoding="utf-8")
+        )
+        work_spec = role_work_request["inputs"]["work_spec"]
+        self.assertEqual(role_work_request["request_id"], persisted_request["request_id"])
+        self.assertEqual(role_work_request["task_ref"], persisted_request["task_ref"])
+        self.assertEqual(role_work_request["inputs"], persisted_request["inputs"])
+        self.assertEqual("role-work-spec.v1", work_spec["schema_version"])
+        self.assertEqual(role_work_request["task_ref"], work_spec["task_ref"])
+        self.assertEqual(work_spec["objective"], role_work_request["objective"])
+        self.assertIn("artifact_expectations", work_spec)
+        self.assertIn("acceptance_criteria", work_spec)
+        self.assertEqual(
+            "target audience to validate",
+            work_spec["company_context"]["target_audience"],
+        )
+        self.assertEqual(
+            "company-brief.v1",
+            role_work_request["inputs"]["company_brief"]["schema_version"],
         )
         self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
         self.assertEqual("planned", self.task_by_category(state, "testing")["status"])

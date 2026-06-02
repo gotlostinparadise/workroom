@@ -818,6 +818,19 @@ class WorkroomIntegrationTests(unittest.TestCase):
         for turn in turns[:3]:
             self.assertTrue(Path(turn["handoff_path"]).exists())
             self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
+            self.assertIn("work_spec", turn["role_work_request"]["inputs"])
+            self.assertEqual(
+                "role-work-spec.v1",
+                turn["role_work_request"]["inputs"]["work_spec"]["schema_version"],
+            )
+            self.assertEqual(
+                turn["role_work_request"]["task_ref"],
+                turn["role_work_request"]["inputs"]["work_spec"]["task_ref"],
+            )
+            self.assertEqual(
+                turn["role_work_request"]["objective"],
+                turn["role_work_request"]["inputs"]["work_spec"]["objective"],
+            )
         self.assertEqual("devops", turns[-1]["decision"]["owner_department"])
         self.assertEqual("approval_gate", turns[-1]["decision"]["decision_type"])
         self.assertTrue(Path(turns[-1]["decision_path"]).exists())

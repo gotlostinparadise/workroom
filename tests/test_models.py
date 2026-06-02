@@ -1312,6 +1312,63 @@ class TeamWorkflowModelTests(unittest.TestCase):
                 tasks=(),
             )
 
+    def test_workflow_plan_payload_includes_company_brief_when_present(self) -> None:
+        company_brief = {
+            "schema_version": "company-brief.v1",
+            "objective": "Validate Workroom",
+            "role_briefs": [{"role_id": "landing_builder"}],
+        }
+        plan = WorkflowPlan(
+            request=RunContext(
+                goal="Validate Workroom",
+                summary="Validation workflow",
+                variables={"offer": "Workroom"},
+            ),
+            summary="Validation workflow",
+            tasks=(
+                WorkflowTask(
+                    role_id="landing_builder",
+                    category="landing_page",
+                    title="Draft landing page",
+                    summary="Create the page structure and copy",
+                ),
+            ),
+            company_brief=company_brief,
+        )
+        company_brief["role_briefs"][0]["role_id"] = "changed"
+
+        payload = plan.to_payload()
+
+        self.assertEqual(
+            "company-brief.v1",
+            payload["company_brief"]["schema_version"],
+        )
+        self.assertEqual("Validate Workroom", payload["company_brief"]["objective"])
+        self.assertEqual(
+            "landing_builder",
+            payload["company_brief"]["role_briefs"][0]["role_id"],
+        )
+
+    def test_workflow_plan_omits_empty_company_brief_for_compatibility(self) -> None:
+        plan = WorkflowPlan(
+            request=RunContext(
+                goal="Validate Workroom",
+                summary="Validation workflow",
+                variables={"offer": "Workroom"},
+            ),
+            summary="Validation workflow",
+            tasks=(
+                WorkflowTask(
+                    role_id="landing_builder",
+                    category="landing_page",
+                    title="Draft landing page",
+                    summary="Create the page structure and copy",
+                ),
+            ),
+        )
+
+        self.assertNotIn("company_brief", plan.to_payload())
+
 
 class OperationalRecordModelTests(unittest.TestCase):
     def test_role_work_request_payload_is_stable_and_copies_nested_payloads(self) -> None:

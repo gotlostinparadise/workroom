@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from .company_briefing import compact_company_brief
 from .devops_operations import (
     DevOpsOperationError,
     execute_github_pages_deploy_plan_files,
@@ -116,6 +117,21 @@ def _request_from_goal(goal: str) -> WorkflowRequest:
     )
 
 
+def _task_metadata_for_run_state(
+    *,
+    task_metadata: Mapping[str, object],
+    task_ref: str,
+) -> dict[str, object]:
+    metadata = _payload_mapping(task_metadata)
+    role_work_spec = metadata.get("role_work_spec")
+    if isinstance(role_work_spec, Mapping):
+        metadata["role_work_spec"] = _role_work_spec_with_task_ref(
+            role_work_spec,
+            task_ref,
+        )
+    return metadata
+
+
 def start_company_run(
     *,
     goal: str,
@@ -149,6 +165,10 @@ def start_company_run(
             category=task.category,
             title=task.title,
             status="planned",
+            metadata=_task_metadata_for_run_state(
+                task_metadata=task.to_payload()["metadata"],
+                task_ref=commit.work_item_ref,
+            ),
         )
         for task, commit in zip(result.plan.tasks, result.commits, strict=True)
     )
@@ -427,12 +447,17 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
         task_ref = transition.task_ref
         role_task = _task_for_ref(run_before, task_ref)
         role_department = _department_for_task_ref(run_before, task_ref)
+        role_work_spec = _role_work_spec_from_task(role_task)
         role_request = build_role_work_request(
             run=run_before,
             task=role_task,
             department=role_department,
-            objective=role_task.title,
-            inputs=_role_work_inputs_from_recommendation(recommendation),
+            objective=_role_work_objective(role_task, role_work_spec),
+            inputs=_role_work_inputs_from_recommendation(
+                recommendation,
+                role_work_spec=role_work_spec,
+                company_brief=_company_brief_summary_from_run(run_before),
+            ),
             artifact_refs=_artifact_refs_from_recommendation_arguments(
                 recommendation_arguments
             ),
@@ -1229,9 +1254,12 @@ def _recommendation_arguments(recommendation: dict[str, object]) -> dict[str, ob
 
 def _role_work_inputs_from_recommendation(
     recommendation: dict[str, object],
+    *,
+    role_work_spec: Mapping[str, object] | None = None,
+    company_brief: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     arguments = _recommendation_arguments(recommendation)
-    return {
+    inputs: dict[str, object] = {
         "recommended_tool": str(recommendation.get("recommended_tool", "")),
         "arguments": {
             key: value
@@ -1240,6 +1268,59 @@ def _role_work_inputs_from_recommendation(
         },
         "reason": str(recommendation.get("reason", "")),
     }
+    if role_work_spec:
+        inputs["work_spec"] = _payload_mapping(role_work_spec)
+    if company_brief:
+        inputs["company_brief"] = _payload_mapping(company_brief)
+    return inputs
+
+
+def _role_work_spec_from_task(task: TaskState) -> dict[str, object]:
+    role_work_spec = task.to_payload()["metadata"].get("role_work_spec")
+    if not isinstance(role_work_spec, Mapping):
+        return {}
+    return _role_work_spec_with_task_ref(role_work_spec, task.task_ref)
+
+
+def _role_work_spec_with_task_ref(
+    role_work_spec: Mapping[str, object],
+    task_ref: str,
+) -> dict[str, object]:
+    payload = _payload_mapping(role_work_spec)
+    payload["task_ref"] = _required_text("task_ref", task_ref)
+    return payload
+
+
+def _role_work_objective(
+    task: TaskState,
+    role_work_spec: Mapping[str, object],
+) -> str:
+    objective = role_work_spec.get("objective")
+    if isinstance(objective, str) and objective.strip():
+        return objective.strip()
+    return task.title
+
+
+def _company_brief_summary_from_run(run: CompanyGoalRun) -> dict[str, object]:
+    company_brief = run.plan.get("company_brief")
+    if not isinstance(company_brief, Mapping):
+        return {}
+    return compact_company_brief(company_brief)
+
+
+def _payload_mapping(metadata: Mapping[str, object]) -> dict[str, object]:
+    return {
+        key: _payload_value(value)
+        for key, value in metadata.items()
+    }
+
+
+def _payload_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return _payload_mapping(value)
+    if isinstance(value, (list, tuple)):
+        return [_payload_value(item) for item in value]
+    return value
 
 
 def _artifact_refs_from_recommendation_arguments(

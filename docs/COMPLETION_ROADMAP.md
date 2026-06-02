@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v3.
+Status: Canonical plan v4.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -138,6 +138,12 @@ These milestones are complete enough to be treated as foundation:
     labels, recommended routing, and explicit ledger/workspace config status
     through read-only manifest and config-check tools.
 
+19. Company Briefing and Work Specification v1.
+    Workroom derives a company-level brief from `CompanySpec` + `RunContext`,
+    attaches role-specific work specs to planned tasks, preserves those specs
+    in run state, and passes them into durable role-work requests during
+    bounded supervisor turns.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -273,6 +279,24 @@ Exit criteria:
 - MCP tool responses are consistent and easy for Codex to route.
 - Configuration is explicit and avoids secret leakage.
 - The README points users to the supported MCP path and the roadmap.
+
+### 9. Company Briefing and Work Specification v1
+
+Status: Done.
+
+Goal: fix the architectural gap between role assignment and quality work
+assignment by giving every delegated role a deterministic work specification.
+
+Exit criteria:
+
+- A company brief is derived from `CompanySpec` and `RunContext`.
+- Planned tasks carry role-specific work specs with company context, artifact
+  expectations, acceptance criteria, and approval boundaries.
+- Run state preserves the specs after work items are created.
+- `advance_company_goal` writes role-work requests that include the active work
+  spec and compact company brief.
+- The public MCP shape is unchanged.
+- No Kernel changes, hidden loops, or new external effects are added.
 
 ## Plan Change Rules
 

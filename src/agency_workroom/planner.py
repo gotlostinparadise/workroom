@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .company_briefing import build_company_brief, role_work_spec_for_task
 from .company_specs import business_validation_company_spec
 from .models import (
     CompanySpec,
@@ -85,8 +86,13 @@ def plan_workflow_from_company_spec(
         raise WorkroomModelError("provide run_context or request, not both")
     context_payload = run_context.to_payload()
     variables = context_payload["variables"]
-    tasks = tuple(
-        WorkflowTask(
+    company_brief = build_company_brief(
+        company_spec=company_spec,
+        run_context=run_context,
+    )
+    tasks: list[WorkflowTask] = []
+    for template in company_spec.task_templates:
+        task = WorkflowTask(
             role_id=template.role_id,
             category=template.category,
             title=template.title,
@@ -101,12 +107,29 @@ def plan_workflow_from_company_spec(
                 **template.to_payload()["metadata"],
             },
         )
-        for template in company_spec.task_templates
-    )
+        role_work_spec = role_work_spec_for_task(
+            company_brief=company_brief,
+            task=task,
+        )
+        tasks.append(
+            WorkflowTask(
+                role_id=task.role_id,
+                category=task.category,
+                title=task.title,
+                summary=task.summary,
+                priority=task.priority,
+                status=task.status,
+                metadata={
+                    **task.to_payload()["metadata"],
+                    "role_work_spec": role_work_spec,
+                },
+            )
+        )
     return WorkflowPlan(
         request=run_context,
         summary=run_context.summary,
-        tasks=tasks,
+        tasks=tuple(tasks),
+        company_brief=company_brief,
     )
 
 

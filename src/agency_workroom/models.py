@@ -484,6 +484,7 @@ class WorkflowPlan:
     request: WorkflowRequest | RunContext
     summary: str
     tasks: tuple[WorkflowTask, ...] | list[WorkflowTask]
+    company_brief: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not isinstance(self.request, (WorkflowRequest, RunContext)):
@@ -494,13 +495,17 @@ class WorkflowPlan:
         if any(not isinstance(task, WorkflowTask) for task in self.tasks):
             raise WorkroomModelError("tasks must be WorkflowTask instances")
         object.__setattr__(self, "tasks", tuple(self.tasks))
+        object.__setattr__(self, "company_brief", _metadata_copy(self.company_brief))
 
     def to_payload(self) -> dict[str, object]:
-        return {
+        payload = {
             "request": self.request.to_payload(),
             "summary": self.summary,
             "tasks": [task.to_payload() for task in self.tasks],
         }
+        if self.company_brief:
+            payload["company_brief"] = _metadata_payload(self.company_brief)
+        return payload
 
 
 @dataclass(frozen=True)

@@ -302,6 +302,59 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         )
         self.assertTrue(all(task.status == "planned" for task in plan.tasks))
 
+    def test_company_spec_planner_attaches_company_brief_and_role_work_specs(self) -> None:
+        request = WorkflowRequest(
+            hypothesis="Founders will pay for a 48 hour AI validation sprint",
+            audience="early-stage SaaS founders",
+            offer="landing page plus Threads validation",
+            constraints="No paid ads and no external posting in the first pass",
+            channels=("landing_page", "threads", "github_pages"),
+            success_criteria="10 qualified waitlist signups",
+        )
+
+        plan = plan_workflow_from_company_spec(
+            request=request,
+            company_spec=business_validation_company_spec(),
+        )
+        payload = plan.to_payload()
+        tasks_by_role = {task.role_id: task for task in plan.tasks}
+
+        self.assertEqual(
+            "company-brief.v1",
+            payload["company_brief"]["schema_version"],
+        )
+        self.assertEqual(
+            "early-stage SaaS founders",
+            payload["company_brief"]["target_audience"],
+        )
+        self.assertEqual(
+            "landing page plus Threads validation",
+            payload["company_brief"]["offer"],
+        )
+        self.assertEqual(
+            "10 qualified waitlist signups",
+            payload["company_brief"]["success_criteria"],
+        )
+        self.assertTrue(
+            all("role_work_spec" in task.metadata for task in plan.tasks),
+        )
+
+        landing_spec = tasks_by_role["landing_builder"].metadata["role_work_spec"]
+        qa_spec = tasks_by_role["qa_tester"].metadata["role_work_spec"]
+        self.assertEqual("role-work-spec.v1", landing_spec["schema_version"])
+        self.assertEqual(tasks_by_role["landing_builder"].summary, landing_spec["objective"])
+        self.assertEqual(
+            "early-stage SaaS founders",
+            landing_spec["company_context"]["target_audience"],
+        )
+        self.assertIn(
+            "landing page plus Threads validation",
+            landing_spec["acceptance_criteria"][0],
+        )
+        self.assertIn("landing page HTML artifact", landing_spec["artifact_expectations"][0])
+        self.assertNotEqual(landing_spec, qa_spec)
+        self.assertIn("QA report", qa_spec["artifact_expectations"][0])
+
     def test_planner_rejects_missing_required_roles(self) -> None:
         team = default_validation_team()
         reduced_team = type(team)(

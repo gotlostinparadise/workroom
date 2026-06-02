@@ -27,6 +27,14 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.write_role_work_request))
         self.assertTrue(callable(agency_workroom.write_role_work_result))
 
+    def test_company_briefing_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.build_company_brief))
+        self.assertTrue(callable(agency_workroom.compact_company_brief))
+        self.assertTrue(callable(agency_workroom.role_work_spec_for_task))
+        self.assertIn("build_company_brief", agency_workroom.__all__)
+        self.assertIn("compact_company_brief", agency_workroom.__all__)
+        self.assertIn("role_work_spec_for_task", agency_workroom.__all__)
+
     def test_supervisor_state_machine_models_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.SupervisorTransition))
         self.assertTrue(callable(agency_workroom.plan_supervisor_transition))

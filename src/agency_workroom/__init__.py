@@ -45,6 +45,11 @@ from .company_specs import (
     business_validation_company_spec,
     release_hardening_company_spec,
 )
+from .company_briefing import (
+    build_company_brief,
+    compact_company_brief,
+    role_work_spec_for_task,
+)
 from .company_registry import (
     DEFAULT_COMPANY_SPEC_ID,
     default_company_spec,
@@ -153,8 +158,10 @@ __all__ = [
     "advance_company_goal",
     "audit_company_goal_run",
     "audit_company_goal_run_files",
+    "build_company_brief",
     "business_validation_company_spec",
     "check_workroom_mcp_config",
+    "compact_company_brief",
     "create_goal_run_report",
     "build_role_work_request",
     "build_role_work_result",
@@ -182,6 +189,7 @@ __all__ = [
     "release_hardening_company_spec",
     "replay_company_goal_run",
     "replay_company_goal_run_files",
+    "role_work_spec_for_task",
     "run_next_local_step",
     "run_context_from_workflow_request",
     "run_company_workflow",
