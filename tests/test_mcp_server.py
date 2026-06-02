@@ -23,6 +23,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "prepare_github_pages_deploy_execution_plan",
                 "execute_github_pages_deploy",
                 "summarize_run",
+                "create_goal_run_report",
             ),
             mcp_server.TOOL_NAMES,
         )

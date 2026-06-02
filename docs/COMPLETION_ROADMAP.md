@@ -123,6 +123,11 @@ These milestones are complete enough to be treated as foundation:
     checklist artifact through Workroom state, and fails closed to a supervisor
     decision rather than executing Business Validation local steps.
 
+16. Practical End-to-End Goal Run v1.
+    A bounded Business Validation run can be reproduced through MCP tool calls
+    from startup to landing artifact, QA report, deploy proposal, approval
+    blocker, summary, and durable goal-run report evidence.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -217,7 +222,7 @@ Exit criteria:
 
 ### 6. Practical End-to-End Goal Run v1
 
-Status: Next.
+Status: Done.
 
 Goal: run a realistic goal through the system from startup to local artifacts,
 QA, deployment proposal, handoffs, decisions, and summary evidence.
@@ -232,7 +237,7 @@ Exit criteria:
 
 ### 7. Replay, Audit, and Evaluation v1
 
-Status: Later.
+Status: Next.
 
 Goal: make completed runs inspectable enough that Codex and a reviewer can
 evaluate what happened, why it happened, and what remains blocked.
@@ -277,9 +282,9 @@ Do not change this roadmap merely because a different task is more interesting.
 The next implementation milestone is:
 
 ```text
-Second Company Spec v1
+Replay, Audit, and Evaluation v1
 ```
 
 Before implementing it, create an implementation plan under `docs/plans/`.
-Keep the work bounded to proving the runtime is not Business-Validation-specific;
-do not add new high-stakes external execution.
+Keep the work bounded to replay/audit reporting over persisted Workroom files;
+do not add hidden schedulers, loops, or unapproved external effects.

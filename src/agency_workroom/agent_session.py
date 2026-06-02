@@ -15,6 +15,7 @@ from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
 )
+from .goal_run_report import create_goal_run_report_files
 from .company_registry import DEFAULT_COMPANY_SPEC_ID, default_company_spec
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
@@ -61,6 +62,7 @@ GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_CHECKLIST_ARTIFACT_PREFIX = "workroom-artifact://"
+GOAL_RUN_REPORT_PREFIX = "workroom-artifact://"
 LOCAL_STEP_TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
@@ -1020,6 +1022,18 @@ def summarize_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     }
 
 
+def create_goal_run_report(*, run_id: str, workspace_path: str) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run = load_company_goal_run(clean_workspace_path, clean_run_id)
+    summary = summarize_run(run_id=clean_run_id, workspace_path=clean_workspace_path)
+    return create_goal_run_report_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        summary=summary,
+    )
+
+
 def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WorkroomModelError(f"{name} is required")
@@ -1639,12 +1653,14 @@ def _github_pages_deploy_proposal_payload_for_existing_ref(
 __all__ = [
     "EXTERNAL_CAPABILITY_CATEGORIES",
     "DEVOPS_OPERATION_PREFIX",
+    "GOAL_RUN_REPORT_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
+    "create_goal_run_report",
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",

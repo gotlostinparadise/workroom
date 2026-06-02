@@ -14,6 +14,7 @@ import agency_workroom.agent_session as agent_session
 from agency_workroom.company_registry import get_company_spec
 from agency_workroom.agent_session import (
     advance_company_goal,
+    create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -1547,6 +1548,66 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertTrue(Path(fourth["turn_path"]).exists())
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_create_goal_run_report_records_practical_e2e_evidence(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="private practical e2e goal",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_goal_run_report(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertTrue(Path(report["report_path"]).exists())
+        self.assertTrue(Path(report["markdown_path"]).exists())
+        self.assertEqual(
+            "workroom-artifact://runs/"
+            f"{started['run_id']}/reports/goal_run_report.json",
+            report["report_ref"],
+        )
+        payload = json.loads(Path(report["report_path"]).read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(payload["supervisor_turn_refs"]), 4)
+        self.assertGreaterEqual(len(payload["handoff_refs"]), 3)
+        self.assertGreaterEqual(len(payload["decision_refs"]), 1)
+        self.assertGreaterEqual(len(payload["role_work_request_refs"]), 3)
+        self.assertGreaterEqual(len(payload["role_work_result_refs"]), 3)
+        self.assertTrue(
+            any("/landing_page/" in ref for ref in payload["task_artifact_refs"])
+        )
+        self.assertTrue(
+            any("/landing_qa/" in ref for ref in payload["task_artifact_refs"])
+        )
+        self.assertTrue(
+            any("/github_pages/" in ref for ref in payload["task_artifact_refs"])
+        )
+        self.assertNotIn(
+            "private practical e2e goal",
+            ledger_path.read_text(encoding="utf-8"),
+        )
 
     def test_advance_company_goal_blocks_before_local_step_when_any_task_is_blocked(self) -> None:
         assert_external_kernel_dependency(self)

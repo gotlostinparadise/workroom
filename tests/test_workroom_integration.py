@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from agency_workroom import (
     WorkItemDraft,
     WorkroomKernelGateway,
     advance_company_goal,
+    create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     execute_github_pages_deploy,
@@ -796,6 +798,65 @@ class WorkroomIntegrationTests(unittest.TestCase):
         )
         for turn in turns:
             self.assertTrue(Path(turn["turn_path"]).exists())
+        self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
+
+    def test_practical_e2e_goal_run_leaves_reviewable_report(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        private_goal = "private practical e2e integration marker"
+
+        started = start_company_goal(
+            goal=private_goal,
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        turns = [
+            advance_company_goal(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+            for _ in range(4)
+        ]
+        summary = summarize_run(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        report = create_goal_run_report(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        payload = json.loads(Path(report["report_path"]).read_text(encoding="utf-8"))
+        markdown_text = Path(report["markdown_path"]).read_text(encoding="utf-8")
+
+        self.assertEqual("goal-run-report.v1", payload["schema_version"])
+        self.assertEqual(started["run_id"], payload["run_id"])
+        self.assertEqual(summary["status_counts"], payload["summary"]["status_counts"])
+        self.assertEqual(
+            [
+                "local_step_executed",
+                "local_step_executed",
+                "local_step_executed",
+                "approval_required",
+            ],
+            [turn["action_type"] for turn in turns],
+        )
+        self.assertGreaterEqual(len(payload["supervisor_turn_refs"]), 4)
+        self.assertEqual(
+            {turn["turn_ref"] for turn in turns},
+            set(payload["supervisor_turn_refs"]),
+        )
+        self.assertGreaterEqual(len(payload["handoff_refs"]), 3)
+        self.assertGreaterEqual(len(payload["decision_refs"]), 1)
+        self.assertGreaterEqual(len(payload["role_work_request_refs"]), 3)
+        self.assertGreaterEqual(len(payload["role_work_result_refs"]), 3)
+        self.assertTrue(any("/landing_page/" in ref for ref in payload["task_artifact_refs"]))
+        self.assertTrue(any("/landing_qa/" in ref for ref in payload["task_artifact_refs"]))
+        self.assertTrue(any("/github_pages/" in ref for ref in payload["task_artifact_refs"]))
+        self.assertIn("# Goal Run Report", markdown_text)
+        self.assertIn("explicit approval", markdown_text)
         self.assertNotIn(private_goal, ledger_path.read_text(encoding="utf-8"))
 
     def workflow_file_snapshot(self, workflows_dir: Path) -> tuple[tuple[str, str], ...]:

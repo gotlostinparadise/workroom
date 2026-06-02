@@ -63,6 +63,7 @@ The MCP tools are agent-facing:
 - `prepare_github_pages_deploy_execution_plan`
 - `execute_github_pages_deploy`
 - `summarize_run`
+- `create_goal_run_report`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -136,6 +137,13 @@ proposal, approval, execution-plan, and evidence stages. Codex can inspect
 that metadata to trace which task, proposal, approval gate, execution plan, and
 evidence artifact belong together. The metadata is contract evidence only; it
 does not authorize Workroom to deploy, post, or call external APIs implicitly.
+
+`create_goal_run_report` writes a durable local JSON and Markdown report for a
+run under `runs/<run_id>/reports/`. It is a review/evidence tool: it reads
+persisted run state, supervisor turns, role-work records, handoffs, decisions,
+and task artifact refs. It does not advance the run, deploy, post, or call
+external APIs. A reproducible local sequence is documented in
+[`docs/examples/practical-e2e-goal-run-v1.md`](docs/examples/practical-e2e-goal-run-v1.md).
 
 ## First Validation Team
 

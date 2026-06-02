@@ -41,6 +41,11 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("create_release_checklist_artifact", agency_workroom.__all__)
         self.assertIn("RELEASE_CHECKLIST_ARTIFACT_PREFIX", agency_workroom.__all__)
 
+    def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.create_goal_run_report))
+        self.assertIn("create_goal_run_report", agency_workroom.__all__)
+        self.assertIn("GOAL_RUN_REPORT_PREFIX", agency_workroom.__all__)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,7 @@ TOOL_NAMES = (
     "prepare_github_pages_deploy_execution_plan",
     "execute_github_pages_deploy",
     "summarize_run",
+    "create_goal_run_report",
 )
 
 
@@ -201,6 +202,15 @@ def summarize_run(run_id: str, workspace_path: str) -> dict[str, object]:
     )
 
 
+@mcp.tool()
+def create_goal_run_report(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Create a local durable report for a Workroom company run."""
+    return agent_session.create_goal_run_report(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -214,6 +224,7 @@ __all__ = [
     "advance_company_goal",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_goal_run_report",
     "execute_github_pages_deploy",
     "get_company_state",
     "list_next_actions",
