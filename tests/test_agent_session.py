@@ -1273,6 +1273,23 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("qa", turn["handoff"]["to_department"])
         self.assertEqual(turn["handoff"]["handoff_ref"], turn["handoff_ref"])
         self.assertTrue(Path(turn["handoff_path"]).exists())
+        self.assertIn("metadata", turn)
+        self.assertIn("role_work_request_ref", turn["metadata"])
+        self.assertIn("role_work_result_ref", turn["metadata"])
+        self.assertEqual(
+            turn["metadata"]["role_work_request_ref"],
+            turn["role_work_request_ref"],
+        )
+        self.assertEqual(
+            turn["metadata"]["role_work_result_ref"],
+            turn["role_work_result_ref"],
+        )
+        self.assertTrue(Path(turn["metadata"]["role_work_request_path"]).exists())
+        self.assertTrue(Path(turn["metadata"]["role_work_result_path"]).exists())
+        self.assertEqual(
+            [turn["result_ref"]],
+            turn["role_work_result"]["artifact_refs"],
+        )
         self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
         self.assertEqual("planned", self.task_by_category(state, "testing")["status"])
 

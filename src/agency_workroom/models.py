@@ -988,6 +988,7 @@ class SupervisorTurn:
     approval_request: Mapping[str, object]
     next_recommendation: Mapping[str, object]
     status_counts: Mapping[str, object]
+    metadata: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "turn_id", _required_text("turn_id", self.turn_id))
@@ -1037,6 +1038,7 @@ class SupervisorTurn:
             _metadata_copy(self.next_recommendation),
         )
         object.__setattr__(self, "status_counts", _metadata_copy(self.status_counts))
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -1056,6 +1058,7 @@ class SupervisorTurn:
             "approval_request": _metadata_payload(self.approval_request),
             "next_recommendation": _metadata_payload(self.next_recommendation),
             "status_counts": _metadata_payload(self.status_counts),
+            "metadata": _metadata_payload(self.metadata),
         }
 
 

@@ -468,6 +468,19 @@ class SupervisorTurnModelTests(unittest.TestCase):
             "recommended_tool": "prepare_github_pages_deploy_execution_plan",
             "missing_inputs": ["target_repo_full_name"],
         }
+        metadata = {
+            "role_work_request_ref": (
+                "workroom-artifact://runs/run_abc/role_work/requests/req.json"
+            ),
+            "role_work_result_ref": (
+                "workroom-artifact://runs/run_abc/role_work/results/result.json"
+            ),
+            "role_work": {
+                "artifact_refs": [
+                    "workroom-artifact://runs/run_abc/landing_page/aaa/index.html"
+                ],
+            },
+        }
         turn = SupervisorTurn(
             turn_id="turn_abc",
             run_id="run_abc",
@@ -484,9 +497,11 @@ class SupervisorTurnModelTests(unittest.TestCase):
             approval_request=approval_request,
             next_recommendation={"recommended_tool": "create_landing_qa_report"},
             status_counts={"completed": 1, "planned": 7},
+            metadata=metadata,
         )
         recommendation["arguments"]["run_id"] = "changed"
         approval_request["missing_inputs"].append("target_repo_path")
+        metadata["role_work"]["artifact_refs"].append("changed")
 
         self.assertEqual(
             {
@@ -512,6 +527,19 @@ class SupervisorTurnModelTests(unittest.TestCase):
                 },
                 "next_recommendation": {"recommended_tool": "create_landing_qa_report"},
                 "status_counts": {"completed": 1, "planned": 7},
+                "metadata": {
+                    "role_work_request_ref": (
+                        "workroom-artifact://runs/run_abc/role_work/requests/req.json"
+                    ),
+                    "role_work_result_ref": (
+                        "workroom-artifact://runs/run_abc/role_work/results/result.json"
+                    ),
+                    "role_work": {
+                        "artifact_refs": [
+                            "workroom-artifact://runs/run_abc/landing_page/aaa/index.html"
+                        ],
+                    },
+                },
             },
             turn.to_payload(),
         )

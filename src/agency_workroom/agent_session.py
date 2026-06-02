@@ -41,10 +41,14 @@ from .supervisor import (
     build_approval_required_turn,
     build_decision_record,
     build_handoff_record,
+    build_role_work_request,
+    build_role_work_result,
     detect_goal_phase,
     supervisor_id_for,
     write_decision_record,
     write_handoff_record,
+    write_role_work_request,
+    write_role_work_result,
     write_supervisor_turn,
 )
 from .workflow import run_company_workflow
@@ -389,12 +393,60 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
     recommended_tool = str(recommendation.get("recommended_tool", ""))
 
     if recommended_tool in LOCAL_STEP_TOOL_NAMES:
+        recommendation_arguments = _recommendation_arguments(recommendation)
+        task_ref = str(recommendation_arguments.get("task_ref", ""))
+        role_task = _task_for_ref(run_before, task_ref)
+        role_department = _department_for_task_ref(run_before, task_ref)
+        role_request = build_role_work_request(
+            run=run_before,
+            task=role_task,
+            department=role_department,
+            objective=role_task.title,
+            inputs=_role_work_inputs_from_recommendation(recommendation),
+            artifact_refs=_artifact_refs_from_recommendation_arguments(
+                recommendation_arguments
+            ),
+            metadata={
+                "phase_before": phase_before,
+                "selected_tool": recommended_tool,
+            },
+        )
+        role_request_payload = write_role_work_request(
+            clean_workspace_path,
+            role_request,
+        )
         step_result = run_next_local_step(
             run_id=clean_run_id,
             workspace_path=clean_workspace_path,
         )
         run_after = load_company_goal_run(clean_workspace_path, clean_run_id)
         phase_after = detect_goal_phase(run_after)
+        step_result_ref = _result_ref_from_step_result(step_result)
+        role_result = build_role_work_result(
+            request=role_request,
+            status=_role_work_status_from_step_result(step_result),
+            summary=str(step_result.get("reason", "executed recommended local tool")),
+            outputs={
+                "executed_tool": str(step_result.get("executed_tool", "")),
+                "task_ref": _task_ref_from_step_result(step_result),
+            },
+            artifact_refs=(step_result_ref,) if step_result_ref else (),
+            blocker_summary=str(step_result.get("reason", ""))
+            if bool(step_result.get("blocked", False))
+            else "",
+            metadata={
+                "phase_after": phase_after,
+                "selected_tool": recommended_tool,
+            },
+        )
+        role_result_payload = write_role_work_result(
+            clean_workspace_path,
+            role_result,
+        )
+        role_work_metadata = _role_work_metadata(
+            request_payload=role_request_payload,
+            result_payload=role_result_payload,
+        )
         next_recommendation = recommend_next_tool_call(
             run_id=clean_run_id,
             workspace_path=clean_workspace_path,
@@ -405,7 +457,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
                 action_type="local_step_executed",
                 phase_before=phase_before,
                 selected_tool="run_next_local_step",
-                result_ref=_result_ref_from_step_result(step_result),
+                result_ref=step_result_ref,
             ),
             run_id=clean_run_id,
             supervisor_id=supervisor_id_for(clean_run_id),
@@ -416,15 +468,22 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             delegated_role=_delegated_role_for_local_tool(recommended_tool),
             reason=str(step_result.get("reason", "executed recommended local tool")),
             recommendation=recommendation,
-            result_ref=_result_ref_from_step_result(step_result),
+            result_ref=step_result_ref,
             requires_approval=False,
             approval_request={},
             next_recommendation=next_recommendation,
             status_counts=dict(Counter(task.status for task in run_after.tasks)),
+            metadata=role_work_metadata,
         )
         response = {
             **write_supervisor_turn(clean_workspace_path, turn),
             "execution": step_result,
+            "role_work_request": role_request_payload,
+            "role_work_result": role_result_payload,
+            "role_work_request_ref": role_request_payload["request_ref"],
+            "role_work_request_path": role_request_payload["request_path"],
+            "role_work_result_ref": role_result_payload["result_ref"],
+            "role_work_result_path": role_result_payload["result_path"],
         }
         return _attach_operational_record(
             response=response,
@@ -433,7 +492,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             phase=phase_before,
             action_type="local_step_executed",
             task_ref=_task_ref_from_step_result(step_result),
-            artifact_refs=(_result_ref_from_step_result(step_result),),
+            artifact_refs=(step_result_ref,),
             reason=str(step_result.get("reason", "executed recommended local tool")),
             recommendation=next_recommendation,
         )
@@ -899,6 +958,14 @@ def _task_for_category(run: CompanyGoalRun, category: str) -> TaskState:
     raise WorkroomStateError(f"{category} task state not found")
 
 
+def _task_for_ref(run: CompanyGoalRun, task_ref: str) -> TaskState:
+    clean_task_ref = _required_text("task_ref", task_ref)
+    for task in run.tasks:
+        if task.task_ref == clean_task_ref:
+            return task
+    raise WorkroomStateError(f"task state not found: {clean_task_ref}")
+
+
 def _result_ref_for_kind(run: CompanyGoalRun, kind: str) -> str | None:
     for task in run.tasks:
         for ref in task.result_refs:
@@ -981,6 +1048,60 @@ def _recommendation_arguments(recommendation: dict[str, object]) -> dict[str, ob
     if not isinstance(arguments, dict):
         raise WorkroomStateError("recommended tool arguments are invalid")
     return arguments
+
+
+def _role_work_inputs_from_recommendation(
+    recommendation: dict[str, object],
+) -> dict[str, object]:
+    arguments = _recommendation_arguments(recommendation)
+    return {
+        "recommended_tool": str(recommendation.get("recommended_tool", "")),
+        "arguments": {
+            key: value
+            for key, value in arguments.items()
+            if key != "workspace_path"
+        },
+        "reason": str(recommendation.get("reason", "")),
+    }
+
+
+def _artifact_refs_from_recommendation_arguments(
+    arguments: Mapping[str, object],
+) -> tuple[str, ...]:
+    refs: list[str] = []
+    for value in arguments.values():
+        if isinstance(value, str) and value.startswith("workroom-artifact://"):
+            refs.append(value)
+    return tuple(refs)
+
+
+def _role_work_status_from_step_result(step_result: dict[str, object]) -> str:
+    if bool(step_result.get("blocked", False)):
+        return "blocked"
+    if bool(step_result.get("executed", False)):
+        return "completed"
+    return "skipped"
+
+
+def _role_work_metadata(
+    *,
+    request_payload: Mapping[str, object],
+    result_payload: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "role_work_request_ref": request_payload["request_ref"],
+        "role_work_request_path": request_payload["request_path"],
+        "role_work_result_ref": result_payload["result_ref"],
+        "role_work_result_path": result_payload["result_path"],
+        "role_work": {
+            "request_id": request_payload["request_id"],
+            "result_id": result_payload["result_id"],
+            "task_ref": result_payload["task_ref"],
+            "role_id": result_payload["role_id"],
+            "status": result_payload["status"],
+            "artifact_refs": result_payload["artifact_refs"],
+        },
+    }
 
 
 def _delegated_role_for_local_tool(tool_name: str) -> str:
