@@ -133,6 +133,11 @@ These milestones are complete enough to be treated as foundation:
     read-only MCP/session tools that distinguish completed local work,
     approval-gated work, blockers, and recommended next actions.
 
+18. MCP Usability and Configuration v1.
+    Codex can discover Workroom's MCP tool order, phases, mutation level, risk
+    labels, recommended routing, and explicit ledger/workspace config status
+    through read-only manifest and config-check tools.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -257,7 +262,7 @@ Exit criteria:
 
 ### 8. MCP Usability and Configuration v1
 
-Status: Next.
+Status: Done.
 
 Goal: make Workroom easy for Codex to use as an external MCP tool without
 turning it into a standalone CLI product.
@@ -284,12 +289,6 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-The next implementation milestone is:
-
-```text
-MCP Usability and Configuration v1
-```
-
-Before implementing it, create an implementation plan under `docs/plans/`.
-Keep the work bounded to Codex-facing MCP setup, configuration, and response
-ergonomics; do not add hidden schedulers, loops, or unapproved external effects.
+Select the next bounded Workroom milestone from live repository truth, then
+create design and implementation plans under `docs/plans/` before changing
+runtime behavior.

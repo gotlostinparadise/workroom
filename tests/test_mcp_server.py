@@ -27,6 +27,8 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "replay_company_goal_run",
                 "audit_company_goal_run",
                 "evaluate_company_goal_run",
+                "get_mcp_tool_manifest",
+                "check_workroom_mcp_config",
             ),
             mcp_server.TOOL_NAMES,
         )

@@ -57,6 +57,16 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("audit_company_goal_run", agency_workroom.__all__)
         self.assertIn("evaluate_company_goal_run", agency_workroom.__all__)
 
+    def test_mcp_manifest_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.workroom_mcp_tool_manifest))
+        self.assertTrue(callable(agency_workroom.validate_workroom_mcp_config))
+        self.assertTrue(callable(agency_workroom.get_mcp_tool_manifest))
+        self.assertTrue(callable(agency_workroom.check_workroom_mcp_config))
+        self.assertIn("workroom_mcp_tool_manifest", agency_workroom.__all__)
+        self.assertIn("validate_workroom_mcp_config", agency_workroom.__all__)
+        self.assertIn("get_mcp_tool_manifest", agency_workroom.__all__)
+        self.assertIn("check_workroom_mcp_config", agency_workroom.__all__)
+
 
 if __name__ == "__main__":
     unittest.main()

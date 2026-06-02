@@ -67,6 +67,32 @@ The MCP tools are agent-facing:
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
+- `get_mcp_tool_manifest`
+- `check_workroom_mcp_config`
+
+For Codex, configure Workroom as a local stdio MCP server. The supported shape
+uses Codex `config.toml` MCP server settings:
+
+```toml
+[mcp_servers.workroom]
+command = "python"
+args = ["-m", "agency_workroom.mcp_server"]
+cwd = "/absolute/path/to/Workroom"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+```
+
+Codex can read MCP configuration from user config or trusted project config.
+Keep secrets out of static config values. If environment forwarding is ever
+needed, use Codex MCP environment forwarding instead of writing secret values
+into this repository.
+
+Recommended first calls:
+
+1. `get_mcp_tool_manifest`
+2. `check_workroom_mcp_config` with absolute ledger/workspace paths whose
+   parent directories already exist
+3. `start_company_goal`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or

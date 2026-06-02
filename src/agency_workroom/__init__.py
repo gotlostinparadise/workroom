@@ -11,6 +11,7 @@ from .agent_session import (
     RELEASE_CHECKLIST_ARTIFACT_PREFIX,
     advance_company_goal,
     audit_company_goal_run,
+    check_workroom_mcp_config,
     create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
@@ -18,6 +19,7 @@ from .agent_session import (
     execute_github_pages_deploy,
     evaluate_company_goal_run,
     get_company_state,
+    get_mcp_tool_manifest,
     list_next_actions,
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
@@ -33,6 +35,10 @@ from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
     replay_company_goal_run_files,
+)
+from .mcp_manifest import (
+    validate_workroom_mcp_config,
+    workroom_mcp_tool_manifest,
 )
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .company_specs import (
@@ -148,6 +154,7 @@ __all__ = [
     "audit_company_goal_run",
     "audit_company_goal_run_files",
     "business_validation_company_spec",
+    "check_workroom_mcp_config",
     "create_goal_run_report",
     "build_role_work_request",
     "build_role_work_result",
@@ -161,6 +168,7 @@ __all__ = [
     "evaluate_company_goal_run_files",
     "get_company_spec",
     "get_company_state",
+    "get_mcp_tool_manifest",
     "list_company_specs",
     "list_next_actions",
     "load_company_goal_run",
@@ -183,6 +191,8 @@ __all__ = [
     "start_company_run",
     "start_company_goal",
     "summarize_run",
+    "validate_workroom_mcp_config",
+    "workroom_mcp_tool_manifest",
     "write_role_work_request",
     "write_role_work_result",
 ]

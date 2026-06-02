@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import json
 import subprocess
 import tempfile
@@ -12,12 +13,14 @@ from agency_workroom import (
     WorkroomKernelGateway,
     advance_company_goal,
     audit_company_goal_run,
+    check_workroom_mcp_config,
     create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     execute_github_pages_deploy,
     evaluate_company_goal_run,
     get_company_state,
+    get_mcp_tool_manifest,
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     record_work_result,
@@ -27,6 +30,7 @@ from agency_workroom import (
     start_company_goal,
     summarize_run,
 )
+from agency_workroom import mcp_server
 from agency_workroom.models import WorkflowRequest
 from agency_workroom.session_store import load_company_goal_run
 from agency_workroom.supervisor import build_supervisor_snapshot
@@ -114,6 +118,36 @@ class WorkroomIntegrationTests(unittest.TestCase):
         self.assertEqual(ledger_before, ledger_after)
         self.assertEqual(workspace_before, workspace_after)
         return recommendation
+
+    def test_mcp_manifest_and_config_check_are_available_and_read_only(self) -> None:
+        root = self.temp_root()
+        ledger_path = root / "private-ledger.jsonl"
+        workspace_path = root / "private-workspace"
+
+        manifest = get_mcp_tool_manifest()
+        config = check_workroom_mcp_config(
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        fastmcp_tools = asyncio.run(mcp_server.mcp.list_tools())
+
+        self.assertEqual(
+            mcp_server.TOOL_NAMES,
+            tuple(tool["name"] for tool in manifest["tools"]),
+        )
+        self.assertEqual(
+            mcp_server.TOOL_NAMES,
+            tuple(tool.name for tool in fastmcp_tools),
+        )
+        self.assertTrue(config["ok"])
+        self.assertEqual([], config["issues"])
+        self.assertFalse(config["writes_files"])
+        self.assertFalse(config["creates_directories"])
+        self.assertFalse(config["calls_external_services"])
+        self.assertFalse(ledger_path.exists())
+        self.assertFalse(workspace_path.exists())
+        self.assertEqual((), self.workspace_file_snapshot(workspace_path))
+        self.assertNotIn(str(root), repr(config))
 
     def test_workroom_creates_work_item_through_external_kernel_authority_path(self) -> None:
         assert_external_kernel_dependency(self)

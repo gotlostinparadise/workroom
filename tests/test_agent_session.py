@@ -15,12 +15,14 @@ from agency_workroom.company_registry import get_company_spec
 from agency_workroom.agent_session import (
     advance_company_goal,
     audit_company_goal_run,
+    check_workroom_mcp_config,
     create_goal_run_report,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
     evaluate_company_goal_run,
     get_company_state,
+    get_mcp_tool_manifest,
     list_next_actions,
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
@@ -145,6 +147,35 @@ class AgentSessionTests(unittest.TestCase):
 
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("private goal payload", ledger_text)
+
+    def test_mcp_manifest_and_config_check_are_read_only(self) -> None:
+        root = self.temp_root()
+        ledger_path = root / "private-kernel.jsonl"
+        workspace_path = root / "private-workspace"
+
+        manifest = get_mcp_tool_manifest()
+        config = check_workroom_mcp_config(
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("workroom-mcp-tool-manifest.v1", manifest["schema_version"])
+        self.assertIn(
+            "get_mcp_tool_manifest",
+            [tool["name"] for tool in manifest["tools"]],
+        )
+        self.assertIn(
+            "check_workroom_mcp_config",
+            [tool["name"] for tool in manifest["tools"]],
+        )
+        self.assertEqual("workroom-mcp-config-check.v1", config["schema_version"])
+        self.assertTrue(config["ok"])
+        self.assertFalse(config["writes_files"])
+        self.assertFalse(config["creates_directories"])
+        self.assertFalse(config["calls_external_services"])
+        self.assertFalse(ledger_path.exists())
+        self.assertFalse(workspace_path.exists())
+        self.assertNotIn(str(root), repr(config))
 
     def test_start_company_run_accepts_generic_company_spec(self) -> None:
         assert_external_kernel_dependency(self)

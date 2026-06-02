@@ -25,6 +25,10 @@ from .company_registry import DEFAULT_COMPANY_SPEC_ID, default_company_spec
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
+from .mcp_manifest import (
+    validate_workroom_mcp_config,
+    workroom_mcp_tool_manifest,
+)
 from .models import (
     CompanyGoalRun,
     CompanySpec,
@@ -1084,6 +1088,21 @@ def evaluate_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, 
     )
 
 
+def get_mcp_tool_manifest() -> dict[str, object]:
+    return workroom_mcp_tool_manifest()
+
+
+def check_workroom_mcp_config(
+    *,
+    ledger_path: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    return validate_workroom_mcp_config(
+        ledger_path=ledger_path,
+        workspace_path=workspace_path,
+    )
+
+
 def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WorkroomModelError(f"{name} is required")
@@ -1718,6 +1737,7 @@ __all__ = [
     "execute_github_pages_deploy",
     "evaluate_company_goal_run",
     "get_company_state",
+    "get_mcp_tool_manifest",
     "list_next_actions",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
@@ -1725,6 +1745,7 @@ __all__ = [
     "recommend_next_tool_call",
     "replay_company_goal_run",
     "run_next_local_step",
+    "check_workroom_mcp_config",
     "start_company_run",
     "start_company_goal",
     "summarize_run",

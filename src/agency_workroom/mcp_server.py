@@ -24,6 +24,8 @@ TOOL_NAMES = (
     "replay_company_goal_run",
     "audit_company_goal_run",
     "evaluate_company_goal_run",
+    "get_mcp_tool_manifest",
+    "check_workroom_mcp_config",
 )
 
 
@@ -241,6 +243,24 @@ def evaluate_company_goal_run(run_id: str, workspace_path: str) -> dict[str, obj
     )
 
 
+@mcp.tool()
+def get_mcp_tool_manifest() -> dict[str, object]:
+    """Return Workroom MCP tool metadata for Codex routing."""
+    return agent_session.get_mcp_tool_manifest()
+
+
+@mcp.tool()
+def check_workroom_mcp_config(
+    ledger_path: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Validate explicit Workroom MCP ledger/workspace path configuration."""
+    return agent_session.check_workroom_mcp_config(
+        ledger_path=ledger_path,
+        workspace_path=workspace_path,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -257,6 +277,7 @@ __all__ = [
     "create_goal_run_report",
     "execute_github_pages_deploy",
     "get_company_state",
+    "get_mcp_tool_manifest",
     "list_next_actions",
     "main",
     "mcp",
@@ -265,6 +286,7 @@ __all__ = [
     "recommend_next_tool_call",
     "record_work_result",
     "run_next_local_step",
+    "check_workroom_mcp_config",
     "start_company_goal",
     "summarize_run",
 ]
