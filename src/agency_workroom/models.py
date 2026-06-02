@@ -16,6 +16,29 @@ class WorkroomModelError(ValueError):
 
 _COMMIT_PATH_FIELDS = frozenset({"ledger_path", "work_item_path"})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+SUPERVISOR_PHASES = (
+    "local_production",
+    "qa",
+    "deploy_preparation",
+    "approval_required",
+    "blocked",
+    "decision",
+    "promotion_preparation",
+    "complete",
+)
+SUPERVISOR_OUTCOMES = (
+    "local_step",
+    "approval_required",
+    "blocked",
+    "needs_human_decision",
+    "complete",
+)
+SUPERVISOR_LOCAL_STEP_TOOLS = (
+    "create_landing_artifact",
+    "create_landing_qa_report",
+    "prepare_github_pages_deploy_proposal",
+)
+_SUPERVISOR_RECORD_KINDS = frozenset({"none", "handoff", "decision"})
 
 
 def _required_text(name: str, value: str) -> str:
@@ -972,6 +995,91 @@ def _canonical_payload_sha256(payload: Mapping[str, object]) -> str:
 
 
 @dataclass(frozen=True)
+class SupervisorTransition:
+    transition_id: str
+    run_id: str
+    phase_before: str
+    outcome: str
+    action_type: str
+    selected_tool: str
+    delegated_role: str
+    reason: str
+    recommendation: Mapping[str, object]
+    requires_approval: bool
+    record_kind: str
+    task_ref: str
+    result_ref: str = ""
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "transition_id",
+            _required_text("transition_id", self.transition_id),
+        )
+        object.__setattr__(self, "run_id", _required_text("run_id", self.run_id))
+        phase_before = _required_text("phase_before", self.phase_before)
+        if phase_before not in SUPERVISOR_PHASES:
+            raise WorkroomModelError("phase_before must be a known supervisor phase")
+        object.__setattr__(self, "phase_before", phase_before)
+        outcome = _required_text("outcome", self.outcome)
+        if outcome not in SUPERVISOR_OUTCOMES:
+            raise WorkroomModelError("outcome must be a known supervisor outcome")
+        object.__setattr__(self, "outcome", outcome)
+        object.__setattr__(
+            self,
+            "action_type",
+            _required_text("action_type", self.action_type),
+        )
+        if not isinstance(self.selected_tool, str):
+            raise WorkroomModelError("selected_tool must be a string")
+        selected_tool = self.selected_tool.strip()
+        if outcome == "local_step" and selected_tool not in SUPERVISOR_LOCAL_STEP_TOOLS:
+            raise WorkroomModelError("selected_tool is not an allowed local step tool")
+        object.__setattr__(self, "selected_tool", selected_tool)
+        if not isinstance(self.delegated_role, str):
+            raise WorkroomModelError("delegated_role must be a string")
+        object.__setattr__(self, "delegated_role", self.delegated_role.strip())
+        object.__setattr__(self, "reason", _required_text("reason", self.reason))
+        object.__setattr__(self, "recommendation", _metadata_copy(self.recommendation))
+        if not isinstance(self.requires_approval, bool):
+            raise WorkroomModelError("requires_approval must be a bool")
+        if outcome == "approval_required" and self.requires_approval is not True:
+            raise WorkroomModelError("requires_approval is required for approval outcome")
+        object.__setattr__(self, "requires_approval", self.requires_approval)
+        record_kind = _required_text("record_kind", self.record_kind)
+        if record_kind not in _SUPERVISOR_RECORD_KINDS:
+            raise WorkroomModelError("record_kind must be none, handoff, or decision")
+        object.__setattr__(self, "record_kind", record_kind)
+        if not isinstance(self.task_ref, str):
+            raise WorkroomModelError("task_ref must be a string")
+        object.__setattr__(self, "task_ref", self.task_ref.strip())
+        if not isinstance(self.result_ref, str):
+            raise WorkroomModelError("result_ref must be a string")
+        object.__setattr__(self, "result_ref", self.result_ref.strip())
+        object.__setattr__(self, "metadata", _metadata_copy(self.metadata))
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "schema_version": "supervisor-transition.v1",
+            "transition_id": self.transition_id,
+            "run_id": self.run_id,
+            "phase_before": self.phase_before,
+            "outcome": self.outcome,
+            "action_type": self.action_type,
+            "selected_tool": self.selected_tool,
+            "delegated_role": self.delegated_role,
+            "reason": self.reason,
+            "recommendation": _metadata_payload(self.recommendation),
+            "requires_approval": self.requires_approval,
+            "record_kind": self.record_kind,
+            "task_ref": self.task_ref,
+            "result_ref": self.result_ref,
+            "metadata": _metadata_payload(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class SupervisorTurn:
     turn_id: str
     run_id: str
@@ -1368,6 +1476,9 @@ class WorkItemCommit:
 
 
 __all__ = [
+    "SUPERVISOR_LOCAL_STEP_TOOLS",
+    "SUPERVISOR_OUTCOMES",
+    "SUPERVISOR_PHASES",
     "CompanyGoalRun",
     "CompanySpec",
     "CompanyTaskTemplate",
@@ -1382,6 +1493,7 @@ __all__ = [
     "RoleWorkRequest",
     "RoleWorkResult",
     "RunContext",
+    "SupervisorTransition",
     "SupervisorTurn",
     "TeamBlueprint",
     "TeamRole",

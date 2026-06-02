@@ -31,6 +31,8 @@ from .company_registry import (
     list_company_specs,
 )
 from .models import (
+    SUPERVISOR_OUTCOMES,
+    SUPERVISOR_PHASES,
     CompanyGoalRun,
     CompanySpec,
     CompanyTaskTemplate,
@@ -45,6 +47,7 @@ from .models import (
     RoleWorkRequest,
     RoleWorkResult,
     RunContext,
+    SupervisorTransition,
     SupervisorTurn,
     TeamBlueprint,
     TeamRole,
@@ -107,6 +110,9 @@ __all__ = [
     "RoleWorkResult",
     "RunContext",
     "REQUIRED_VALIDATION_ROLES",
+    "SUPERVISOR_OUTCOMES",
+    "SUPERVISOR_PHASES",
+    "SupervisorTransition",
     "SupervisorTurn",
     "TeamBlueprint",
     "TeamRole",

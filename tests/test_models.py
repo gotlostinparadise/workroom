@@ -6,6 +6,8 @@ import math
 import unittest
 
 from agency_workroom.models import (
+    SUPERVISOR_OUTCOMES,
+    SUPERVISOR_PHASES,
     CompanyGoalRun,
     CompanySpec,
     CompanyTaskTemplate,
@@ -20,6 +22,7 @@ from agency_workroom.models import (
     RoleWorkRequest,
     RoleWorkResult,
     RunContext,
+    SupervisorTransition,
     SupervisorTurn,
     TeamBlueprint,
     TeamRole,
@@ -562,6 +565,151 @@ class SupervisorTurnModelTests(unittest.TestCase):
                 approval_request={},
                 next_recommendation={},
                 status_counts={},
+            )
+
+
+class SupervisorTransitionModelTests(unittest.TestCase):
+    def test_allowed_phase_and_outcome_constants_are_stable(self) -> None:
+        self.assertEqual(
+            (
+                "local_production",
+                "qa",
+                "deploy_preparation",
+                "approval_required",
+                "blocked",
+                "decision",
+                "promotion_preparation",
+                "complete",
+            ),
+            SUPERVISOR_PHASES,
+        )
+        self.assertEqual(
+            (
+                "local_step",
+                "approval_required",
+                "blocked",
+                "needs_human_decision",
+                "complete",
+            ),
+            SUPERVISOR_OUTCOMES,
+        )
+
+    def test_supervisor_transition_payload_is_stable_and_copies_metadata(self) -> None:
+        recommendation = {
+            "recommended_tool": "create_landing_artifact",
+            "arguments": {"task_ref": "workroom-item://landing"},
+        }
+        metadata = {"expected": {"record_kind": "handoff"}}
+
+        transition = SupervisorTransition(
+            transition_id="transition_abc",
+            run_id="run_abc",
+            phase_before="local_production",
+            outcome="local_step",
+            action_type="local_step_executed",
+            selected_tool="create_landing_artifact",
+            delegated_role="landing_builder",
+            reason="landing page task is ready",
+            recommendation=recommendation,
+            requires_approval=False,
+            record_kind="handoff",
+            task_ref="workroom-item://landing",
+            result_ref="",
+            metadata=metadata,
+        )
+        recommendation["arguments"]["task_ref"] = "changed"
+        metadata["expected"]["record_kind"] = "changed"
+
+        self.assertEqual(
+            {
+                "schema_version": "supervisor-transition.v1",
+                "transition_id": "transition_abc",
+                "run_id": "run_abc",
+                "phase_before": "local_production",
+                "outcome": "local_step",
+                "action_type": "local_step_executed",
+                "selected_tool": "create_landing_artifact",
+                "delegated_role": "landing_builder",
+                "reason": "landing page task is ready",
+                "recommendation": {
+                    "recommended_tool": "create_landing_artifact",
+                    "arguments": {"task_ref": "workroom-item://landing"},
+                },
+                "requires_approval": False,
+                "record_kind": "handoff",
+                "task_ref": "workroom-item://landing",
+                "result_ref": "",
+                "metadata": {"expected": {"record_kind": "handoff"}},
+            },
+            transition.to_payload(),
+        )
+
+    def test_supervisor_transition_rejects_unknown_phase(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "phase_before"):
+            SupervisorTransition(
+                transition_id="transition_abc",
+                run_id="run_abc",
+                phase_before="unknown",
+                outcome="local_step",
+                action_type="local_step_executed",
+                selected_tool="create_landing_artifact",
+                delegated_role="landing_builder",
+                reason="landing page task is ready",
+                recommendation={},
+                requires_approval=False,
+                record_kind="handoff",
+                task_ref="workroom-item://landing",
+            )
+
+    def test_supervisor_transition_rejects_unknown_outcome(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "outcome"):
+            SupervisorTransition(
+                transition_id="transition_abc",
+                run_id="run_abc",
+                phase_before="local_production",
+                outcome="unknown",
+                action_type="local_step_executed",
+                selected_tool="create_landing_artifact",
+                delegated_role="landing_builder",
+                reason="landing page task is ready",
+                recommendation={},
+                requires_approval=False,
+                record_kind="handoff",
+                task_ref="workroom-item://landing",
+            )
+
+    def test_supervisor_transition_rejects_disallowed_local_step_tool(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "selected_tool"):
+            SupervisorTransition(
+                transition_id="transition_abc",
+                run_id="run_abc",
+                phase_before="local_production",
+                outcome="local_step",
+                action_type="local_step_executed",
+                selected_tool="execute_github_pages_deploy",
+                delegated_role="devops_operator",
+                reason="not allowed",
+                recommendation={},
+                requires_approval=False,
+                record_kind="handoff",
+                task_ref="workroom-item://github-pages",
+            )
+
+    def test_supervisor_transition_requires_approval_flag_for_approval_outcome(self) -> None:
+        with self.assertRaisesRegex(WorkroomModelError, "requires_approval"):
+            SupervisorTransition(
+                transition_id="transition_abc",
+                run_id="run_abc",
+                phase_before="approval_required",
+                outcome="approval_required",
+                action_type="approval_required",
+                selected_tool="prepare_github_pages_deploy_execution_plan",
+                delegated_role="devops_operator",
+                reason="approval required",
+                recommendation={},
+                requires_approval=False,
+                record_kind="decision",
+                task_ref="workroom-item://github-pages",
             )
 
 

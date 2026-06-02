@@ -27,6 +27,11 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.write_role_work_request))
         self.assertTrue(callable(agency_workroom.write_role_work_result))
 
+    def test_supervisor_state_machine_models_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.SupervisorTransition))
+        self.assertIn("local_production", agency_workroom.SUPERVISOR_PHASES)
+        self.assertIn("local_step", agency_workroom.SUPERVISOR_OUTCOMES)
+
 
 if __name__ == "__main__":
     unittest.main()
