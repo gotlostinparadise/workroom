@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v30.
+Status: Canonical plan v31.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -289,6 +289,12 @@ These milestones are complete enough to be treated as foundation:
     Design Review, Implementation Planning, Implementation Plan Quality, and
     Verification Orchestration into a repeatable Codex operating sequence with
     required context keys, inspection tools, and evidence-chain tools.
+
+46. Runbook Context Transfer v1.
+    Workroom can write a local context-transfer JSON/Markdown artifact from a
+    source company run to a target company spec, preserving source evidence
+    refs and returning a reviewable `start_company_goal` context scaffold
+    without starting the target company automatically.
 
 ## Milestone Plan
 
@@ -1118,6 +1124,33 @@ Exit criteria:
   implementation execution, verification execution, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 36. Runbook Context Transfer v1
+
+Status: Done.
+
+Goal: help Codex move from one runbook company stage to the next by writing a
+durable local handoff artifact and target-company context scaffold.
+
+Exit criteria:
+
+- `create_runbook_context_transfer` accepts `source_run_id`,
+  `target_company_spec_id`, and `workspace_path`.
+- The tool writes `runbook_context_transfer_<target>.json` and Markdown files
+  under `runs/<source_run_id>/reports/`.
+- The payload uses schema `runbook-context-transfer.v1`.
+- The payload includes source run metadata, target company spec metadata,
+  target required context variables, deduplicated source evidence refs, a
+  `context_scaffold`, and `recommended_start_arguments`.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required source run, target company spec, and workspace arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation, and
+  runbook listing behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation outside
+  local Workroom report files, approval, implementation execution,
+  verification execution, deploys, pushes, posts, external API calls, or new
+  external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1135,8 +1168,9 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as guided context-transfer artifacts between runbook
-stages or a practical runbook example that shows one full design -> planning ->
-quality -> verification operating sequence. Only add more infrastructure first
-if live repo truth shows it is the safer prerequisite. Preserve the no-loop,
-no-external-effect, Kernel-boundary floor.
+complex Codex work, such as a practical runbook example or operating packet
+that shows one full design -> planning -> quality -> verification sequence
+using runbook listing, context transfer, evidence-chain reporting, and
+continuation planning. Only add more infrastructure first if live repo truth
+shows it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

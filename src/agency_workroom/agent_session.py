@@ -14,6 +14,7 @@ from .company_evidence_chain import create_company_evidence_chain_report_files
 from .company_runbooks import list_company_runbook_templates
 from .cross_role_brief import create_cross_role_run_brief_files
 from .cross_role_task_quality import create_cross_role_task_quality_report_files
+from .runbook_context_transfer import create_runbook_context_transfer_files
 from .devops_operations import (
     DevOpsOperationError,
     execute_github_pages_deploy_plan_files,
@@ -3893,6 +3894,56 @@ def create_company_evidence_chain_report(
     )
 
 
+def create_runbook_context_transfer(
+    *,
+    source_run_id: str,
+    target_company_spec_id: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    clean_source_run_id = _required_text("source_run_id", source_run_id)
+    clean_target_company_spec_id = _required_text(
+        "target_company_spec_id",
+        target_company_spec_id,
+    )
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run = load_company_goal_run(clean_workspace_path, clean_source_run_id)
+    summary = summarize_run(
+        run_id=clean_source_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    recommendation = recommend_next_tool_call(
+        run_id=clean_source_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    replay = replay_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        recommendation=recommendation,
+    )
+    audit = audit_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        replay=replay,
+    )
+    evaluation = evaluate_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        summary=summary,
+        recommendation=recommendation,
+    )
+    return create_runbook_context_transfer_files(
+        workspace_path=clean_workspace_path,
+        source_run=run,
+        target_company_spec_id=clean_target_company_spec_id,
+        inspection={
+            "summary": summary,
+            "recommendation": recommendation,
+            "replay": replay,
+            "audit": audit,
+            "evaluation": evaluation,
+        },
+    )
+
+
 def recommend_chain_continuation(*, chain_report_path: str) -> dict[str, object]:
     clean_chain_report_path = _required_text("chain_report_path", chain_report_path)
     return recommend_chain_continuation_from_report_path(clean_chain_report_path)
@@ -6152,6 +6203,7 @@ __all__ = [
     "create_delivery_execution_plan_artifact",
     "create_cross_role_run_brief",
     "create_cross_role_task_quality_report",
+    "create_runbook_context_transfer",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

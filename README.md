@@ -90,6 +90,7 @@ The MCP tools are agent-facing:
 - `create_cross_role_task_quality_report`
 - `create_company_evidence_chain_report`
 - `recommend_chain_continuation`
+- `create_runbook_context_transfer`
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
@@ -388,6 +389,15 @@ variables, inspection tools, and evidence-chain tools. The runbook is guidance
 only: it does not start companies, advance runs, execute local steps, mutate
 project files, deploy, push, post, call external APIs, or start background
 workers.
+
+`create_runbook_context_transfer` writes a local JSON and Markdown handoff
+artifact under `runs/<source_run_id>/reports/` for moving from one runbook
+stage to another. Codex passes `source_run_id`, `target_company_spec_id`, and
+`workspace_path`; Workroom collects source run evidence refs and returns a
+reviewable `start_company_goal` context scaffold for the target company. It
+does not start the target company, advance runs, approve decisions, execute
+local steps, mutate project files outside the Workroom report path, deploy,
+push, post, call external APIs, or start background workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a

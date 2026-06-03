@@ -20,6 +20,7 @@ from agency_workroom.agent_session import (
     create_company_evidence_chain_report,
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
+    create_runbook_context_transfer,
     create_architecture_brief_artifact,
     create_design_critique_artifact,
     create_design_risk_report_artifact,
@@ -5219,6 +5220,37 @@ class AgentSessionTests(unittest.TestCase):
             "implementation_planning",
             recommendation["arguments"]["company_spec_id"],
         )
+
+    def test_create_runbook_context_transfer_writes_local_handoff_artifact(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_design_review_run(root)
+        before_state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        transfer = create_runbook_context_transfer(
+            source_run_id=started["run_id"],
+            target_company_spec_id="implementation_planning",
+            workspace_path=str(workspace_path),
+        )
+        after_state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("runbook-context-transfer.v1", transfer["schema_version"])
+        self.assertEqual(started["run_id"], transfer["source_run_id"])
+        self.assertEqual(
+            "implementation_planning",
+            transfer["target_company_spec_id"],
+        )
+        self.assertTrue(Path(transfer["transfer_path"]).exists())
+        self.assertTrue(Path(transfer["markdown_path"]).exists())
+        self.assertEqual(before_state["tasks"], after_state["tasks"])
 
     def test_replay_audit_and_evaluate_company_goal_run_are_read_only(self) -> None:
         assert_external_kernel_dependency(self)
