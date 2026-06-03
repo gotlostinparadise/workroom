@@ -411,10 +411,20 @@ def _audit_findings(
         )
     return sorted(
         findings,
-        key=lambda item: (
-            str(item.get("severity", "")),
-            str(item.get("code", "")),
-        ),
+        key=_finding_sort_key,
+    )
+
+
+def _finding_sort_key(finding: Mapping[str, object]) -> tuple[int, str]:
+    severity_order = {
+        "error": 0,
+        "warning": 1,
+        "info": 2,
+    }
+    severity = str(finding.get("severity", ""))
+    return (
+        severity_order.get(severity, 3),
+        str(finding.get("code", "")),
     )
 
 

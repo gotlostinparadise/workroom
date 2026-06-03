@@ -332,6 +332,37 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             markdown,
         )
 
+    def test_audit_finding_sort_order_keeps_warnings_above_info(self) -> None:
+        findings = sorted(
+            [
+                {
+                    "severity": "info",
+                    "code": "operator_note",
+                    "message": "informational operator note",
+                },
+                {
+                    "severity": "warning",
+                    "code": "run_ids_mismatch",
+                    "message": "release-smoke run IDs do not match requested run IDs",
+                },
+                {
+                    "severity": "error",
+                    "code": "package_identity_mismatch",
+                    "message": "package identity is not agency-workroom",
+                },
+            ],
+            key=release_candidate_audit._finding_sort_key,
+        )
+
+        self.assertEqual(
+            [
+                "package_identity_mismatch",
+                "run_ids_mismatch",
+                "operator_note",
+            ],
+            [finding["code"] for finding in findings],
+        )
+
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")
 

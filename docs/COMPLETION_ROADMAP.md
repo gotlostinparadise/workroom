@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v48.
+Status: Canonical plan v49.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -390,6 +390,10 @@ These milestones are complete enough to be treated as foundation:
     The human-facing release-candidate audit Markdown now renders finding
     severity so operators can distinguish warnings from release-blocking
     errors without opening the JSON payload.
+
+64. Release Audit Finding Severity Order v1.
+    Release-candidate audit findings now use an explicit severity order:
+    errors first, warnings second, informational findings third.
 
 ## Milestone Plan
 
@@ -1665,6 +1669,25 @@ Exit criteria:
 - Tests cover Markdown rendering for both error and warning findings.
 - JSON payload shape, audit status behavior, readiness behavior, manual gate
   commands, MCP registration, and package-surface behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 54. Release Audit Finding Severity Order v1
+
+Status: Done.
+
+Goal: keep release-candidate audit findings ordered by release-review priority
+instead of relying on incidental alphabetical severity sorting.
+
+Exit criteria:
+
+- Finding sort order is explicit: `error`, then `warning`, then `info`, then
+  unknown severities.
+- Tests prove warnings sort ahead of informational findings while errors still
+  lead.
+- Existing finding codes, audit status behavior, readiness behavior, Markdown
+  rendering, MCP registration, and package-surface behavior remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
