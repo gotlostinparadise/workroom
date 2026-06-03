@@ -42,6 +42,7 @@ class McpManifestTests(unittest.TestCase):
             "get_mcp_tool_manifest",
             "check_workroom_mcp_config",
             "list_company_specs",
+            "list_company_runbooks",
         ):
             self.assertFalse(tools[name]["mutates_workroom_state"], name)
             self.assertEqual("none", tools[name]["external_effect_risk"], name)
@@ -339,6 +340,18 @@ class McpManifestTests(unittest.TestCase):
             ["create_company_evidence_chain_report"],
             planner_tool["recommended_after"],
         )
+
+    def test_tool_manifest_exposes_company_runbooks_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        runbook_tool = tools["list_company_runbooks"]
+
+        self.assertEqual("setup", runbook_tool["phase"])
+        self.assertFalse(runbook_tool["mutates_workroom_state"])
+        self.assertEqual("none", runbook_tool["external_effect_risk"])
+        self.assertEqual([], runbook_tool["required_arguments"])
+        self.assertEqual([], runbook_tool["optional_arguments"])
+        self.assertEqual(["list_company_specs"], runbook_tool["recommended_after"])
 
     def test_tool_manifest_exposes_implementation_plan_quality_local_tools(self) -> None:
         manifest = workroom_mcp_tool_manifest()

@@ -327,8 +327,12 @@ class PackageImportTests(unittest.TestCase):
     def test_company_spec_option_helper_is_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.list_company_specs))
         self.assertTrue(callable(agency_workroom.list_company_spec_options))
+        self.assertTrue(callable(agency_workroom.list_company_runbooks))
+        self.assertTrue(callable(agency_workroom.list_company_runbook_templates))
         self.assertIn("list_company_specs", agency_workroom.__all__)
         self.assertIn("list_company_spec_options", agency_workroom.__all__)
+        self.assertIn("list_company_runbooks", agency_workroom.__all__)
+        self.assertIn("list_company_runbook_templates", agency_workroom.__all__)
 
 
 if __name__ == "__main__":

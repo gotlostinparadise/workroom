@@ -58,6 +58,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "get_mcp_tool_manifest",
                 "check_workroom_mcp_config",
                 "list_company_specs",
+                "list_company_runbooks",
             ),
             mcp_server.TOOL_NAMES,
         )
@@ -428,6 +429,14 @@ class WorkroomMcpServerTests(unittest.TestCase):
             set(schema["required"]),
         )
         self.assertIn("chain_report_path", schema["properties"])
+
+    def test_company_runbooks_tool_has_no_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        runbook_tool = next(tool for tool in tools if tool.name == "list_company_runbooks")
+        schema = runbook_tool.inputSchema
+
+        self.assertEqual([], schema.get("required", []))
+        self.assertEqual({}, schema["properties"])
 
     def test_release_notes_tool_has_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())

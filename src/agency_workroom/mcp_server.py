@@ -54,6 +54,7 @@ TOOL_NAMES = (
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
     "list_company_specs",
+    "list_company_runbooks",
 )
 
 
@@ -728,6 +729,12 @@ def list_company_specs() -> dict[str, object]:
     return agent_session.list_company_spec_options()
 
 
+@mcp.tool()
+def list_company_runbooks() -> dict[str, object]:
+    """List read-only Workroom multi-company runbook templates for Codex."""
+    return agent_session.list_company_runbooks()
+
+
 def main() -> None:
     mcp.run()
 
@@ -769,6 +776,7 @@ __all__ = [
     "get_company_state",
     "get_mcp_tool_manifest",
     "list_company_specs",
+    "list_company_runbooks",
     "list_next_actions",
     "main",
     "mcp",

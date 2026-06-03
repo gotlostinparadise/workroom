@@ -62,6 +62,7 @@ from .agent_session import (
     evaluate_company_goal_run,
     get_company_state,
     get_mcp_tool_manifest,
+    list_company_runbooks,
     list_company_spec_options,
     list_next_actions,
     prepare_design_review_decision,
@@ -87,6 +88,10 @@ from .chain_continuation import (
     ChainContinuationError,
     recommend_chain_continuation_from_report_path,
     recommend_chain_continuation_from_report_payload,
+)
+from .company_runbooks import (
+    DEFAULT_RUNBOOK_ID,
+    list_company_runbook_templates,
 )
 from .run_inspection import (
     audit_company_goal_run_files,
@@ -219,6 +224,7 @@ __all__ = [
     "CompanySpec",
     "CompanyTaskTemplate",
     "ChainContinuationError",
+    "DEFAULT_RUNBOOK_ID",
     "CompanyWorkflowResult",
     "DEFAULT_COMPANY_SPEC_ID",
     "DEVOPS_OPERATION_PREFIX",
@@ -345,6 +351,8 @@ __all__ = [
     "implementation_planning",
     "implementation_review",
     "is_local_route_tool",
+    "list_company_runbook_templates",
+    "list_company_runbooks",
     "list_company_spec_options",
     "list_company_specs",
     "list_next_actions",

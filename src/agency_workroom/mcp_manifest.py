@@ -29,6 +29,7 @@ _TOOL_ORDER = (
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
     "list_company_specs",
+    "list_company_runbooks",
 )
 
 _READ_ONLY_TOOLS = {
@@ -43,6 +44,7 @@ _READ_ONLY_TOOLS = {
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
     "list_company_specs",
+    "list_company_runbooks",
 }
 
 _HIGH_STAKES_TOOLS = {"execute_github_pages_deploy"}
@@ -231,6 +233,7 @@ _TOOL_ARGUMENTS = {
     "get_mcp_tool_manifest": (),
     "check_workroom_mcp_config": ("ledger_path", "workspace_path"),
     "list_company_specs": (),
+    "list_company_runbooks": (),
 }
 
 _OPTIONAL_TOOL_ARGUMENTS = {
@@ -272,6 +275,7 @@ _RECOMMENDED_AFTER = {
     "evaluate_company_goal_run": ("audit_company_goal_run",),
     "check_workroom_mcp_config": ("get_mcp_tool_manifest",),
     "list_company_specs": ("get_mcp_tool_manifest",),
+    "list_company_runbooks": ("list_company_specs",),
 }
 
 
@@ -387,6 +391,7 @@ def _phase_for_tool(name: str) -> str:
         "get_mcp_tool_manifest",
         "check_workroom_mcp_config",
         "list_company_specs",
+        "list_company_runbooks",
     }:
         return "setup"
     if name in {"start_company_goal", "submit_goal_intake_result"}:

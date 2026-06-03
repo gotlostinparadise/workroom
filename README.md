@@ -96,6 +96,7 @@ The MCP tools are agent-facing:
 - `get_mcp_tool_manifest`
 - `check_workroom_mcp_config`
 - `list_company_specs`
+- `list_company_runbooks`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
 uses Codex `config.toml` MCP server settings:
@@ -120,7 +121,8 @@ Recommended first calls:
 2. `check_workroom_mcp_config` with absolute ledger/workspace paths whose
    parent directories already exist
 3. `list_company_specs`
-4. `start_company_goal`
+4. `list_company_runbooks`
+5. `start_company_goal`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -377,6 +379,15 @@ a `start_company_goal` recommendation with `company_spec_id` and `context_json`
 arguments for the earliest missing stage. The planner itself does not start a
 company, advance runs, approve decisions, execute plans, deploy, post, call
 external APIs, or start background workers.
+
+`list_company_runbooks` is a read-only setup tool for complex Codex work. It
+returns the bundled `complex_codex_delivery` runbook, which maps Design Review,
+Implementation Planning, Implementation Plan Quality, and Verification
+Orchestration into a repeatable company sequence with required context
+variables, inspection tools, and evidence-chain tools. The runbook is guidance
+only: it does not start companies, advance runs, execute local steps, mutate
+project files, deploy, push, post, call external APIs, or start background
+workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a

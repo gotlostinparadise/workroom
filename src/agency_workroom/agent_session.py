@@ -11,6 +11,7 @@ from string import Formatter
 from .chain_continuation import recommend_chain_continuation_from_report_path
 from .company_briefing import compact_company_brief
 from .company_evidence_chain import create_company_evidence_chain_report_files
+from .company_runbooks import list_company_runbook_templates
 from .cross_role_brief import create_cross_role_run_brief_files
 from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .devops_operations import (
@@ -565,6 +566,10 @@ def list_company_spec_options() -> dict[str, object]:
         "creates_directories": False,
         "calls_external_services": False,
     }
+
+
+def list_company_runbooks() -> dict[str, object]:
+    return list_company_runbook_templates()
 
 
 def get_company_state(*, run_id: str, workspace_path: str) -> dict[str, object]:
@@ -6165,6 +6170,7 @@ __all__ = [
     "get_company_state",
     "get_mcp_tool_manifest",
     "list_company_spec_options",
+    "list_company_runbooks",
     "list_next_actions",
     "prepare_design_review_decision",
     "prepare_delivery_review_decision",

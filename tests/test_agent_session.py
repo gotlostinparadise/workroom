@@ -41,6 +41,7 @@ from agency_workroom.agent_session import (
     evaluate_company_goal_run,
     get_company_state,
     get_mcp_tool_manifest,
+    list_company_runbooks,
     list_next_actions,
     prepare_delivery_review_decision,
     prepare_design_review_decision,
@@ -648,6 +649,20 @@ class AgentSessionTests(unittest.TestCase):
             [],
             specs["verification_orchestration"]["optional_context_variables"],
         )
+
+    def test_list_company_runbooks_is_read_only(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        result = list_company_runbooks()
+
+        self.assertEqual("workroom-company-runbook-list.v1", result["schema_version"])
+        self.assertEqual("complex_codex_delivery", result["default_runbook_id"])
+        self.assertFalse(result["mutates_workroom_state"])
+        self.assertFalse(result["starts_companies"])
+        self.assertFalse(result["calls_external_services"])
+        self.assertEqual(1, len(result["runbooks"]))
+        self.assertFalse(workspace_path.exists())
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:
         assert_external_kernel_dependency(self)
