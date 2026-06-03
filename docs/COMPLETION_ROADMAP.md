@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v53.
+Status: Canonical plan v54.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -410,6 +410,10 @@ These milestones are complete enough to be treated as foundation:
 68. Release Audit Package Surface Markdown v1.
     The human-facing release-candidate audit Markdown now renders package
     metadata source, Python requirement, and Kernel dependency details.
+
+69. Release Audit Boundary Markdown v1.
+    The human-facing release-candidate audit Markdown now renders the Kernel
+    boundary and external-effect boundary assertions already present in JSON.
 
 ## Milestone Plan
 
@@ -1789,6 +1793,31 @@ Exit criteria:
 - JSON payload shape, audit status behavior, readiness behavior, finding
   severity ordering, manual gate commands, MCP registration, and
   package-surface calculation remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 59. Release Audit Boundary Markdown v1
+
+Status: Done.
+
+Goal: make release-boundary evidence actionable from the human-facing
+release-candidate audit Markdown without requiring operators to open the JSON
+payload.
+
+Exit criteria:
+
+- Markdown renders the Kernel boundary section.
+- Markdown renders whether Kernel repo changes are expected.
+- Markdown renders whether workflow behavior is expected in Kernel.
+- Markdown renders the Kernel verification instruction.
+- Markdown renders the external-effect boundary section.
+- Markdown renders hidden-loop, implicit-deploy, and external-API-call
+  expectations.
+- Tests cover both generated audit Markdown and direct renderer output.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, export-surface
+  checks, and package-surface calculation remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

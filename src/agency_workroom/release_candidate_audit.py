@@ -577,6 +577,39 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"Distribution scope: "
         f"{_single_line(package_surface.get('distribution_scope', ''))}"
     )
+    kernel_boundary = _mapping(payload.get("kernel_boundary"))
+    lines.extend(["", "## Kernel Boundary", ""])
+    lines.append(
+        "- "
+        f"Kernel repo changes expected: "
+        f"{_single_line(kernel_boundary.get('kernel_repo_changes_expected', False))}"
+    )
+    lines.append(
+        "- "
+        f"Workflow behavior expected in Kernel: "
+        f"{_single_line(kernel_boundary.get('workflow_behavior_expected_in_kernel', False))}"
+    )
+    lines.append(
+        "- "
+        f"Verification: {_single_line(kernel_boundary.get('verification', ''))}"
+    )
+    external_effect_boundary = _mapping(payload.get("external_effect_boundary"))
+    lines.extend(["", "## External Effect Boundary", ""])
+    lines.append(
+        "- "
+        f"Hidden loops expected: "
+        f"{_single_line(external_effect_boundary.get('hidden_loops_expected', False))}"
+    )
+    lines.append(
+        "- "
+        f"Implicit deploys expected: "
+        f"{_single_line(external_effect_boundary.get('implicit_deploys_expected', False))}"
+    )
+    lines.append(
+        "- "
+        f"External API calls expected: "
+        f"{_single_line(external_effect_boundary.get('external_api_calls_expected', False))}"
+    )
     lines.extend(["", "## Manual Gates", ""])
     for gate in _mapping_list(payload.get("manual_verification_gates")):
         lines.append(

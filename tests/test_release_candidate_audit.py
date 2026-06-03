@@ -119,6 +119,15 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Installed metadata readable: False", markdown)
         self.assertIn("Kernel dependency: kernel @ file://", markdown)
         self.assertIn("Kernel dependency mode: absolute_file", markdown)
+        self.assertIn("Kernel repo changes expected: False", markdown)
+        self.assertIn("Workflow behavior expected in Kernel: False", markdown)
+        self.assertIn(
+            "Verification: check Kernel git status before release",
+            markdown,
+        )
+        self.assertIn("Hidden loops expected: False", markdown)
+        self.assertIn("Implicit deploys expected: False", markdown)
+        self.assertIn("External API calls expected: False", markdown)
         self.assertIn(
             "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
             markdown,
@@ -451,6 +460,39 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Pyproject readable: False", markdown)
         self.assertIn("Installed metadata readable: True", markdown)
         self.assertIn("Kernel dependency: kernel @ file:///tmp/Kernel", markdown)
+
+    def test_release_candidate_audit_markdown_renders_boundary_claims(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "audit_status": "ready",
+                "ready_for_release_candidate_review": True,
+                "mcp_surface": {},
+                "export_surface": {},
+                "package_surface": {},
+                "kernel_boundary": {
+                    "kernel_repo_changes_expected": False,
+                    "workflow_behavior_expected_in_kernel": False,
+                    "verification": "check Kernel git status before release",
+                },
+                "external_effect_boundary": {
+                    "hidden_loops_expected": False,
+                    "implicit_deploys_expected": False,
+                    "external_api_calls_expected": False,
+                },
+                "manual_verification_gates": [],
+                "audit_findings": [],
+            }
+        )
+
+        self.assertIn("## Kernel Boundary", markdown)
+        self.assertIn("Kernel repo changes expected: False", markdown)
+        self.assertIn("Workflow behavior expected in Kernel: False", markdown)
+        self.assertIn("Verification: check Kernel git status before release", markdown)
+        self.assertIn("## External Effect Boundary", markdown)
+        self.assertIn("Hidden loops expected: False", markdown)
+        self.assertIn("Implicit deploys expected: False", markdown)
+        self.assertIn("External API calls expected: False", markdown)
 
     def test_audit_finding_sort_order_keeps_warnings_above_info(self) -> None:
         findings = sorted(
