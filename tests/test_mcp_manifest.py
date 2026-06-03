@@ -60,6 +60,9 @@ class McpManifestTests(unittest.TestCase):
             "create_architecture_brief_artifact",
             "create_implementation_plan_artifact",
             "prepare_implementation_plan_review_decision",
+            "create_implementation_plan_quality_report",
+            "create_implementation_plan_risk_register",
+            "prepare_implementation_plan_quality_decision",
             "create_verification_matrix_artifact",
             "create_verification_plan_artifact",
             "prepare_verification_review_decision",
@@ -278,6 +281,50 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["evaluate_company_goal_run"],
             brief_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_implementation_plan_quality_local_tools(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+
+        quality_tool = tools["create_implementation_plan_quality_report"]
+        risk_tool = tools["create_implementation_plan_risk_register"]
+        decision_tool = tools["prepare_implementation_plan_quality_decision"]
+
+        self.assertEqual(
+            ["run_id", "task_ref", "workspace_path"],
+            quality_tool["required_arguments"],
+        )
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "plan_quality_report_ref",
+                "workspace_path",
+            ],
+            risk_tool["required_arguments"],
+        )
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "plan_quality_report_ref",
+                "plan_risk_register_ref",
+                "workspace_path",
+            ],
+            decision_tool["required_arguments"],
+        )
+        self.assertEqual(
+            ["recommend_next_tool_call"],
+            quality_tool["recommended_after"],
+        )
+        self.assertEqual(
+            ["create_implementation_plan_quality_report"],
+            risk_tool["recommended_after"],
+        )
+        self.assertEqual(
+            ["create_implementation_plan_risk_register"],
+            decision_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_release_quality_gate_local_tool(self) -> None:

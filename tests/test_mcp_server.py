@@ -30,6 +30,9 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_architecture_brief_artifact",
                 "create_implementation_plan_artifact",
                 "prepare_implementation_plan_review_decision",
+                "create_implementation_plan_quality_report",
+                "create_implementation_plan_risk_register",
+                "prepare_implementation_plan_quality_decision",
                 "create_verification_matrix_artifact",
                 "create_verification_plan_artifact",
                 "prepare_verification_review_decision",
@@ -226,6 +229,50 @@ class WorkroomMcpServerTests(unittest.TestCase):
             set(review_tool.inputSchema["required"]),
         )
 
+    def test_implementation_plan_quality_tools_have_required_fastmcp_arguments(
+        self,
+    ) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        quality_tool = next(
+            tool
+            for tool in tools
+            if tool.name == "create_implementation_plan_quality_report"
+        )
+        risk_tool = next(
+            tool
+            for tool in tools
+            if tool.name == "create_implementation_plan_risk_register"
+        )
+        decision_tool = next(
+            tool
+            for tool in tools
+            if tool.name == "prepare_implementation_plan_quality_decision"
+        )
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(quality_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "plan_quality_report_ref",
+                "workspace_path",
+            },
+            set(risk_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "plan_quality_report_ref",
+                "plan_risk_register_ref",
+                "workspace_path",
+            },
+            set(decision_tool.inputSchema["required"]),
+        )
+
     def test_design_review_tools_have_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())
         critique_tool = next(
@@ -411,6 +458,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "delivery_planning",
                 "design_review",
                 "growth_brief",
+                "implementation_plan_quality",
                 "implementation_planning",
                 "release_hardening",
                 "verification_orchestration",

@@ -4,6 +4,8 @@ from . import (
     design_review,
     design_review_decision,
     implementation_planning,
+    implementation_plan_quality,
+    implementation_plan_quality_review,
     implementation_review,
     verification_orchestration,
     verification_review,
@@ -21,6 +23,8 @@ from .agent_session import (
     GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX,
     IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX,
     IMPLEMENTATION_PLAN_ARTIFACT_PREFIX,
+    IMPLEMENTATION_PLAN_QUALITY_REPORT_PREFIX,
+    IMPLEMENTATION_PLAN_RISK_REGISTER_PREFIX,
     LANDING_ARTIFACT_PREFIX,
     LANDING_QA_REPORT_PREFIX,
     LOCAL_STEP_TOOL_NAMES,
@@ -43,6 +47,8 @@ from .agent_session import (
     create_growth_brief_artifact,
     create_growth_experiment_plan_artifact,
     create_implementation_plan_artifact,
+    create_implementation_plan_quality_report,
+    create_implementation_plan_risk_register,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -61,6 +67,7 @@ from .agent_session import (
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     prepare_growth_review_decision,
+    prepare_implementation_plan_quality_decision,
     prepare_implementation_plan_review_decision,
     prepare_release_readiness_decision,
     prepare_verification_review_decision,
@@ -89,6 +96,7 @@ from .company_specs import (
     design_review_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
+    implementation_plan_quality_company_spec,
     implementation_planning_company_spec,
     release_hardening_company_spec,
     verification_orchestration_company_spec,
@@ -106,6 +114,13 @@ from .design_review import (
 )
 from .design_review_decision import build_design_review_decision_record
 from .growth_review import build_growth_review_decision_record
+from .implementation_plan_quality import (
+    create_implementation_plan_quality_report_files,
+    create_implementation_plan_risk_register_files,
+)
+from .implementation_plan_quality_review import (
+    build_implementation_plan_quality_decision_record,
+)
 from .implementation_review import build_implementation_plan_review_decision_record
 from .verification_orchestration import (
     create_verification_matrix_artifact_files,
@@ -214,6 +229,8 @@ __all__ = [
     "GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX",
     "IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX",
     "IMPLEMENTATION_PLAN_ARTIFACT_PREFIX",
+    "IMPLEMENTATION_PLAN_QUALITY_REPORT_PREFIX",
+    "IMPLEMENTATION_PLAN_RISK_REGISTER_PREFIX",
     "VERIFICATION_MATRIX_ARTIFACT_PREFIX",
     "VERIFICATION_PLAN_ARTIFACT_PREFIX",
     "GitHubPagesDeployProposal",
@@ -259,6 +276,7 @@ __all__ = [
     "build_design_review_decision_record",
     "build_growth_review_decision_record",
     "build_implementation_plan_review_decision_record",
+    "build_implementation_plan_quality_decision_record",
     "build_verification_review_decision_record",
     "build_local_route_recommendation",
     "build_local_route_recommendation_from_readiness",
@@ -281,6 +299,10 @@ __all__ = [
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
     "create_implementation_plan_artifact",
+    "create_implementation_plan_quality_report",
+    "create_implementation_plan_quality_report_files",
+    "create_implementation_plan_risk_register",
+    "create_implementation_plan_risk_register_files",
     "create_verification_matrix_artifact",
     "create_verification_plan_artifact",
     "create_verification_matrix_artifact_files",
@@ -302,6 +324,7 @@ __all__ = [
     "get_local_route",
     "get_mcp_tool_manifest",
     "growth_brief_company_spec",
+    "implementation_plan_quality_company_spec",
     "verification_orchestration_company_spec",
     "implementation_planning_company_spec",
     "implementation_planning",
@@ -319,6 +342,7 @@ __all__ = [
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "prepare_growth_review_decision",
+    "prepare_implementation_plan_quality_decision",
     "prepare_implementation_plan_review_decision",
     "prepare_verification_review_decision",
     "prepare_release_readiness_decision",

@@ -7,6 +7,7 @@ from agency_workroom.company_specs import (
     design_review_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
+    implementation_plan_quality_company_spec,
     implementation_planning_company_spec,
     release_hardening_company_spec,
     verification_orchestration_company_spec,
@@ -176,6 +177,50 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         self.assertIn("{constraints}", summary_text)
         self.assertIn("{success_criteria}", summary_text)
         self.assertEqual("design_review", spec.metadata["reference_vertical"])
+
+    def test_implementation_plan_quality_company_spec_has_quality_risk_review_sequence(
+        self,
+    ) -> None:
+        spec = implementation_plan_quality_company_spec()
+
+        self.assertEqual("implementation_plan_quality", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Implementation Plan Quality", spec.display_name)
+        self.assertEqual(
+            ["plan_quality_report", "plan_risk_register", "review_decision"],
+            [task.category for task in spec.task_templates],
+        )
+        self.assertEqual(
+            {"quality", "risk", "review"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {
+                "plan_quality_reviewer",
+                "plan_risk_reviewer",
+                "quality_gate_reviewer",
+            },
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertEqual(
+            [
+                "plan_quality_reviewer",
+                "plan_risk_reviewer",
+                "quality_gate_reviewer",
+            ],
+            [task.role_id for task in spec.task_templates],
+        )
+        summary_text = "\n".join(
+            task.summary_template for task in spec.task_templates
+        )
+        self.assertIn("{objective}", summary_text)
+        self.assertIn("{implementation_plan}", summary_text)
+        self.assertIn("{constraints}", summary_text)
+        self.assertIn("{acceptance_criteria}", summary_text)
+        self.assertEqual(
+            "implementation_plan_quality",
+            spec.metadata["reference_vertical"],
+        )
 
     def test_implementation_planning_company_spec_has_planning_review_sequence(
         self,

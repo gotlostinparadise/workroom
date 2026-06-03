@@ -169,6 +169,38 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn("IMPLEMENTATION_PLAN_ARTIFACT_PREFIX", agency_workroom.__all__)
 
+    def test_implementation_plan_quality_company_spec_is_exported_from_package(
+        self,
+    ) -> None:
+        self.assertTrue(
+            callable(agency_workroom.implementation_plan_quality_company_spec)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_implementation_plan_quality_report_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_implementation_plan_risk_register_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.build_implementation_plan_quality_decision_record)
+        )
+        self.assertIn(
+            "implementation_plan_quality_company_spec",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_implementation_plan_quality_report_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_implementation_plan_risk_register_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "build_implementation_plan_quality_decision_record",
+            agency_workroom.__all__,
+        )
+
     def test_verification_orchestration_company_spec_is_exported_from_package(
         self,
     ) -> None:

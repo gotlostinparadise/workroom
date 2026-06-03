@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v25.
+Status: Canonical plan v26.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -258,6 +258,13 @@ These milestones are complete enough to be treated as foundation:
     create local design critique and risk report artifacts followed by a
     prepared local review decision, without approving implementation planning,
     implementing the design, or mutating project files.
+
+41. Implementation Plan Quality Review Company v1.
+    Implementation Plan Quality is registered as the eighth bundled
+    `CompanySpec`. It can create local implementation-plan quality report and
+    risk register artifacts followed by a prepared local review decision,
+    without approving implementation, executing the plan, running shell
+    commands, or mutating project files.
 
 ## Milestone Plan
 
@@ -942,6 +949,42 @@ Exit criteria:
   implementation planning approval, implementation execution, deploys, pushes,
   posts, external API calls, or new external effects are added.
 
+### 31. Implementation Plan Quality Review Company v1
+
+Status: Done.
+
+Goal: let Codex spawn a small local company that reviews an implementation
+plan for TDD quality, risk, and execution readiness before source changes
+begin.
+
+Exit criteria:
+
+- `implementation_plan_quality` is registered as a bundled `CompanySpec`
+  without changing the default Business Validation startup path.
+- `list_company_specs` exposes Implementation Plan Quality and its required
+  context variables: `objective`, `implementation_plan`, `constraints`, and
+  `acceptance_criteria`.
+- `start_company_goal` can start
+  `company_spec_id="implementation_plan_quality"` through the generic run
+  context path.
+- Implementation Plan Quality plans `plan_quality_report` for
+  `plan_quality_reviewer`, `plan_risk_register` for `plan_risk_reviewer`, and
+  `review_decision` for `quality_gate_reviewer`.
+- `recommend_next_tool_call`, `run_next_local_step`, and
+  `advance_company_goal` progress through
+  `create_implementation_plan_quality_report`,
+  `create_implementation_plan_risk_register`, and
+  `prepare_implementation_plan_quality_decision`.
+- The MCP server and manifest expose all three local tools with stable
+  required arguments.
+- Existing Business Validation, Release Hardening, Growth Brief, Delivery
+  Planning, Design Review, Implementation Planning, Verification
+  Orchestration, route registry, run inspection, and reporting behavior
+  remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  implementation execution, deploys, pushes, posts, external API calls, or new
+  external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -959,8 +1002,9 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as implementation-plan quality review, richer
-cross-role task quality review, or another local-only company that improves
-the chain from design to implementation to verification. Only add more
-infrastructure first if live repo truth shows it is the safer prerequisite.
-Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+complex Codex work, such as richer cross-role task quality review, runtime
+integration that connects design-review and implementation-quality evidence,
+or another local-only company that improves the chain from design to
+implementation to verification. Only add more infrastructure first if live repo
+truth shows it is the safer prerequisite. Preserve the no-loop,
+no-external-effect, Kernel-boundary floor.

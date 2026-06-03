@@ -106,6 +106,25 @@ LOCAL_ROUTES = (
         recommended_after=("create_implementation_plan_artifact",),
     ),
     LocalRoute(
+        tool_name="create_implementation_plan_quality_report",
+        delegated_role="plan_quality_reviewer",
+        result_kind="implementation_plan_quality_report",
+        recommended_after=("recommend_next_tool_call",),
+    ),
+    LocalRoute(
+        tool_name="create_implementation_plan_risk_register",
+        delegated_role="plan_risk_reviewer",
+        result_kind="implementation_plan_risk_register",
+        recommended_after=("create_implementation_plan_quality_report",),
+    ),
+    LocalRoute(
+        tool_name="prepare_implementation_plan_quality_decision",
+        delegated_role="quality_gate_reviewer",
+        result_kind="implementation_plan_quality_decision",
+        record_kind="decision",
+        recommended_after=("create_implementation_plan_risk_register",),
+    ),
+    LocalRoute(
         tool_name="create_verification_matrix_artifact",
         delegated_role="verification_strategist",
         result_kind="verification_matrix_artifact",

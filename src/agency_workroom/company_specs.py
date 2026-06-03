@@ -580,6 +580,106 @@ def implementation_planning_company_spec() -> CompanySpec:
     )
 
 
+def implementation_plan_quality_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="implementation_plan_quality_team",
+        departments=(
+            Department(
+                department_id="quality",
+                display_name="Plan Quality Department",
+                purpose="Review implementation plan structure and TDD coverage",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="risk",
+                display_name="Plan Risk Department",
+                purpose="Assess implementation risks, mitigations, and stop rules",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="review",
+                display_name="Review Department",
+                purpose="Prepare local review decisions before plan execution",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="plan_quality_reviewer",
+                display_name="Plan Quality Reviewer",
+                responsibilities="Review implementation plans for TDD execution quality",
+                department_id="quality",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="plan_risk_reviewer",
+                display_name="Plan Risk Reviewer",
+                responsibilities="Prepare implementation risk registers and mitigations",
+                department_id="risk",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="quality_gate_reviewer",
+                display_name="Quality Gate Reviewer",
+                responsibilities="Prepare local review decisions for implementation plans",
+                department_id="review",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="implementation_plan_quality",
+        version="v1",
+        display_name="Implementation Plan Quality",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="plan_quality_reviewer",
+                category="plan_quality_report",
+                title="Prepare implementation plan quality report",
+                summary_template=(
+                    "Review implementation plan '{implementation_plan}' for "
+                    "objective '{objective}' under constraints: {constraints}. "
+                    "Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "implementation_plan_quality_report"},
+            ),
+            CompanyTaskTemplate(
+                role_id="plan_risk_reviewer",
+                category="plan_risk_register",
+                title="Prepare implementation plan risk register",
+                summary_template=(
+                    "Assess implementation risks in plan '{implementation_plan}' "
+                    "for objective '{objective}' under constraints: "
+                    "{constraints}. Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={
+                    "artifact_kind": "implementation_plan_risk_register",
+                    "depends_on": "plan_quality_report",
+                },
+            ),
+            CompanyTaskTemplate(
+                role_id="quality_gate_reviewer",
+                category="review_decision",
+                title="Prepare local implementation quality review decision",
+                summary_template=(
+                    "Prepare a local review decision for implementation plan "
+                    "'{implementation_plan}' and objective '{objective}'. "
+                    "Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "implementation_plan_quality_review"},
+            ),
+        ),
+        metadata={"reference_vertical": "implementation_plan_quality"},
+    )
+
+
 def verification_orchestration_company_spec() -> CompanySpec:
     team = TeamBlueprint(
         name="verification_orchestration_team",
@@ -691,6 +791,7 @@ __all__ = [
     "design_review_company_spec",
     "delivery_planning_company_spec",
     "growth_brief_company_spec",
+    "implementation_plan_quality_company_spec",
     "implementation_planning_company_spec",
     "release_hardening_company_spec",
     "verification_orchestration_company_spec",

@@ -28,6 +28,7 @@ class CompanyRegistryTests(unittest.TestCase):
                 "delivery_planning",
                 "design_review",
                 "growth_brief",
+                "implementation_plan_quality",
                 "implementation_planning",
                 "release_hardening",
                 "verification_orchestration",
@@ -35,7 +36,7 @@ class CompanyRegistryTests(unittest.TestCase):
             [spec["spec_id"] for spec in specs],
         )
         self.assertEqual(
-            ["v1", "v1", "v1", "v1", "v1", "v1", "v1"],
+            ["v1", "v1", "v1", "v1", "v1", "v1", "v1", "v1"],
             [spec["version"] for spec in specs],
         )
 
@@ -80,6 +81,16 @@ class CompanyRegistryTests(unittest.TestCase):
         self.assertEqual("implementation_planning", spec.spec_id)
         self.assertEqual("v1", spec.version)
         self.assertEqual("Implementation Planning", spec.display_name)
+
+    def test_implementation_plan_quality_spec_is_registered_without_changing_default(
+        self,
+    ) -> None:
+        spec = get_company_spec("implementation_plan_quality")
+
+        self.assertEqual("business_validation", DEFAULT_COMPANY_SPEC_ID)
+        self.assertEqual("implementation_plan_quality", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Implementation Plan Quality", spec.display_name)
 
     def test_verification_orchestration_spec_is_registered_without_changing_default(
         self,

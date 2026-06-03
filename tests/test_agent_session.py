@@ -29,6 +29,8 @@ from agency_workroom.agent_session import (
     create_verification_plan_artifact,
     create_growth_brief_artifact,
     create_growth_experiment_plan_artifact,
+    create_implementation_plan_quality_report,
+    create_implementation_plan_risk_register,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -43,6 +45,7 @@ from agency_workroom.agent_session import (
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
     prepare_growth_review_decision,
+    prepare_implementation_plan_quality_decision,
     prepare_implementation_plan_review_decision,
     prepare_verification_review_decision,
     prepare_release_readiness_decision,
@@ -247,6 +250,28 @@ class AgentSessionTests(unittest.TestCase):
                     "objective": "add a private planning capability",
                     "constraints": "local-only, no source mutation during planning",
                     "acceptance_criteria": "Codex has a reviewable TDD plan",
+                }
+            ),
+        )
+        return started, workspace_path
+
+    def started_implementation_quality_run(
+        self,
+        root: Path,
+    ) -> tuple[dict[str, object], Path]:
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Review a private implementation plan before source edits",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="implementation_plan_quality",
+            context_json=json.dumps(
+                {
+                    "objective": "review implementation quality gates",
+                    "implementation_plan": "write tests, implement routes, verify",
+                    "constraints": "local-only, no Kernel source changes",
+                    "acceptance_criteria": "Codex has a quality-reviewed plan",
                 }
             ),
         )
@@ -545,6 +570,7 @@ class AgentSessionTests(unittest.TestCase):
                 "delivery_planning",
                 "design_review",
                 "growth_brief",
+                "implementation_plan_quality",
                 "implementation_planning",
                 "release_hardening",
                 "verification_orchestration",
@@ -592,6 +618,19 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             [],
             specs["implementation_planning"]["optional_context_variables"],
+        )
+        self.assertEqual(
+            [
+                "acceptance_criteria",
+                "constraints",
+                "implementation_plan",
+                "objective",
+            ],
+            specs["implementation_plan_quality"]["required_context_variables"],
+        )
+        self.assertEqual(
+            [],
+            specs["implementation_plan_quality"]["optional_context_variables"],
         )
         self.assertEqual(
             [
@@ -769,6 +808,52 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("add a private planning capability", ledger_text)
         self.assertNotIn("local-only, no source mutation during planning", ledger_text)
+
+    def test_start_company_goal_accepts_registered_implementation_plan_quality_spec(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="Review a private implementation plan before source edits",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="implementation_plan_quality",
+            context_json=json.dumps(
+                {
+                    "objective": "review implementation quality gates",
+                    "implementation_plan": "write tests, implement routes, verify",
+                    "constraints": "local-only, no Kernel source changes",
+                    "acceptance_criteria": "Codex has a quality-reviewed plan",
+                }
+            ),
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("implementation_plan_quality", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual(
+            ["plan_quality_report", "plan_risk_register", "review_decision"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            [
+                "plan_quality_reviewer",
+                "plan_risk_reviewer",
+                "quality_gate_reviewer",
+            ],
+            [task["role_id"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            "review implementation quality gates",
+            response["plan"]["request"]["variables"]["objective"],
+        )
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("review implementation quality gates", ledger_text)
+        self.assertNotIn("write tests, implement routes, verify", ledger_text)
 
     def test_start_company_goal_accepts_registered_verification_orchestration_spec(
         self,
@@ -2577,6 +2662,68 @@ class AgentSessionTests(unittest.TestCase):
             third["arguments"]["implementation_plan_ref"],
         )
 
+    def test_recommend_next_tool_call_progresses_implementation_plan_quality(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_quality_run(root)
+        quality_task = self.task_by_category(started, "plan_quality_report")
+        risk_task = self.task_by_category(started, "plan_risk_register")
+        review_task = self.task_by_category(started, "review_decision")
+
+        first = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        quality = create_implementation_plan_quality_report(
+            run_id=started["run_id"],
+            task_ref=quality_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        risk = create_implementation_plan_risk_register(
+            run_id=started["run_id"],
+            task_ref=risk_task["task_ref"],
+            plan_quality_report_ref=quality["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        third = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "create_implementation_plan_quality_report",
+            first["recommended_tool"],
+        )
+        self.assertEqual(quality_task["task_ref"], first["arguments"]["task_ref"])
+        self.assertEqual(
+            "create_implementation_plan_risk_register",
+            second["recommended_tool"],
+        )
+        self.assertEqual(risk_task["task_ref"], second["arguments"]["task_ref"])
+        self.assertEqual(
+            quality["artifact"]["artifact_ref"],
+            second["arguments"]["plan_quality_report_ref"],
+        )
+        self.assertEqual(
+            "prepare_implementation_plan_quality_decision",
+            third["recommended_tool"],
+        )
+        self.assertEqual(review_task["task_ref"], third["arguments"]["task_ref"])
+        self.assertEqual(
+            quality["artifact"]["artifact_ref"],
+            third["arguments"]["plan_quality_report_ref"],
+        )
+        self.assertEqual(
+            risk["artifact"]["artifact_ref"],
+            third["arguments"]["plan_risk_register_ref"],
+        )
+
     def test_recommend_next_tool_call_progresses_verification_orchestration(
         self,
     ) -> None:
@@ -3570,6 +3717,70 @@ class AgentSessionTests(unittest.TestCase):
             self.task_by_category(state, "review_decision")["status"],
         )
 
+    def test_run_next_local_step_executes_implementation_quality_and_decision(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_quality_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "create_implementation_plan_quality_report",
+            first["executed_tool"],
+        )
+        self.assertTrue(first["result"]["artifact"]["artifact_ref"].endswith(
+            "/implementation_plan_quality_report.md"
+        ))
+        self.assertEqual(
+            "create_implementation_plan_risk_register",
+            second["executed_tool"],
+        )
+        self.assertTrue(second["result"]["artifact"]["artifact_ref"].endswith(
+            "/implementation_plan_risk_register.md"
+        ))
+        self.assertEqual(
+            "prepare_implementation_plan_quality_decision",
+            third["executed_tool"],
+        )
+        self.assertEqual(
+            "implementation_plan_quality_review",
+            third["result"]["decision"]["decision_type"],
+        )
+        self.assertFalse(fourth["executed"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "plan_quality_report")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "plan_risk_register")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
     def test_run_next_local_step_executes_verification_plan_and_review(
         self,
     ) -> None:
@@ -4211,6 +4422,49 @@ class AgentSessionTests(unittest.TestCase):
         self.assertIn("decision", turn)
         self.assertEqual(
             "implementation_plan_review",
+            turn["decision"]["decision_type"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
+    def test_advance_company_goal_executes_implementation_quality_decision_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_quality_run(root)
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("quality_gate_reviewer", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "prepare_implementation_plan_quality_decision",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("decision", turn["transition"]["record_kind"])
+        self.assertIn("decision", turn)
+        self.assertEqual(
+            "implementation_plan_quality_review",
             turn["decision"]["decision_type"],
         )
         self.assertEqual(

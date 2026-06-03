@@ -26,6 +26,9 @@ TOOL_NAMES = (
     "create_architecture_brief_artifact",
     "create_implementation_plan_artifact",
     "prepare_implementation_plan_review_decision",
+    "create_implementation_plan_quality_report",
+    "create_implementation_plan_risk_register",
+    "prepare_implementation_plan_quality_decision",
     "create_verification_matrix_artifact",
     "create_verification_plan_artifact",
     "prepare_verification_review_decision",
@@ -334,6 +337,54 @@ def prepare_implementation_plan_review_decision(
         task_ref=task_ref,
         architecture_brief_ref=architecture_brief_ref,
         implementation_plan_ref=implementation_plan_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_implementation_plan_quality_report(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local quality report for an implementation plan."""
+    return agent_session.create_implementation_plan_quality_report(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_implementation_plan_risk_register(
+    run_id: str,
+    task_ref: str,
+    plan_quality_report_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local risk register from an implementation quality report."""
+    return agent_session.create_implementation_plan_risk_register(
+        run_id=run_id,
+        task_ref=task_ref,
+        plan_quality_report_ref=plan_quality_report_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def prepare_implementation_plan_quality_decision(
+    run_id: str,
+    task_ref: str,
+    plan_quality_report_ref: str,
+    plan_risk_register_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Prepare a local quality gate decision for an implementation plan."""
+    return agent_session.prepare_implementation_plan_quality_decision(
+        run_id=run_id,
+        task_ref=task_ref,
+        plan_quality_report_ref=plan_quality_report_ref,
+        plan_risk_register_ref=plan_risk_register_ref,
         workspace_path=workspace_path,
     )
 

@@ -33,6 +33,9 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_architecture_brief_artifact",
                 "create_implementation_plan_artifact",
                 "prepare_implementation_plan_review_decision",
+                "create_implementation_plan_quality_report",
+                "create_implementation_plan_risk_register",
+                "prepare_implementation_plan_quality_decision",
                 "create_verification_matrix_artifact",
                 "create_verification_plan_artifact",
                 "prepare_verification_review_decision",
@@ -181,6 +184,45 @@ class LocalRouteRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             {
+                "tool_name": "create_implementation_plan_quality_report",
+                "delegated_role": "plan_quality_reviewer",
+                "result_kind": "implementation_plan_quality_report",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["recommend_next_tool_call"],
+                "executor_name": "create_implementation_plan_quality_report",
+            },
+            route_payloads["create_implementation_plan_quality_report"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "create_implementation_plan_risk_register",
+                "delegated_role": "plan_risk_reviewer",
+                "result_kind": "implementation_plan_risk_register",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_implementation_plan_quality_report"],
+                "executor_name": "create_implementation_plan_risk_register",
+            },
+            route_payloads["create_implementation_plan_risk_register"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "prepare_implementation_plan_quality_decision",
+                "delegated_role": "quality_gate_reviewer",
+                "result_kind": "implementation_plan_quality_decision",
+                "record_kind": "decision",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_implementation_plan_risk_register"],
+                "executor_name": "prepare_implementation_plan_quality_decision",
+            },
+            route_payloads["prepare_implementation_plan_quality_decision"],
+        )
+        self.assertEqual(
+            {
                 "tool_name": "create_verification_matrix_artifact",
                 "delegated_role": "verification_strategist",
                 "result_kind": "verification_matrix_artifact",
@@ -275,6 +317,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "prepare_delivery_review_decision",
                 "prepare_design_review_decision",
                 "prepare_growth_review_decision",
+                "prepare_implementation_plan_quality_decision",
                 "prepare_implementation_plan_review_decision",
                 "prepare_release_readiness_decision",
                 "prepare_verification_review_decision",

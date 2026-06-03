@@ -123,6 +123,24 @@ _TOOL_ARGUMENTS = {
         "implementation_plan_ref",
         "workspace_path",
     ),
+    "create_implementation_plan_quality_report": (
+        "run_id",
+        "task_ref",
+        "workspace_path",
+    ),
+    "create_implementation_plan_risk_register": (
+        "run_id",
+        "task_ref",
+        "plan_quality_report_ref",
+        "workspace_path",
+    ),
+    "prepare_implementation_plan_quality_decision": (
+        "run_id",
+        "task_ref",
+        "plan_quality_report_ref",
+        "plan_risk_register_ref",
+        "workspace_path",
+    ),
     "create_verification_matrix_artifact": (
         "run_id",
         "task_ref",

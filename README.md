@@ -68,6 +68,9 @@ The MCP tools are agent-facing:
 - `create_architecture_brief_artifact`
 - `create_implementation_plan_artifact`
 - `prepare_implementation_plan_review_decision`
+- `create_implementation_plan_quality_report`
+- `create_implementation_plan_risk_register`
+- `prepare_implementation_plan_quality_decision`
 - `create_verification_matrix_artifact`
 - `create_verification_plan_artifact`
 - `prepare_verification_review_decision`
@@ -211,6 +214,22 @@ they do not run shell commands, mutate projects, approve implementation
 planning, implement the design, deploy, push, post, call external APIs, or
 start background workers.
 
+Workroom also includes an eighth bundled company spec,
+`implementation_plan_quality`. It uses a plan quality reviewer for a
+`plan_quality_report` task, a plan risk reviewer for a `plan_risk_register`
+task, and a quality gate reviewer for a `review_decision` task. Its required
+context variables are `objective`, `implementation_plan`, `constraints`, and
+`acceptance_criteria`. `recommend_next_tool_call` can recommend
+`create_implementation_plan_quality_report`, then
+`create_implementation_plan_risk_register` after the quality report ref exists,
+then `prepare_implementation_plan_quality_decision` after both quality evidence
+refs exist. `run_next_local_step` or `advance_company_goal` can write local
+`implementation_plan_quality_report.md` and
+`implementation_plan_risk_register.md` artifacts plus a prepared review
+decision record under the run workspace. These routes are local only: they do
+not run shell commands, mutate projects, approve implementation, execute the
+plan, deploy, push, post, call external APIs, or start background workers.
+
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
@@ -253,10 +272,12 @@ preparation for Design Review, market brief and experiment plan artifacts plus
 review decision preparation for Growth Brief, architecture and
 implementation-plan artifacts plus review decision preparation for
 Implementation Planning, verification matrix and verification-plan artifacts
-plus review decision preparation for Verification Orchestration, or release
-checklist, quality gate, release notes, and readiness decision preparation for
-Release Hardening. It does not loop, push to GitHub, post externally, or run
-unapproved tools such as raw result recording.
+plus review decision preparation for Verification Orchestration,
+implementation plan quality report and risk register artifacts plus quality
+decision preparation for Implementation Plan Quality, or release checklist,
+quality gate, release notes, and readiness decision preparation for Release
+Hardening. It does not loop, push to GitHub, post externally, or run unapproved
+tools such as raw result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
@@ -345,13 +366,14 @@ Threads operations, promotion, and team coordination.
 
 Business Validation is the default registered `CompanySpec`. Release
 Hardening, Growth Brief, Delivery Planning, Design Review, Implementation
-Planning, and Verification Orchestration are additional registered specs that
-prove the runtime can start, inspect, recommend, and execute bounded local work
-for companies with different vocabulary, roles, and task sequences. A company
-spec defines the departments, roles, task templates, and metadata that create a
-goal-specific company run. The current reference vertical keeps the
-existing validation behavior, but startup now routes through the generic
-company start contract so future company types can use the same runtime path.
+Planning, Implementation Plan Quality, and Verification Orchestration are
+additional registered specs that prove the runtime can start, inspect,
+recommend, and execute bounded local work for companies with different
+vocabulary, roles, and task sequences. A company spec defines the departments,
+roles, task templates, and metadata that create a goal-specific company run.
+The current reference vertical keeps the existing validation behavior, but
+startup now routes through the generic company start contract so future company
+types can use the same runtime path.
 
 The generic runtime input is `RunContext`: a goal, summary, and template
 variables for the active company spec. `WorkflowRequest` remains the Business
