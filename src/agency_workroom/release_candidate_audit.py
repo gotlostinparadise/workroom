@@ -539,6 +539,7 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     for finding in _mapping_list(payload.get("audit_findings")):
         lines.append(
             "- "
+            f"{_single_line(finding.get('severity', ''))} "
             f"{_single_line(finding.get('code', ''))}: "
             f"{_single_line(finding.get('message', ''))}"
         )

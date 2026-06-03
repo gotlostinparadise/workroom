@@ -17,6 +17,7 @@ Scope:
 - Release-candidate audit required-tool finding code stabilization.
 - Release-candidate audit package-scope readiness gate.
 - Release-candidate audit package-identity readiness gate.
+- Release-candidate audit Markdown finding severity rendering.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -55,6 +56,7 @@ Release-candidate audit result:
 - Distribution scope: `local_editable_checkout`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
+- Markdown findings render `severity`, `code`, and `message`.
 - Manual gates recorded:
   - `source_suite`
   - `fresh_editable_install_suite`
@@ -68,18 +70,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 529 tests in 9.097s
+Ran 530 tests in 8.997s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-package-identity-venv
-python -m venv /tmp/workroom-release-package-identity-venv
-/tmp/workroom-release-package-identity-venv/bin/python -m pip install -e .
-/tmp/workroom-release-package-identity-venv/bin/python -m unittest discover -s tests -v
-Ran 529 tests in 9.043s
+rm -rf /tmp/workroom-release-finding-severity-venv
+python -m venv /tmp/workroom-release-finding-severity-venv
+/tmp/workroom-release-finding-severity-venv/bin/python -m pip install -e .
+/tmp/workroom-release-finding-severity-venv/bin/python -m unittest discover -s tests -v
+Ran 530 tests in 9.021s
 OK
 ```
 

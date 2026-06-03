@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v47.
+Status: Canonical plan v48.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -385,6 +385,11 @@ These milestones are complete enough to be treated as foundation:
 62. Release Audit Package Identity Gate v1.
     The release-candidate audit now blocks readiness when readable package
     metadata does not identify the Workroom distribution as `agency-workroom`.
+
+63. Release Audit Finding Severity Markdown v1.
+    The human-facing release-candidate audit Markdown now renders finding
+    severity so operators can distinguish warnings from release-blocking
+    errors without opening the JSON payload.
 
 ## Milestone Plan
 
@@ -1642,6 +1647,24 @@ Exit criteria:
 - The finding is an error and blocks release-candidate readiness through the
   existing audit-status path.
 - Tests cover the wrong package identity path.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 53. Release Audit Finding Severity Markdown v1
+
+Status: Done.
+
+Goal: make the human-facing release-candidate audit Markdown preserve finding
+severity so operators can distinguish warnings from release-blocking errors
+without opening the JSON payload.
+
+Exit criteria:
+
+- Markdown finding rows include the finding `severity`, `code`, and `message`.
+- Tests cover Markdown rendering for both error and warning findings.
+- JSON payload shape, audit status behavior, readiness behavior, manual gate
+  commands, MCP registration, and package-surface behavior remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

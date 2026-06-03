@@ -287,6 +287,51 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(["package_identity_mismatch"], [findings[0]["code"]])
         self.assertEqual("error", findings[0]["severity"])
 
+    def test_release_candidate_audit_markdown_renders_finding_severity(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "audit_status": "needs_attention",
+                "ready_for_release_candidate_review": False,
+                "mcp_surface": {
+                    "manifest_tool_count": 55,
+                    "server_tool_count": 55,
+                },
+                "export_surface": {
+                    "missing_mcp_tool_exports": [],
+                    "missing_session_public_function_exports": [],
+                },
+                "package_surface": {
+                    "project_name": "agency-workroom",
+                    "project_version": "0.1.0",
+                    "kernel_dependency_mode": "absolute_file",
+                    "distribution_scope": "local_editable_checkout",
+                },
+                "manual_verification_gates": [],
+                "audit_findings": [
+                    {
+                        "severity": "error",
+                        "code": "package_identity_mismatch",
+                        "message": "package identity is not agency-workroom",
+                    },
+                    {
+                        "severity": "warning",
+                        "code": "run_ids_mismatch",
+                        "message": "release-smoke run IDs do not match requested run IDs",
+                    },
+                ],
+            }
+        )
+
+        self.assertIn(
+            "- error package_identity_mismatch: package identity is not agency-workroom",
+            markdown,
+        )
+        self.assertIn(
+            "- warning run_ids_mismatch: release-smoke run IDs do not match requested run IDs",
+            markdown,
+        )
+
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")
 
