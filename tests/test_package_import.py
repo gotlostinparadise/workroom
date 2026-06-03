@@ -258,6 +258,7 @@ class PackageImportTests(unittest.TestCase):
 
     def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.create_company_evidence_chain_report))
+        self.assertTrue(callable(agency_workroom.create_release_candidate_audit))
         self.assertTrue(callable(agency_workroom.create_runbook_context_transfer))
         self.assertTrue(callable(agency_workroom.create_runbook_closeout_packet))
         self.assertTrue(callable(agency_workroom.create_runbook_operating_packet))
@@ -280,6 +281,9 @@ class PackageImportTests(unittest.TestCase):
             callable(agency_workroom.create_company_evidence_chain_report_files)
         )
         self.assertTrue(
+            callable(agency_workroom.create_release_candidate_audit_files)
+        )
+        self.assertTrue(
             callable(agency_workroom.create_runbook_context_transfer_files)
         )
         self.assertTrue(
@@ -300,6 +304,10 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn(
             "create_company_evidence_chain_report",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_release_candidate_audit",
             agency_workroom.__all__,
         )
         self.assertIn(
@@ -332,6 +340,10 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn(
             "create_company_evidence_chain_report_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_release_candidate_audit_files",
             agency_workroom.__all__,
         )
         self.assertIn(

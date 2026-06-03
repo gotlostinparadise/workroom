@@ -102,6 +102,7 @@ The MCP tools are agent-facing:
 - `create_runbook_progress_report`
 - `create_runbook_closeout_packet`
 - `create_runbook_release_readiness_smoke`
+- `create_release_candidate_audit`
 - `create_runbook_smoke_example`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
@@ -134,6 +135,7 @@ Recommended first calls:
 8. `create_runbook_progress_report` after one or more runbook stage runs exist
 9. `create_runbook_closeout_packet` after runbook stage runs and review reports exist
 10. `create_runbook_release_readiness_smoke` after the runbook fixture chain exists
+11. `create_release_candidate_audit` before release-candidate review
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -443,6 +445,16 @@ and closeout packet, then summarizes fixture validity, context-transfer
 readiness, evidence-chain readiness, and the next continuation recommendation.
 It does not create companies, advance runs, execute local steps, approve
 decisions, deploy, push, post, call external APIs, or start background workers.
+
+`create_release_candidate_audit` writes a local JSON and Markdown audit report
+under `runbooks/<runbook_id>/` for the current Workroom release-candidate
+surface. Codex passes `workspace_path`, `run_ids_json`, and optional
+`runbook_id`; Workroom compares the MCP manifest and server tool list, checks
+the existing runbook release-readiness smoke artifact, and records the manual
+verification gates required before release review. It does not run tests,
+start MCP stdio, inspect git state, create companies, advance runs, execute
+local steps, approve decisions, deploy, push, post, call external APIs, or
+start background workers.
 
 `create_runbook_context_transfer` writes a local JSON and Markdown handoff
 artifact under `runs/<source_run_id>/reports/` for moving from one runbook

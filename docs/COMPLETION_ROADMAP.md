@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v36.
+Status: Canonical plan v37.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -327,6 +327,13 @@ These milestones are complete enough to be treated as foundation:
     progress report, closeout packet, context-transfer readiness,
     evidence-chain readiness, and continuation recommendation without starting
     or advancing any company.
+
+52. Release Candidate Audit v1.
+    Workroom can write a local JSON/Markdown release-candidate audit for the
+    current MCP/reporting surface, validating manifest/server tool consistency,
+    the runbook release-smoke fixture, required release tools, and manual
+    release verification gates without running tests, starting stdio, changing
+    Kernel, or exercising external effects.
 
 ## Milestone Plan
 
@@ -1334,6 +1341,40 @@ Exit criteria:
   files, approval, implementation execution, verification execution, deploys,
   pushes, posts, external API calls, or new external effects are added.
 
+### 42. Release Candidate Audit v1
+
+Status: Done.
+
+Goal: give Codex a single local audit artifact for the current release-candidate
+surface before adding more workflow behavior or asking for release review.
+
+Exit criteria:
+
+- `create_release_candidate_audit` accepts `workspace_path`, `run_ids_json`,
+  and optional `runbook_id`.
+- The tool writes `release_candidate_audit.json` and Markdown files under
+  `runbooks/<runbook_id>/`.
+- The payload uses schema `workroom-release-candidate-audit.v1`.
+- The payload compares the MCP manifest tool list and MCP server tool list.
+- The payload checks required release/reporting tools are present.
+- The payload reads the existing runbook release-readiness smoke artifact
+  without creating it automatically.
+- The payload records manual verification gates for the source suite, fresh
+  editable install suite, installed MCP stdio smoke, Workroom git status, and
+  Kernel git status.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required workspace path and run-ids JSON arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation,
+  runbook listing, context transfer, operating packet, smoke example, progress
+  report, closeout packet, and release-readiness smoke behavior remains
+  unchanged.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, project mutation outside local Workroom runbook audit files,
+  test execution, installed MCP stdio startup, approval, implementation
+  execution, verification execution, deploys, pushes, posts, external API
+  calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1350,9 +1391,10 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer a
-release-candidate audit of the complete local MCP/reporting surface before
-adding more workflow behavior: verify tool manifest consistency, installed MCP
-stdio startup, runbook fixture-chain generation, Kernel boundary cleanliness,
-and no external-effect regressions. Only add more infrastructure first if live
-repo truth shows it is the safer prerequisite. Preserve the no-loop,
-no-external-effect, Kernel-boundary floor.
+release-readiness hardening pass before adding more workflow behavior: review
+the public MCP tool count and README operator path, run the release-candidate
+audit against persisted local fixtures, verify source and fresh editable
+install suites, perform installed MCP stdio smoke, and confirm Workroom and
+Kernel cleanliness. Only add more infrastructure first if live repo truth shows
+it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

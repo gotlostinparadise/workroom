@@ -65,6 +65,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_runbook_progress_report",
                 "create_runbook_closeout_packet",
                 "create_runbook_release_readiness_smoke",
+                "create_release_candidate_audit",
             ),
             mcp_server.TOOL_NAMES,
         )
@@ -509,6 +510,20 @@ class WorkroomMcpServerTests(unittest.TestCase):
             if tool.name == "create_runbook_release_readiness_smoke"
         )
         schema = smoke_tool.inputSchema
+
+        self.assertEqual({"workspace_path", "run_ids_json"}, set(schema["required"]))
+        self.assertIn("workspace_path", schema["properties"])
+        self.assertIn("run_ids_json", schema["properties"])
+        self.assertIn("runbook_id", schema["properties"])
+        self.assertEqual("", schema["properties"]["runbook_id"]["default"])
+        self.assertNotIn("runbook_id", schema["required"])
+
+    def test_release_candidate_audit_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        audit_tool = next(
+            tool for tool in tools if tool.name == "create_release_candidate_audit"
+        )
+        schema = audit_tool.inputSchema
 
         self.assertEqual({"workspace_path", "run_ids_json"}, set(schema["required"]))
         self.assertIn("workspace_path", schema["properties"])

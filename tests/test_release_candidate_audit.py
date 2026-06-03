@@ -1,0 +1,202 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import agency_workroom.release_candidate_audit as release_candidate_audit
+from agency_workroom import mcp_server
+from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.release_candidate_audit import create_release_candidate_audit_files
+from agency_workroom.runbook_closeout_packet import create_runbook_closeout_packet_files
+from agency_workroom.runbook_operating_packet import create_runbook_operating_packet_files
+from agency_workroom.runbook_progress_report import create_runbook_progress_report_files
+from agency_workroom.runbook_release_readiness_smoke import (
+    create_runbook_release_readiness_smoke_files,
+)
+from agency_workroom.runbook_smoke_example import create_runbook_smoke_example_files
+from agency_workroom.session_store import save_company_goal_run
+
+
+class ReleaseCandidateAuditTests(unittest.TestCase):
+    def temp_root(self) -> Path:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        return Path(temp_dir.name)
+
+    def test_create_release_candidate_audit_files_checks_local_release_surface(self) -> None:
+        root = self.temp_root()
+        run_ids = ("run_design", "run_plan", "run_quality", "run_verify")
+        specs = (
+            "design_review",
+            "implementation_planning",
+            "implementation_plan_quality",
+            "verification_orchestration",
+        )
+        for run_id, spec_id in zip(run_ids, specs, strict=True):
+            run = self.run_for_spec(run_id, spec_id)
+            save_company_goal_run(root, run)
+            self.write_run_reports(root, run)
+        create_runbook_operating_packet_files(workspace_path=root)
+        create_runbook_smoke_example_files(workspace_path=root)
+        create_runbook_progress_report_files(workspace_path=root, run_ids=run_ids)
+        create_runbook_closeout_packet_files(workspace_path=root, run_ids=run_ids)
+        smoke = create_runbook_release_readiness_smoke_files(
+            workspace_path=root,
+            run_ids=run_ids,
+        )
+
+        audit = create_release_candidate_audit_files(
+            workspace_path=root,
+            run_ids=run_ids,
+        )
+
+        payload = json.loads(Path(audit["audit_path"]).read_text(encoding="utf-8"))
+        markdown = Path(audit["markdown_path"]).read_text(encoding="utf-8")
+
+        self.assertEqual("workroom-release-candidate-audit.v1", audit["schema_version"])
+        self.assertEqual("workroom-release-candidate-audit.v1", payload["schema_version"])
+        self.assertEqual("complex_codex_delivery", payload["runbook_id"])
+        self.assertEqual(list(run_ids), payload["run_ids"])
+        self.assertEqual("ready", payload["audit_status"])
+        self.assertTrue(payload["ready_for_release_candidate_review"])
+        self.assertEqual(smoke["smoke_ref"], payload["runbook_release_smoke"]["ref"])
+        self.assertTrue(payload["runbook_release_smoke"]["valid"])
+        self.assertEqual(len(mcp_server.TOOL_NAMES), payload["mcp_surface"]["server_tool_count"])
+        self.assertEqual([], payload["mcp_surface"]["missing_from_manifest"])
+        self.assertEqual([], payload["mcp_surface"]["missing_from_server"])
+        self.assertEqual([], payload["mcp_surface"]["missing_required_tools"])
+        self.assertEqual(
+            ["source_suite", "fresh_editable_install_suite", "installed_mcp_stdio_smoke"],
+            [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],
+        )
+        self.assertIn("Release Candidate Audit", markdown)
+        self.assertIn("installed_mcp_stdio_smoke", markdown)
+
+    def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
+        root = self.temp_root()
+
+        audit = create_release_candidate_audit_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+
+        payload = json.loads(Path(audit["audit_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("review_required", payload["audit_status"])
+        self.assertFalse(payload["ready_for_release_candidate_review"])
+        self.assertIn(
+            "missing_runbook_release_smoke",
+            {finding["code"] for finding in payload["audit_findings"]},
+        )
+
+    def test_create_release_candidate_audit_rejects_duplicate_run_ids(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(ValueError, "run ids must be unique"):
+            create_release_candidate_audit_files(
+                workspace_path=root,
+                run_ids=("run_design", "run_design"),
+            )
+
+    def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
+        source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")
+
+        for forbidden in (
+            "subprocess",
+            "requests",
+            "httpx",
+            "urllib",
+            "socket",
+            "while ",
+            "threading",
+            "asyncio",
+        ):
+            self.assertNotIn(forbidden, source)
+
+    def run_for_spec(self, run_id: str, spec_id: str) -> CompanyGoalRun:
+        team = TeamBlueprint(
+            name="Release Candidate Audit Team",
+            departments=(
+                Department(
+                    department_id="review",
+                    display_name="Review",
+                    purpose="Review evidence",
+                    authority_level="local",
+                    capability_gate_required=False,
+                ),
+            ),
+            roles=(
+                TeamRole(
+                    role_id="reviewer",
+                    display_name="Reviewer",
+                    responsibilities="Review evidence",
+                    department_id="review",
+                ),
+            ),
+        )
+        return CompanyGoalRun(
+            run_id=run_id,
+            user_id="usr_codex",
+            goal=f"Run {spec_id}",
+            company_spec_id=spec_id,
+            company_spec_version="v1",
+            team=team.to_payload(),
+            plan={"summary": spec_id, "tasks": []},
+            commits=(),
+            tasks=(
+                TaskState(
+                    task_ref=f"workroom-task://{run_id}/review",
+                    role_id="reviewer",
+                    category="review_decision",
+                    title="Review evidence",
+                    status="completed",
+                    result_refs=(
+                        f"workroom-artifact://runs/{run_id}/review/evidence.json",
+                    ),
+                ),
+            ),
+        )
+
+    def write_run_reports(self, root: Path, run: CompanyGoalRun) -> None:
+        report_dir = root / "runs" / run.run_id / "reports"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        (report_dir / "cross_role_run_brief.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "cross-role-run-brief.v1",
+                    "run_id": run.run_id,
+                    "company_spec_id": run.company_spec_id,
+                    "brief_ref": (
+                        f"workroom-artifact://runs/{run.run_id}/reports/"
+                        "cross_role_run_brief.json"
+                    ),
+                },
+                sort_keys=True,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        (report_dir / "cross_role_task_quality_report.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "cross-role-task-quality-report.v1",
+                    "run_id": run.run_id,
+                    "company_spec_id": run.company_spec_id,
+                    "overall_status": "pass",
+                    "quality_score": 100,
+                    "finding_counts": {"error": 0, "warning": 0, "info": 0},
+                    "report_ref": (
+                        f"workroom-artifact://runs/{run.run_id}/reports/"
+                        "cross_role_task_quality_report.json"
+                    ),
+                },
+                sort_keys=True,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

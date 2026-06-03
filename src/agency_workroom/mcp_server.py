@@ -61,6 +61,7 @@ TOOL_NAMES = (
     "create_runbook_progress_report",
     "create_runbook_closeout_packet",
     "create_runbook_release_readiness_smoke",
+    "create_release_candidate_audit",
 )
 
 
@@ -823,6 +824,20 @@ def create_runbook_release_readiness_smoke(
     )
 
 
+@mcp.tool()
+def create_release_candidate_audit(
+    workspace_path: str,
+    run_ids_json: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    """Write a local release-candidate audit for the Workroom MCP surface."""
+    return agent_session.create_release_candidate_audit(
+        workspace_path=workspace_path,
+        run_ids_json=run_ids_json,
+        runbook_id=runbook_id,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -856,6 +871,7 @@ __all__ = [
     "create_runbook_progress_report",
     "create_runbook_release_readiness_smoke",
     "create_runbook_smoke_example",
+    "create_release_candidate_audit",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

@@ -76,6 +76,7 @@ class McpManifestTests(unittest.TestCase):
             "create_release_notes_artifact",
             "prepare_release_readiness_decision",
             "prepare_github_pages_deploy_proposal",
+            "create_release_candidate_audit",
             "create_goal_run_report",
             "create_cross_role_run_brief",
             "create_cross_role_task_quality_report",
@@ -441,6 +442,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_runbook_closeout_packet"],
             smoke_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_release_candidate_audit_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        audit_tool = tools["create_release_candidate_audit"]
+
+        self.assertEqual("inspection", audit_tool["phase"])
+        self.assertTrue(audit_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", audit_tool["external_effect_risk"])
+        self.assertEqual(
+            ["workspace_path", "run_ids_json"],
+            audit_tool["required_arguments"],
+        )
+        self.assertEqual(["runbook_id"], audit_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_runbook_release_readiness_smoke"],
+            audit_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_runbook_context_transfer_tool(self) -> None:

@@ -41,6 +41,7 @@ from .agent_session import (
     create_company_evidence_chain_report,
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
+    create_release_candidate_audit,
     create_runbook_closeout_packet,
     create_runbook_operating_packet,
     create_runbook_progress_report,
@@ -107,6 +108,7 @@ from .runbook_release_readiness_smoke import (
     create_runbook_release_readiness_smoke_files,
 )
 from .runbook_smoke_example import create_runbook_smoke_example_files
+from .release_candidate_audit import create_release_candidate_audit_files
 from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
@@ -319,6 +321,8 @@ __all__ = [
     "create_architecture_brief_artifact",
     "create_company_evidence_chain_report",
     "create_company_evidence_chain_report_files",
+    "create_release_candidate_audit",
+    "create_release_candidate_audit_files",
     "create_cross_role_run_brief",
     "create_cross_role_run_brief_files",
     "create_cross_role_task_quality_report",
