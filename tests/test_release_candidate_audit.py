@@ -64,6 +64,15 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(smoke["smoke_ref"], payload["runbook_release_smoke"]["ref"])
         self.assertTrue(payload["runbook_release_smoke"]["valid"])
         self.assertEqual(
+            release_candidate_audit.EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
+            payload["mcp_surface"]["manifest_schema_version"],
+        )
+        self.assertEqual(
+            release_candidate_audit.EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
+            payload["mcp_surface"]["expected_manifest_schema_version"],
+        )
+        self.assertTrue(payload["mcp_surface"]["manifest_schema_matches_expected"])
+        self.assertEqual(
             payload["mcp_surface"]["manifest_tool_count"],
             payload["mcp_surface"]["manifest_list_tool_count"],
         )
@@ -123,6 +132,12 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertNotIn(str(root), markdown)
         self.assertIn("Missing MCP tool exports: none", markdown)
         self.assertIn("Missing session public function exports: none", markdown)
+        self.assertIn("Manifest schema: workroom-mcp-tool-manifest.v1", markdown)
+        self.assertIn(
+            "Expected manifest schema: workroom-mcp-tool-manifest.v1",
+            markdown,
+        )
+        self.assertIn("Manifest schema matches expected: True", markdown)
         self.assertIn(
             f"Manifest list tools: {payload['mcp_surface']['manifest_list_tool_count']}",
             markdown,
@@ -296,6 +311,35 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
 
         self.assertEqual(["mcp_manifest_tool_count_mismatch"], [findings[0]["code"]])
+        self.assertEqual("error", findings[0]["severity"])
+
+    def test_audit_findings_flags_manifest_schema_mismatch(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "manifest_schema_matches_expected": False,
+                "manifest_count_matches_tools": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "project_name": "agency-workroom",
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "absolute_file",
+            },
+            release_smoke={
+                "valid": True,
+                "ready": True,
+                "run_ids": ["run_design"],
+            },
+        )
+
+        self.assertEqual(["mcp_manifest_schema_mismatch"], [findings[0]["code"]])
         self.assertEqual("error", findings[0]["severity"])
 
     def test_audit_findings_flags_unreadable_package_scope(self) -> None:

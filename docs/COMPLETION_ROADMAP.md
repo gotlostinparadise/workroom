@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v57.
+Status: Canonical plan v58.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -428,6 +428,10 @@ These milestones are complete enough to be treated as foundation:
 72. Release Audit Manifest Count Gate v1.
     The release-candidate audit now records and gates whether the MCP
     manifest's declared `tool_count` matches the manifest tool list length.
+
+73. Release Audit Manifest Schema Gate v1.
+    The release-candidate audit now records and gates whether the MCP manifest
+    schema version matches `workroom-mcp-tool-manifest.v1`.
 
 ## Milestone Plan
 
@@ -1905,6 +1909,33 @@ Exit criteria:
   export-surface checks, package-surface checks, release-smoke checks,
   boundary assertions, manual gates, and artifact-context path redaction remain
   unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 63. Release Audit Manifest Schema Gate v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when the MCP manifest schema drifts
+from the expected release-audit contract even if tool names and counts still
+match.
+
+Exit criteria:
+
+- The release-candidate audit payload records the manifest schema version.
+- The release-candidate audit payload records the expected manifest schema
+  version.
+- The release-candidate audit payload records whether the manifest schema
+  matches the expected version.
+- A mismatch produces an error finding and blocks release-candidate readiness
+  through existing finding-based readiness behavior.
+- Markdown renders the actual schema, expected schema, and match status.
+- Tests cover the live expected schema and schema mismatch finding.
+- Existing MCP manifest/server name comparison, manifest count gate, required
+  release tools, export-surface checks, package-surface checks,
+  release-smoke checks, boundary assertions, manual gates, and
+  artifact-context path redaction remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

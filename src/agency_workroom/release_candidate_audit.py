@@ -25,6 +25,7 @@ REQUIRED_RELEASE_TOOLS = (
     "create_company_evidence_chain_report",
     "recommend_chain_continuation",
 )
+EXPECTED_MCP_MANIFEST_SCHEMA_VERSION = "workroom-mcp-tool-manifest.v1"
 
 
 class ReleaseCandidateAuditError(RuntimeError):
@@ -152,6 +153,9 @@ def _mcp_surface() -> dict[str, object]:
     server_names = tuple(mcp_server.TOOL_NAMES)
     return {
         "manifest_schema_version": str(manifest.get("schema_version", "")),
+        "expected_manifest_schema_version": EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
+        "manifest_schema_matches_expected": str(manifest.get("schema_version", ""))
+        == EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
         "manifest_tool_count": int(manifest.get("tool_count", 0) or 0),
         "manifest_list_tool_count": len(manifest_names),
         "manifest_count_matches_tools": int(manifest.get("tool_count", 0) or 0)
@@ -326,6 +330,14 @@ def _audit_findings(
                 "severity": "error",
                 "code": "mcp_manifest_server_mismatch",
                 "message": "MCP manifest tool list does not match server tool list",
+            }
+        )
+    if not bool(mcp_surface.get("manifest_schema_matches_expected", True)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "mcp_manifest_schema_mismatch",
+                "message": "MCP manifest schema version is not expected",
             }
         )
     if not bool(mcp_surface.get("manifest_count_matches_tools", True)):
@@ -521,6 +533,21 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         "",
     ]
     mcp_surface = _mapping(payload.get("mcp_surface"))
+    lines.append(
+        "- "
+        f"Manifest schema: "
+        f"{_single_line(mcp_surface.get('manifest_schema_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Expected manifest schema: "
+        f"{_single_line(mcp_surface.get('expected_manifest_schema_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Manifest schema matches expected: "
+        f"{_single_line(mcp_surface.get('manifest_schema_matches_expected', False))}"
+    )
     lines.append(
         "- "
         f"Manifest tools: {_single_line(mcp_surface.get('manifest_tool_count', 0))}; "
