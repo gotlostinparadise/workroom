@@ -41,6 +41,7 @@ from .agent_session import (
     create_company_evidence_chain_report,
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
+    create_runbook_operating_packet,
     create_runbook_context_transfer,
     create_design_critique_artifact,
     create_design_risk_report_artifact,
@@ -95,6 +96,7 @@ from .company_runbooks import (
     list_company_runbook_templates,
 )
 from .runbook_context_transfer import create_runbook_context_transfer_files
+from .runbook_operating_packet import create_runbook_operating_packet_files
 from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
@@ -313,6 +315,8 @@ __all__ = [
     "create_cross_role_task_quality_report_files",
     "create_runbook_context_transfer",
     "create_runbook_context_transfer_files",
+    "create_runbook_operating_packet",
+    "create_runbook_operating_packet_files",
     "create_design_critique_artifact",
     "create_design_risk_report_artifact",
     "create_delivery_execution_plan_artifact",

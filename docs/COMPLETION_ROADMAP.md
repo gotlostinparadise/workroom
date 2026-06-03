@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v31.
+Status: Canonical plan v32.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -295,6 +295,12 @@ These milestones are complete enough to be treated as foundation:
     source company run to a target company spec, preserving source evidence
     refs and returning a reviewable `start_company_goal` context scaffold
     without starting the target company automatically.
+
+47. Runbook Operating Packet v1.
+    Workroom can write a local JSON/Markdown operating packet for the bundled
+    runbook, including setup, start, inspection, context-transfer,
+    evidence-chain, continuation, and stop-rule templates without starting or
+    advancing any company.
 
 ## Milestone Plan
 
@@ -1151,6 +1157,33 @@ Exit criteria:
   verification execution, deploys, pushes, posts, external API calls, or new
   external effects are added.
 
+### 37. Runbook Operating Packet v1
+
+Status: Done.
+
+Goal: give Codex a local source-backed operating packet for the bundled
+multi-company runbook before any company is started.
+
+Exit criteria:
+
+- `create_runbook_operating_packet` accepts `workspace_path` and optional
+  `runbook_id`.
+- The tool writes `runbook_operating_packet.json` and Markdown files under
+  `runbooks/<runbook_id>/`.
+- The payload uses schema `runbook-operating-packet.v1`.
+- The payload includes setup tools, ordered stage start call templates,
+  inspection tools, context-transfer templates, evidence-chain template,
+  continuation template, packet refs, and explicit stop rules.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required workspace path and optional runbook id arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation,
+  runbook listing, and context transfer behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, project mutation outside local Workroom runbook packet files,
+  approval, implementation execution, verification execution, deploys, pushes,
+  posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1166,11 +1199,11 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Select the next bounded Workroom milestone from live repository truth. Prefer
-the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as a practical runbook example or operating packet
-that shows one full design -> planning -> quality -> verification sequence
-using runbook listing, context transfer, evidence-chain reporting, and
-continuation planning. Only add more infrastructure first if live repo truth
-shows it is the safer prerequisite. Preserve the no-loop, no-external-effect,
-Kernel-boundary floor.
+Select the next bounded Workroom milestone from live repository truth. Prefer a
+packet-driven runbook smoke/example artifact that demonstrates the practical
+Design Review -> Implementation Planning -> Implementation Plan Quality ->
+Verification Orchestration sequence using the operating packet, context
+transfer, evidence-chain reporting, and continuation planning without starting
+hidden loops or adding external effects. Only add more infrastructure first if
+live repo truth shows it is the safer prerequisite. Preserve the no-loop,
+no-external-effect, Kernel-boundary floor.

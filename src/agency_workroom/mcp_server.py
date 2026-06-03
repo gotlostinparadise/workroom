@@ -56,6 +56,7 @@ TOOL_NAMES = (
     "check_workroom_mcp_config",
     "list_company_specs",
     "list_company_runbooks",
+    "create_runbook_operating_packet",
 )
 
 
@@ -750,6 +751,18 @@ def list_company_runbooks() -> dict[str, object]:
     return agent_session.list_company_runbooks()
 
 
+@mcp.tool()
+def create_runbook_operating_packet(
+    workspace_path: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    """Write local JSON/Markdown call templates for a Workroom runbook."""
+    return agent_session.create_runbook_operating_packet(
+        workspace_path=workspace_path,
+        runbook_id=runbook_id,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -778,6 +791,7 @@ __all__ = [
     "create_company_evidence_chain_report",
     "recommend_chain_continuation",
     "create_runbook_context_transfer",
+    "create_runbook_operating_packet",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

@@ -14,6 +14,7 @@ from .company_evidence_chain import create_company_evidence_chain_report_files
 from .company_runbooks import list_company_runbook_templates
 from .cross_role_brief import create_cross_role_run_brief_files
 from .cross_role_task_quality import create_cross_role_task_quality_report_files
+from .runbook_operating_packet import create_runbook_operating_packet_files
 from .runbook_context_transfer import create_runbook_context_transfer_files
 from .devops_operations import (
     DevOpsOperationError,
@@ -571,6 +572,18 @@ def list_company_spec_options() -> dict[str, object]:
 
 def list_company_runbooks() -> dict[str, object]:
     return list_company_runbook_templates()
+
+
+def create_runbook_operating_packet(
+    *,
+    workspace_path: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    return create_runbook_operating_packet_files(
+        workspace_path=clean_workspace_path,
+        runbook_id=runbook_id,
+    )
 
 
 def get_company_state(*, run_id: str, workspace_path: str) -> dict[str, object]:
@@ -6204,6 +6217,7 @@ __all__ = [
     "create_cross_role_run_brief",
     "create_cross_role_task_quality_report",
     "create_runbook_context_transfer",
+    "create_runbook_operating_packet",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

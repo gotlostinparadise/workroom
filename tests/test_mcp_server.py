@@ -60,6 +60,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "check_workroom_mcp_config",
                 "list_company_specs",
                 "list_company_runbooks",
+                "create_runbook_operating_packet",
             ),
             mcp_server.TOOL_NAMES,
         )
@@ -438,6 +439,19 @@ class WorkroomMcpServerTests(unittest.TestCase):
 
         self.assertEqual([], schema.get("required", []))
         self.assertEqual({}, schema["properties"])
+
+    def test_runbook_operating_packet_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        packet_tool = next(
+            tool for tool in tools if tool.name == "create_runbook_operating_packet"
+        )
+        schema = packet_tool.inputSchema
+
+        self.assertEqual({"workspace_path"}, set(schema["required"]))
+        self.assertIn("workspace_path", schema["properties"])
+        self.assertIn("runbook_id", schema["properties"])
+        self.assertEqual("", schema["properties"]["runbook_id"]["default"])
+        self.assertNotIn("runbook_id", schema["required"])
 
     def test_runbook_context_transfer_tool_has_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())

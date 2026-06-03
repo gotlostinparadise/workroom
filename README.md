@@ -98,6 +98,7 @@ The MCP tools are agent-facing:
 - `check_workroom_mcp_config`
 - `list_company_specs`
 - `list_company_runbooks`
+- `create_runbook_operating_packet`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
 uses Codex `config.toml` MCP server settings:
@@ -123,7 +124,8 @@ Recommended first calls:
    parent directories already exist
 3. `list_company_specs`
 4. `list_company_runbooks`
-5. `start_company_goal`
+5. `create_runbook_operating_packet`
+6. `start_company_goal`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -389,6 +391,13 @@ variables, inspection tools, and evidence-chain tools. The runbook is guidance
 only: it does not start companies, advance runs, execute local steps, mutate
 project files, deploy, push, post, call external APIs, or start background
 workers.
+
+`create_runbook_operating_packet` writes local JSON and Markdown setup artifacts
+under `runbooks/<runbook_id>/`. The packet includes setup, start, inspection,
+context-transfer, evidence-chain, and continuation call templates plus explicit
+stop rules for the bundled runbook. It does not start companies, advance runs,
+execute local steps, approve decisions, deploy, push, post, call external APIs,
+or start background workers.
 
 `create_runbook_context_transfer` writes a local JSON and Markdown handoff
 artifact under `runs/<source_run_id>/reports/` for moving from one runbook

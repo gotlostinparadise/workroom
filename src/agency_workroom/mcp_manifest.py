@@ -31,6 +31,7 @@ _TOOL_ORDER = (
     "check_workroom_mcp_config",
     "list_company_specs",
     "list_company_runbooks",
+    "create_runbook_operating_packet",
 )
 
 _READ_ONLY_TOOLS = {
@@ -240,10 +241,12 @@ _TOOL_ARGUMENTS = {
     "check_workroom_mcp_config": ("ledger_path", "workspace_path"),
     "list_company_specs": (),
     "list_company_runbooks": (),
+    "create_runbook_operating_packet": ("workspace_path",),
 }
 
 _OPTIONAL_TOOL_ARGUMENTS = {
     "start_company_goal": ("company_spec_id", "context_json"),
+    "create_runbook_operating_packet": ("runbook_id",),
     "prepare_github_pages_deploy_proposal": (
         "target_repo_full_name",
         "target_branch",
@@ -283,6 +286,7 @@ _RECOMMENDED_AFTER = {
     "check_workroom_mcp_config": ("get_mcp_tool_manifest",),
     "list_company_specs": ("get_mcp_tool_manifest",),
     "list_company_runbooks": ("list_company_specs",),
+    "create_runbook_operating_packet": ("list_company_runbooks",),
 }
 
 
@@ -399,6 +403,7 @@ def _phase_for_tool(name: str) -> str:
         "check_workroom_mcp_config",
         "list_company_specs",
         "list_company_runbooks",
+        "create_runbook_operating_packet",
     }:
         return "setup"
     if name in {"start_company_goal", "submit_goal_intake_result"}:
