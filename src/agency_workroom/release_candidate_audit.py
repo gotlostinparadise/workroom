@@ -153,6 +153,9 @@ def _mcp_surface() -> dict[str, object]:
     return {
         "manifest_schema_version": str(manifest.get("schema_version", "")),
         "manifest_tool_count": int(manifest.get("tool_count", 0) or 0),
+        "manifest_list_tool_count": len(manifest_names),
+        "manifest_count_matches_tools": int(manifest.get("tool_count", 0) or 0)
+        == len(manifest_names),
         "server_tool_count": len(server_names),
         "manifest_matches_server": manifest_names == server_names,
         "missing_from_manifest": sorted(set(server_names) - set(manifest_names)),
@@ -323,6 +326,14 @@ def _audit_findings(
                 "severity": "error",
                 "code": "mcp_manifest_server_mismatch",
                 "message": "MCP manifest tool list does not match server tool list",
+            }
+        )
+    if not bool(mcp_surface.get("manifest_count_matches_tools", True)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "mcp_manifest_tool_count_mismatch",
+                "message": "MCP manifest tool_count does not match manifest tool list",
             }
         )
     for tool_name in _string_list(mcp_surface.get("missing_required_tools")):
@@ -517,8 +528,18 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     )
     lines.append(
         "- "
+        f"Manifest list tools: "
+        f"{_single_line(mcp_surface.get('manifest_list_tool_count', 0))}"
+    )
+    lines.append(
+        "- "
         f"Manifest matches server: "
         f"{_single_line(mcp_surface.get('manifest_matches_server', False))}"
+    )
+    lines.append(
+        "- "
+        f"Manifest count matches tools: "
+        f"{_single_line(mcp_surface.get('manifest_count_matches_tools', False))}"
     )
     lines.append(
         "- "

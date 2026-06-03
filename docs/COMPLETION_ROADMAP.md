@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v56.
+Status: Canonical plan v57.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -424,6 +424,10 @@ These milestones are complete enough to be treated as foundation:
     The human-facing release-candidate audit Markdown now renders requested
     run IDs and Workroom artifact refs while keeping local filesystem paths
     out of the Markdown.
+
+72. Release Audit Manifest Count Gate v1.
+    The release-candidate audit now records and gates whether the MCP
+    manifest's declared `tool_count` matches the manifest tool list length.
 
 ## Milestone Plan
 
@@ -1876,6 +1880,31 @@ Exit criteria:
   severity ordering, manual gate commands, MCP registration, release-smoke
   checks, export-surface checks, package-surface calculation, and boundary
   assertions remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 62. Release Audit Manifest Count Gate v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when the MCP manifest is internally
+inconsistent even if its tool names still match the server list.
+
+Exit criteria:
+
+- The release-candidate audit payload records the manifest tool-list length.
+- The release-candidate audit payload records whether declared `tool_count`
+  matches the manifest tool-list length.
+- A mismatch produces an error finding and blocks release-candidate readiness
+  through existing finding-based readiness behavior.
+- Markdown renders the manifest tool-list length.
+- Markdown renders whether manifest count matches the tool list.
+- Tests cover the live matching count and the mismatch finding.
+- Existing MCP manifest/server name comparison, required release tools,
+  export-surface checks, package-surface checks, release-smoke checks,
+  boundary assertions, manual gates, and artifact-context path redaction remain
+  unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

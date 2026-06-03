@@ -26,6 +26,7 @@ Scope:
 - Release-candidate audit boundary Markdown details.
 - Release-candidate audit runbook release-smoke Markdown details.
 - Release-candidate audit artifact-context Markdown details.
+- Release-candidate audit MCP manifest count readiness gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -54,6 +55,7 @@ Release-candidate audit result:
 - Findings: `[]`
 - MCP server tool count: `55`
 - MCP manifest matches server: `true`
+- MCP manifest declared count matches manifest tool list: `true`
 - Markdown MCP drift details render manifest/server mismatch names and missing
   required release tool names.
 - Missing MCP tool exports: `[]`
@@ -92,18 +94,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 537 tests in 9.105s
+Ran 538 tests in 9.010s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-artifact-context-markdown-venv
-python -m venv /tmp/workroom-release-artifact-context-markdown-venv
-/tmp/workroom-release-artifact-context-markdown-venv/bin/python -m pip install -e .
-/tmp/workroom-release-artifact-context-markdown-venv/bin/python -m unittest discover -s tests -v
-Ran 537 tests in 8.946s
+rm -rf /tmp/workroom-release-manifest-count-gate-venv
+python -m venv /tmp/workroom-release-manifest-count-gate-venv
+/tmp/workroom-release-manifest-count-gate-venv/bin/python -m pip install -e .
+/tmp/workroom-release-manifest-count-gate-venv/bin/python -m unittest discover -s tests -v
+Ran 538 tests in 9.071s
 OK
 ```
 
