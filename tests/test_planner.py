@@ -121,7 +121,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         self.assertEqual("v1", spec.version)
         self.assertEqual("Delivery Planning", spec.display_name)
         self.assertEqual(
-            ["scope_brief", "execution_plan"],
+            ["scope_brief", "execution_plan", "review_decision"],
             [task.category for task in spec.task_templates],
         )
         self.assertEqual(
@@ -133,7 +133,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
             {role.role_id for role in spec.team.roles},
         )
         self.assertEqual(
-            ["scope_analyst", "delivery_planner"],
+            ["scope_analyst", "delivery_planner", "delivery_planner"],
             [task.role_id for task in spec.task_templates],
         )
         self.assertEqual(

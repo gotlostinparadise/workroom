@@ -51,6 +51,9 @@ class McpManifestTests(unittest.TestCase):
             "advance_company_goal",
             "create_landing_artifact",
             "create_landing_qa_report",
+            "create_delivery_scope_brief_artifact",
+            "create_delivery_execution_plan_artifact",
+            "prepare_delivery_review_decision",
             "create_growth_brief_artifact",
             "create_growth_experiment_plan_artifact",
             "prepare_growth_review_decision",
@@ -222,6 +225,30 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual([], delivery_tool["optional_arguments"])
         self.assertEqual(
             ["create_delivery_scope_brief_artifact"],
+            delivery_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_delivery_review_decision_local_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        delivery_tool = tools["prepare_delivery_review_decision"]
+
+        self.assertEqual("local_execution", delivery_tool["phase"])
+        self.assertTrue(delivery_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", delivery_tool["external_effect_risk"])
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "scope_brief_ref",
+                "execution_plan_ref",
+                "workspace_path",
+            ],
+            delivery_tool["required_arguments"],
+        )
+        self.assertEqual([], delivery_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_delivery_execution_plan_artifact"],
             delivery_tool["recommended_after"],
         )
 

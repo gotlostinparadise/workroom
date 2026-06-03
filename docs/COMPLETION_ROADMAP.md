@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v20.
+Status: Canonical plan v21.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -229,6 +229,12 @@ These milestones are complete enough to be treated as foundation:
     starts through the generic `RunContext` path, uses two local roles across
     scoping and planning departments, and can complete two local artifacts:
     `delivery_scope_brief.md` followed by `delivery_execution_plan.md`.
+
+36. Delivery Review Decision Routing v1.
+    Delivery Planning can prepare a local `delivery_plan_review` decision after
+    the scope brief and execution plan evidence refs exist, without approving,
+    executing, mutating a project, running shell commands, or calling external
+    APIs.
 
 ## Milestone Plan
 
@@ -747,12 +753,13 @@ Exit criteria:
 - `start_company_goal` can start `company_spec_id="delivery_planning"` through
   the generic run context path.
 - Delivery Planning plans `scope_brief` for `scope_analyst`, then
-  `execution_plan` for `delivery_planner`.
+  `execution_plan` for `delivery_planner`, then `review_decision` for
+  `delivery_planner`.
 - `recommend_next_tool_call` recommends
   `create_delivery_scope_brief_artifact` for the planned scope task, then
   `create_delivery_execution_plan_artifact` after the scope brief ref exists.
-- `run_next_local_step` executes both Delivery Planning routes one call at a
-  time, then leaves no Delivery Planning local task remaining.
+- `run_next_local_step` executes both Delivery Planning artifact routes one
+  call at a time, then makes the review decision task eligible.
 - `advance_company_goal` records supervisor and role-work evidence for both
   Delivery Planning roles.
 - The MCP server and manifest expose both Delivery Planning local tools.
@@ -760,6 +767,32 @@ Exit criteria:
   unchanged.
 - No Kernel changes, hidden loops, shell execution, project mutation, approval,
   deploys, pushes, posts, external API calls, or new external effects are added.
+
+### 26. Delivery Review Decision Routing v1
+
+Status: Done.
+
+Goal: let Delivery Planning stop at an explicit local review decision after
+scope and execution-plan evidence exist.
+
+Exit criteria:
+
+- Delivery Planning includes a `review_decision` task after the scope brief and
+  execution plan tasks.
+- `recommend_next_tool_call` recommends `prepare_delivery_review_decision`
+  with `scope_brief_ref` and `execution_plan_ref` after both Delivery evidence
+  refs exist.
+- `run_next_local_step` executes the review decision route once and then leaves
+  no Delivery Planning local task remaining.
+- `advance_company_goal` records supervisor, role-work, and decision evidence
+  for the review decision step.
+- The MCP server and manifest expose `prepare_delivery_review_decision` with
+  required `scope_brief_ref` and `execution_plan_ref`.
+- Business Validation, Release Hardening, Growth Brief, and earlier Delivery
+  Planning behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
 
 ## Plan Change Rules
 
@@ -777,9 +810,8 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the next source-moving capability that makes Delivery Planning more useful for
-complex Codex work, such as a local planning review decision after the execution
-plan or a bounded cross-role handoff summary that links multiple role outputs.
-Only add more route-registry infrastructure first if live repo truth shows it
-is the safer prerequisite. Preserve the no-loop, no-external-effect,
-Kernel-boundary floor.
+the next source-moving capability that makes Workroom more generally useful for
+complex Codex work, such as a reusable cross-role handoff summary or report for
+multi-role runs, or another bounded company capability. Only add more
+route-registry infrastructure first if live repo truth shows it is the safer
+prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.

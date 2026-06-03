@@ -31,6 +31,7 @@ from agency_workroom.agent_session import (
     get_company_state,
     get_mcp_tool_manifest,
     list_next_actions,
+    prepare_delivery_review_decision,
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
     prepare_growth_review_decision,
@@ -576,11 +577,11 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("delivery_planning", response["company_spec_id"])
         self.assertEqual("v1", response["company_spec_version"])
         self.assertEqual(
-            ["scope_brief", "execution_plan"],
+            ["scope_brief", "execution_plan", "review_decision"],
             [task["category"] for task in response["tasks"]],
         )
         self.assertEqual(
-            ["scope_analyst", "delivery_planner"],
+            ["scope_analyst", "delivery_planner", "delivery_planner"],
             [task["role_id"] for task in response["tasks"]],
         )
         self.assertEqual(
@@ -1523,6 +1524,80 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", persisted_task["status"])
         self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
 
+    def test_prepare_delivery_review_decision_requires_recorded_delivery_refs(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        review_task = self.task_by_category(started, "review_decision")
+
+        with self.assertRaises(WorkroomStateError):
+            prepare_delivery_review_decision(
+                run_id=started["run_id"],
+                task_ref=review_task["task_ref"],
+                scope_brief_ref=(
+                    "workroom-artifact://runs/"
+                    f"{started['run_id']}/delivery_planning/missing/"
+                    "delivery_scope_brief.md"
+                ),
+                execution_plan_ref=(
+                    "workroom-artifact://runs/"
+                    f"{started['run_id']}/delivery_planning/missing/"
+                    "delivery_execution_plan.md"
+                ),
+                workspace_path=str(workspace_path),
+            )
+
+    def test_prepare_delivery_review_decision_completes_review_task(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+        plan_task = self.task_by_category(started, "execution_plan")
+        review_task = self.task_by_category(started, "review_decision")
+        scope_brief = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        execution_plan = create_delivery_execution_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = prepare_delivery_review_decision(
+            run_id=started["run_id"],
+            task_ref=review_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            execution_plan_ref=execution_plan["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = prepare_delivery_review_decision(
+            run_id=started["run_id"],
+            task_ref=review_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            execution_plan_ref=execution_plan["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertEqual("delivery_plan_review", first["decision"]["decision_type"])
+        self.assertEqual("prepared", first["decision"]["status"])
+        self.assertIn(first["decision"]["decision_ref"], first["task"]["result_refs"])
+        self.assertTrue(Path(first["decision"]["decision_path"]).exists())
+        self.assertEqual(first["decision"], second["decision"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = self.task_by_category(state, "review_decision")
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
     def test_create_release_quality_gate_report_completes_quality_gates_task(
         self,
     ) -> None:
@@ -2119,6 +2194,49 @@ class AgentSessionTests(unittest.TestCase):
                 "run_id": started["run_id"],
                 "task_ref": plan_task["task_ref"],
                 "scope_brief_ref": scope_brief["artifact"]["artifact_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_continues_delivery_with_review_decision(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+        plan_task = self.task_by_category(started, "execution_plan")
+        review_task = self.task_by_category(started, "review_decision")
+        scope_brief = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        execution_plan = create_delivery_execution_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "prepare_delivery_review_decision",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": review_task["task_ref"],
+                "scope_brief_ref": scope_brief["artifact"]["artifact_ref"],
+                "execution_plan_ref": execution_plan["artifact"]["artifact_ref"],
                 "workspace_path": str(workspace_path),
             },
             recommendation["arguments"],
@@ -2895,7 +3013,7 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", landing_task["status"])
         self.assertEqual("planned", testing_task["status"])
 
-    def test_run_next_local_step_executes_delivery_scope_then_execution_plan(
+    def test_run_next_local_step_executes_delivery_scope_plan_and_review(
         self,
     ) -> None:
         assert_external_kernel_dependency(self)
@@ -2914,6 +3032,10 @@ class AgentSessionTests(unittest.TestCase):
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
         )
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
 
         self.assertTrue(first["executed"])
         self.assertEqual("create_delivery_scope_brief_artifact", first["executed_tool"])
@@ -2926,8 +3048,15 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertIn("artifact", second["result"])
         self.assertTrue(Path(second["result"]["artifact"]["artifact_path"]).exists())
-        self.assertFalse(third["executed"])
-        self.assertEqual("", third["executed_tool"])
+        self.assertTrue(third["executed"])
+        self.assertEqual("prepare_delivery_review_decision", third["executed_tool"])
+        self.assertIn("decision", third["result"])
+        self.assertEqual(
+            "delivery_plan_review",
+            third["result"]["decision"]["decision_type"],
+        )
+        self.assertFalse(fourth["executed"])
+        self.assertEqual("", fourth["executed_tool"])
         state = get_company_state(
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
@@ -2936,6 +3065,10 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             "completed",
             self.task_by_category(state, "execution_plan")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
         )
 
     def test_run_next_local_step_executes_growth_brief_experiment_and_review(
@@ -3401,6 +3534,51 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             "completed",
             self.task_by_category(state, "execution_plan")["status"],
+        )
+
+    def test_advance_company_goal_executes_delivery_review_decision_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("delivery_planner", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "prepare_delivery_review_decision",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("decision", turn["transition"]["record_kind"])
+        self.assertIn("decision", turn)
+        self.assertEqual("delivery_plan_review", turn["decision"]["decision_type"])
+        self.assertEqual("completed", self.task_by_category(state, "scope_brief")["status"])
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "execution_plan")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
         )
 
     def test_advance_company_goal_executes_growth_brief_local_step(self) -> None:

@@ -35,6 +35,7 @@ from .agent_session import (
     get_mcp_tool_manifest,
     list_company_spec_options,
     list_next_actions,
+    prepare_delivery_review_decision,
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     prepare_growth_review_decision,
@@ -70,6 +71,7 @@ from .company_briefing import (
     role_work_spec_for_task,
 )
 from .goal_intake import workflow_request_from_goal
+from .delivery_review import build_delivery_review_decision_record
 from .growth_review import build_growth_review_decision_record
 from .local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
@@ -208,6 +210,7 @@ __all__ = [
     "audit_company_goal_run",
     "audit_company_goal_run_files",
     "build_company_brief",
+    "build_delivery_review_decision_record",
     "build_growth_review_decision_record",
     "build_local_route_recommendation",
     "build_local_route_recommendation_from_readiness",
@@ -246,6 +249,7 @@ __all__ = [
     "plan_business_validation_workflow",
     "plan_supervisor_transition",
     "plan_workflow_from_company_spec",
+    "prepare_delivery_review_decision",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "prepare_growth_review_decision",

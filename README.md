@@ -61,6 +61,7 @@ The MCP tools are agent-facing:
 - `create_landing_qa_report`
 - `create_delivery_scope_brief_artifact`
 - `create_delivery_execution_plan_artifact`
+- `prepare_delivery_review_decision`
 - `create_growth_brief_artifact`
 - `create_growth_experiment_plan_artifact`
 - `prepare_growth_review_decision`
@@ -140,16 +141,20 @@ launch, post, query analytics, call external APIs, or run campaigns.
 
 Workroom also includes a fourth bundled company spec, `delivery_planning`. It
 uses a local scoping analyst for a `scope_brief` task followed by a delivery
-planner for an `execution_plan` task. Its required context variables are
-`objective`, `constraints`, and `success_definition`.
+planner for an `execution_plan` task and a `review_decision` task. Its
+required context variables are `objective`, `constraints`, and
+`success_definition`.
 `recommend_next_tool_call` can recommend
 `create_delivery_scope_brief_artifact`, then recommend
-`create_delivery_execution_plan_artifact` after the scope brief ref exists.
+`create_delivery_execution_plan_artifact` after the scope brief ref exists,
+then recommend `prepare_delivery_review_decision` after both Delivery evidence
+refs exist.
 `run_next_local_step` or `advance_company_goal` can write local
-`delivery_scope_brief.md` and `delivery_execution_plan.md` artifacts under the
-run workspace. These routes are local only: they do not run shell commands,
-mutate projects, approve, deploy, push, post, call external APIs, or start
-background workers.
+`delivery_scope_brief.md` and `delivery_execution_plan.md` artifacts plus a
+prepared review decision record under the run workspace. These routes are local
+only: they do not run shell commands, mutate projects, approve execution,
+execute the plan, deploy, push, post, call external APIs, or start background
+workers.
 
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
@@ -187,11 +192,12 @@ executing that tool.
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
 GitHub Pages deploy proposal preparation for Business Validation, scope brief
-and execution plan artifacts for Delivery Planning, market brief and experiment
-plan artifacts plus review decision preparation for Growth Brief, or release
-checklist, quality gate, release notes, and readiness decision preparation for
-Release Hardening. It does not loop, push to GitHub, post externally, or run
-unapproved tools such as raw result recording.
+and execution plan artifacts plus review decision preparation for Delivery
+Planning, market brief and experiment plan artifacts plus review decision
+preparation for Growth Brief, or release checklist, quality gate, release
+notes, and readiness decision preparation for Release Hardening. It does not
+loop, push to GitHub, post externally, or run unapproved tools such as raw
+result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,

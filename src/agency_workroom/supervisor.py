@@ -799,6 +799,8 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/delivery_planning/" in ref and ref.endswith(
             "/delivery_execution_plan.md"
         )
+    if kind == "delivery_review_decision":
+        return "/decisions/" in ref and ref.endswith(".json")
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 

@@ -103,6 +103,10 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(
             callable(agency_workroom.create_delivery_execution_plan_artifact)
         )
+        self.assertTrue(callable(agency_workroom.prepare_delivery_review_decision))
+        self.assertTrue(
+            callable(agency_workroom.build_delivery_review_decision_record)
+        )
         self.assertIn("delivery_planning_company_spec", agency_workroom.__all__)
         self.assertIn(
             "create_delivery_scope_brief_artifact",
@@ -110,6 +114,11 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn(
             "create_delivery_execution_plan_artifact",
+            agency_workroom.__all__,
+        )
+        self.assertIn("prepare_delivery_review_decision", agency_workroom.__all__)
+        self.assertIn(
+            "build_delivery_review_decision_record",
             agency_workroom.__all__,
         )
         self.assertIn("DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX", agency_workroom.__all__)

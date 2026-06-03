@@ -358,6 +358,18 @@ def delivery_planning_company_spec() -> CompanySpec:
                     "depends_on": "scope_brief",
                 },
             ),
+            CompanyTaskTemplate(
+                role_id="delivery_planner",
+                category="review_decision",
+                title="Prepare local delivery review decision",
+                summary_template=(
+                    "Prepare a local review decision for '{objective}' under "
+                    "constraints: {constraints}. Success means: "
+                    "{success_definition}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "delivery_plan_review"},
+            ),
         ),
         metadata={"reference_vertical": "delivery_planning"},
     )

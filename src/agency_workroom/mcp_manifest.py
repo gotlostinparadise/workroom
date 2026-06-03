@@ -79,6 +79,13 @@ _TOOL_ARGUMENTS = {
         "scope_brief_ref",
         "workspace_path",
     ),
+    "prepare_delivery_review_decision": (
+        "run_id",
+        "task_ref",
+        "scope_brief_ref",
+        "execution_plan_ref",
+        "workspace_path",
+    ),
     "create_growth_brief_artifact": ("run_id", "task_ref", "workspace_path"),
     "create_growth_experiment_plan_artifact": (
         "run_id",

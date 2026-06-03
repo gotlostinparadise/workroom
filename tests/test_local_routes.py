@@ -26,6 +26,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_landing_qa_report",
                 "create_delivery_scope_brief_artifact",
                 "create_delivery_execution_plan_artifact",
+                "prepare_delivery_review_decision",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -77,6 +78,19 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "executor_name": "create_delivery_execution_plan_artifact",
             },
             route_payloads["create_delivery_execution_plan_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "prepare_delivery_review_decision",
+                "delegated_role": "delivery_planner",
+                "result_kind": "delivery_review_decision",
+                "record_kind": "decision",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_delivery_execution_plan_artifact"],
+                "executor_name": "prepare_delivery_review_decision",
+            },
+            route_payloads["prepare_delivery_review_decision"],
         )
         self.assertEqual(
             {
@@ -132,6 +146,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
         )
         for tool_name, payload in route_payloads.items():
             if tool_name in {
+                "prepare_delivery_review_decision",
                 "prepare_growth_review_decision",
                 "prepare_release_readiness_decision",
             }:

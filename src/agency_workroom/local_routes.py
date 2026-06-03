@@ -61,6 +61,13 @@ LOCAL_ROUTES = (
         recommended_after=("create_delivery_scope_brief_artifact",),
     ),
     LocalRoute(
+        tool_name="prepare_delivery_review_decision",
+        delegated_role="delivery_planner",
+        result_kind="delivery_review_decision",
+        record_kind="decision",
+        recommended_after=("create_delivery_execution_plan_artifact",),
+    ),
+    LocalRoute(
         tool_name="create_growth_brief_artifact",
         delegated_role="growth_strategist",
         result_kind="growth_brief_artifact",
