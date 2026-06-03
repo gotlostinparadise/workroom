@@ -6,6 +6,7 @@ from agency_workroom.company_specs import (
     business_validation_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
+    implementation_planning_company_spec,
     release_hardening_company_spec,
 )
 from agency_workroom.models import (
@@ -138,6 +139,41 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         )
         self.assertEqual(
             "delivery_planning",
+            spec.metadata["reference_vertical"],
+        )
+
+    def test_implementation_planning_company_spec_has_planning_review_sequence(
+        self,
+    ) -> None:
+        spec = implementation_planning_company_spec()
+
+        self.assertEqual("implementation_planning", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Implementation Planning", spec.display_name)
+        self.assertEqual(
+            ["architecture_brief", "implementation_plan", "review_decision"],
+            [task.category for task in spec.task_templates],
+        )
+        self.assertEqual(
+            {"architecture", "planning", "review"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {"solution_architect", "implementation_planner", "plan_reviewer"},
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertEqual(
+            ["solution_architect", "implementation_planner", "plan_reviewer"],
+            [task.role_id for task in spec.task_templates],
+        )
+        summary_text = "\n".join(
+            task.summary_template for task in spec.task_templates
+        )
+        self.assertIn("{objective}", summary_text)
+        self.assertIn("{constraints}", summary_text)
+        self.assertIn("{acceptance_criteria}", summary_text)
+        self.assertEqual(
+            "implementation_planning",
             spec.metadata["reference_vertical"],
         )
 

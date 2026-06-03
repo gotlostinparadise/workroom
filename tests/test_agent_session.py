@@ -18,9 +18,11 @@ from agency_workroom.agent_session import (
     audit_company_goal_run,
     check_workroom_mcp_config,
     create_cross_role_run_brief,
+    create_architecture_brief_artifact,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
+    create_implementation_plan_artifact,
     create_growth_brief_artifact,
     create_growth_experiment_plan_artifact,
     create_landing_artifact,
@@ -36,6 +38,7 @@ from agency_workroom.agent_session import (
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
     prepare_growth_review_decision,
+    prepare_implementation_plan_review_decision,
     prepare_release_readiness_decision,
     record_work_result,
     recommend_next_tool_call,
@@ -201,6 +204,24 @@ class AgentSessionTests(unittest.TestCase):
                     "objective": "polish Workroom for complex Codex tasks",
                     "constraints": "local-only, no Kernel source changes",
                     "success_definition": "Codex has a scoped execution plan",
+                }
+            ),
+        )
+        return started, workspace_path
+
+    def started_implementation_run(self, root: Path) -> tuple[dict[str, object], Path]:
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Plan a private implementation milestone",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="implementation_planning",
+            context_json=json.dumps(
+                {
+                    "objective": "add a private planning capability",
+                    "constraints": "local-only, no source mutation during planning",
+                    "acceptance_criteria": "Codex has a reviewable TDD plan",
                 }
             ),
         )
@@ -479,6 +500,7 @@ class AgentSessionTests(unittest.TestCase):
                 "business_validation",
                 "delivery_planning",
                 "growth_brief",
+                "implementation_planning",
                 "release_hardening",
             ],
             [spec["spec_id"] for spec in result["company_specs"]],
@@ -512,6 +534,14 @@ class AgentSessionTests(unittest.TestCase):
             specs["delivery_planning"]["required_context_variables"],
         )
         self.assertEqual([], specs["delivery_planning"]["optional_context_variables"])
+        self.assertEqual(
+            ["acceptance_criteria", "constraints", "objective"],
+            specs["implementation_planning"]["required_context_variables"],
+        )
+        self.assertEqual(
+            [],
+            specs["implementation_planning"]["optional_context_variables"],
+        )
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:
         assert_external_kernel_dependency(self)
@@ -592,6 +622,47 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("polish Workroom for complex Codex tasks", ledger_text)
         self.assertNotIn("local-only, no Kernel source changes", ledger_text)
+
+    def test_start_company_goal_accepts_registered_implementation_planning_spec(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="Plan a private implementation milestone",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="implementation_planning",
+            context_json=json.dumps(
+                {
+                    "objective": "add a private planning capability",
+                    "constraints": "local-only, no source mutation during planning",
+                    "acceptance_criteria": "Codex has a reviewable TDD plan",
+                }
+            ),
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("implementation_planning", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual(
+            ["architecture_brief", "implementation_plan", "review_decision"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            ["solution_architect", "implementation_planner", "plan_reviewer"],
+            [task["role_id"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            "add a private planning capability",
+            response["plan"]["request"]["variables"]["objective"],
+        )
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("add a private planning capability", ledger_text)
+        self.assertNotIn("local-only, no source mutation during planning", ledger_text)
 
     def test_start_company_run_accepts_generic_company_spec(self) -> None:
         assert_external_kernel_dependency(self)
@@ -2245,6 +2316,62 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(recommendation["will_mutate_state"])
         self.assertFalse(recommendation["blocked"])
 
+    def test_recommend_next_tool_call_progresses_implementation_planning(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_run(root)
+        architecture_task = self.task_by_category(started, "architecture_brief")
+        plan_task = self.task_by_category(started, "implementation_plan")
+        review_task = self.task_by_category(started, "review_decision")
+
+        first = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        architecture = create_architecture_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=architecture_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        plan = create_implementation_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            architecture_brief_ref=architecture["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        third = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_architecture_brief_artifact", first["recommended_tool"])
+        self.assertEqual(architecture_task["task_ref"], first["arguments"]["task_ref"])
+        self.assertEqual("create_implementation_plan_artifact", second["recommended_tool"])
+        self.assertEqual(plan_task["task_ref"], second["arguments"]["task_ref"])
+        self.assertEqual(
+            architecture["artifact"]["artifact_ref"],
+            second["arguments"]["architecture_brief_ref"],
+        )
+        self.assertEqual(
+            "prepare_implementation_plan_review_decision",
+            third["recommended_tool"],
+        )
+        self.assertEqual(review_task["task_ref"], third["arguments"]["task_ref"])
+        self.assertEqual(
+            architecture["artifact"]["artifact_ref"],
+            third["arguments"]["architecture_brief_ref"],
+        )
+        self.assertEqual(
+            plan["artifact"]["artifact_ref"],
+            third["arguments"]["implementation_plan_ref"],
+        )
+
     def test_recommend_next_tool_call_starts_growth_brief_with_market_brief(
         self,
     ) -> None:
@@ -3072,6 +3199,64 @@ class AgentSessionTests(unittest.TestCase):
             self.task_by_category(state, "review_decision")["status"],
         )
 
+    def test_run_next_local_step_executes_implementation_plan_and_review(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_architecture_brief_artifact", first["executed_tool"])
+        self.assertTrue(first["result"]["artifact"]["artifact_ref"].endswith(
+            "/architecture_brief.md"
+        ))
+        self.assertEqual("create_implementation_plan_artifact", second["executed_tool"])
+        self.assertTrue(second["result"]["artifact"]["artifact_ref"].endswith(
+            "/implementation_plan.md"
+        ))
+        self.assertEqual(
+            "prepare_implementation_plan_review_decision",
+            third["executed_tool"],
+        )
+        self.assertEqual(
+            "implementation_plan_review",
+            third["result"]["decision"]["decision_type"],
+        )
+        self.assertFalse(fourth["executed"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "architecture_brief")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "implementation_plan")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
     def test_run_next_local_step_executes_growth_brief_experiment_and_review(
         self,
     ) -> None:
@@ -3576,6 +3761,49 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             "completed",
             self.task_by_category(state, "execution_plan")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
+    def test_advance_company_goal_executes_implementation_review_decision_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_implementation_run(root)
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("plan_reviewer", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "prepare_implementation_plan_review_decision",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("decision", turn["transition"]["record_kind"])
+        self.assertIn("decision", turn)
+        self.assertEqual(
+            "implementation_plan_review",
+            turn["decision"]["decision_type"],
         )
         self.assertEqual(
             "completed",

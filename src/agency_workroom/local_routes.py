@@ -68,6 +68,25 @@ LOCAL_ROUTES = (
         recommended_after=("create_delivery_execution_plan_artifact",),
     ),
     LocalRoute(
+        tool_name="create_architecture_brief_artifact",
+        delegated_role="solution_architect",
+        result_kind="architecture_brief_artifact",
+        recommended_after=("recommend_next_tool_call",),
+    ),
+    LocalRoute(
+        tool_name="create_implementation_plan_artifact",
+        delegated_role="implementation_planner",
+        result_kind="implementation_plan_artifact",
+        recommended_after=("create_architecture_brief_artifact",),
+    ),
+    LocalRoute(
+        tool_name="prepare_implementation_plan_review_decision",
+        delegated_role="plan_reviewer",
+        result_kind="implementation_plan_review_decision",
+        record_kind="decision",
+        recommended_after=("create_implementation_plan_artifact",),
+    ),
+    LocalRoute(
         tool_name="create_growth_brief_artifact",
         delegated_role="growth_strategist",
         result_kind="growth_brief_artifact",

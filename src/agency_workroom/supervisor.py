@@ -92,6 +92,21 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
     ):
         role_departments = _role_departments(run)
         return role_departments.get(execution_plan_task.role_id, "planning")
+    architecture_task = _optional_task_for_category(run, "architecture_brief")
+    if (
+        architecture_task is not None
+        and architecture_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "architecture_brief_artifact") is None
+    ):
+        return "planning"
+    implementation_task = _optional_task_for_category(run, "implementation_plan")
+    if (
+        implementation_task is not None
+        and implementation_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "architecture_brief_artifact") is not None
+        and _result_ref_for_kind(run, "implementation_plan_artifact") is None
+    ):
+        return "planning"
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
@@ -800,6 +815,16 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             "/delivery_execution_plan.md"
         )
     if kind == "delivery_review_decision":
+        return "/decisions/" in ref and ref.endswith(".json")
+    if kind == "architecture_brief_artifact":
+        return "/implementation_planning/" in ref and ref.endswith(
+            "/architecture_brief.md"
+        )
+    if kind == "implementation_plan_artifact":
+        return "/implementation_planning/" in ref and ref.endswith(
+            "/implementation_plan.md"
+        )
+    if kind == "implementation_plan_review_decision":
         return "/decisions/" in ref and ref.endswith(".json")
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 

@@ -31,6 +31,13 @@ from .growth_brief import (
     create_growth_experiment_plan_artifact_files,
 )
 from .growth_review import build_growth_review_decision_record
+from .implementation_planning import (
+    create_architecture_brief_artifact_files,
+    create_implementation_plan_artifact_files,
+)
+from .implementation_review import (
+    build_implementation_plan_review_decision_record,
+)
 from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
@@ -107,6 +114,8 @@ EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
 DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
+IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
+IMPLEMENTATION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 GROWTH_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
@@ -701,6 +710,97 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
                     reason=(
                         "review_decision task is completed without a delivery "
                         "review decision ref"
+                    ),
+                )
+        return _no_local_recommendation(run.run_id)
+    architecture_task = _optional_task_for_category(run, "architecture_brief")
+    if architecture_task is not None:
+        architecture_ref = _result_ref_for_kind(run, "architecture_brief_artifact")
+        implementation_task = _optional_task_for_category(run, "implementation_plan")
+        implementation_ref = _result_ref_for_kind(run, "implementation_plan_artifact")
+        review_task = _optional_task_for_category(run, "review_decision")
+        review_ref = _result_ref_for_kind(
+            run,
+            "implementation_plan_review_decision",
+        )
+        if architecture_task.status == "blocked":
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason="architecture_brief task is blocked",
+                blocker_summary=architecture_task.blocker_summary,
+            )
+        architecture_readiness = _architecture_brief_route_readiness(
+            architecture_task=architecture_task,
+            architecture_ref=architecture_ref,
+        )
+        if architecture_readiness is not None:
+            return build_local_route_recommendation_from_readiness(
+                run_id=run.run_id,
+                workspace_path=workspace_path,
+                readiness=architecture_readiness,
+            )
+        if architecture_ref is None and architecture_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="architecture brief artifact ref",
+                reason=(
+                    "architecture_brief task is completed without an "
+                    "architecture brief artifact ref"
+                ),
+            )
+        if implementation_task is not None:
+            if implementation_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="implementation_plan task is blocked",
+                    blocker_summary=implementation_task.blocker_summary,
+                )
+            implementation_readiness = _implementation_plan_route_readiness(
+                implementation_task=implementation_task,
+                architecture_ref=architecture_ref,
+                implementation_ref=implementation_ref,
+            )
+            if implementation_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=implementation_readiness,
+                )
+            if implementation_ref is None and implementation_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="implementation plan artifact ref",
+                    reason=(
+                        "implementation_plan task is completed without an "
+                        "implementation plan artifact ref"
+                    ),
+                )
+        if review_task is not None:
+            if review_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="review_decision task is blocked",
+                    blocker_summary=review_task.blocker_summary,
+                )
+            review_readiness = _implementation_plan_review_decision_route_readiness(
+                review_task=review_task,
+                architecture_ref=architecture_ref,
+                implementation_ref=implementation_ref,
+                review_ref=review_ref,
+            )
+            if review_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=review_readiness,
+                )
+            if review_ref is None and review_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="implementation plan review decision ref",
+                    reason=(
+                        "review_decision task is completed without an "
+                        "implementation plan review decision ref"
                     ),
                 )
         return _no_local_recommendation(run.run_id)
@@ -1733,6 +1833,233 @@ def create_delivery_execution_plan_artifact(
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
 
 
+def create_architecture_brief_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "architecture_brief":
+        raise WorkroomStateError("task is not an architecture_brief task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX)
+            and "/implementation_planning/" in ref
+            and ref.endswith("/architecture_brief.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _implementation_architecture_brief_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_architecture_brief_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_implementation_plan_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    architecture_brief_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_architecture_brief_ref = _required_text(
+        "architecture_brief_ref",
+        architecture_brief_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "implementation_plan":
+        raise WorkroomStateError("task is not an implementation_plan task")
+    if not _artifact_ref_recorded_in_run(run, clean_architecture_brief_ref):
+        raise WorkroomStateError("architecture brief artifact is not recorded in run state")
+    _implementation_architecture_brief_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_architecture_brief_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(IMPLEMENTATION_PLAN_ARTIFACT_PREFIX)
+            and "/implementation_planning/" in ref
+            and ref.endswith("/implementation_plan.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _implementation_plan_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+            architecture_brief_ref=clean_architecture_brief_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_implementation_plan_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+        architecture_brief_ref=clean_architecture_brief_ref,
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def prepare_implementation_plan_review_decision(
+    *,
+    run_id: str,
+    task_ref: str,
+    architecture_brief_ref: str,
+    implementation_plan_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_architecture_brief_ref = _required_text(
+        "architecture_brief_ref",
+        architecture_brief_ref,
+    )
+    clean_implementation_plan_ref = _required_text(
+        "implementation_plan_ref",
+        implementation_plan_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "review_decision":
+        raise WorkroomStateError("task is not a review_decision task")
+    if not _artifact_ref_recorded_in_run(run, clean_architecture_brief_ref):
+        raise WorkroomStateError("architecture brief artifact is not recorded in run state")
+    if not _artifact_ref_recorded_in_run(run, clean_implementation_plan_ref):
+        raise WorkroomStateError(
+            "implementation plan artifact is not recorded in run state"
+        )
+    _implementation_architecture_brief_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_architecture_brief_ref,
+    )
+    _implementation_plan_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_implementation_plan_ref,
+        architecture_brief_ref=clean_architecture_brief_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        decision = _decision_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            decision_ref=existing_ref,
+            decision_type="implementation_plan_review",
+            source_refs=(clean_architecture_brief_ref, clean_implementation_plan_ref),
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "decision": decision,
+        }
+    decision_record = build_implementation_plan_review_decision_record(
+        run=run,
+        task=current_task,
+        architecture_brief_ref=clean_architecture_brief_ref,
+        implementation_plan_ref=clean_implementation_plan_ref,
+    )
+    decision = write_decision_record(workspace_path, decision_record)
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(decision["decision_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "decision": decision}
+
+
 def create_release_quality_gate_report(
     *,
     run_id: str,
@@ -2674,6 +3001,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/decisions/" in ref
             and ref.endswith(".json")
         )
+    if kind == "implementation_plan_review_decision":
+        return (
+            ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        )
     if kind == "growth_brief_artifact":
         return (
             ref.startswith(GROWTH_BRIEF_ARTIFACT_PREFIX)
@@ -2697,6 +3030,18 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             ref.startswith(DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX)
             and "/delivery_planning/" in ref
             and ref.endswith("/delivery_execution_plan.md")
+        )
+    if kind == "architecture_brief_artifact":
+        return (
+            ref.startswith(IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX)
+            and "/implementation_planning/" in ref
+            and ref.endswith("/architecture_brief.md")
+        )
+    if kind == "implementation_plan_artifact":
+        return (
+            ref.startswith(IMPLEMENTATION_PLAN_ARTIFACT_PREFIX)
+            and "/implementation_planning/" in ref
+            and ref.endswith("/implementation_plan.md")
         )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
@@ -2761,6 +3106,73 @@ def _delivery_review_decision_route_readiness(
         extra_arguments={
             "scope_brief_ref": scope_ref,
             "execution_plan_ref": plan_ref,
+        },
+    )
+
+
+def _architecture_brief_route_readiness(
+    *,
+    architecture_task: TaskState,
+    architecture_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if architecture_ref is not None:
+        return None
+    if architecture_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_architecture_brief_artifact",
+        task_ref=architecture_task.task_ref,
+        reason=(
+            "architecture_brief task is ready and has no architecture brief "
+            "artifact"
+        ),
+    )
+
+
+def _implementation_plan_route_readiness(
+    *,
+    implementation_task: TaskState,
+    architecture_ref: str | None,
+    implementation_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if architecture_ref is None or implementation_ref is not None:
+        return None
+    if implementation_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_implementation_plan_artifact",
+        task_ref=implementation_task.task_ref,
+        reason=(
+            "architecture brief exists and implementation_plan task has no "
+            "implementation plan artifact"
+        ),
+        extra_arguments={
+            "architecture_brief_ref": architecture_ref,
+        },
+    )
+
+
+def _implementation_plan_review_decision_route_readiness(
+    *,
+    review_task: TaskState,
+    architecture_ref: str | None,
+    implementation_ref: str | None,
+    review_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if architecture_ref is None or implementation_ref is None or review_ref is not None:
+        return None
+    if review_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="prepare_implementation_plan_review_decision",
+        task_ref=review_task.task_ref,
+        reason=(
+            "architecture brief and implementation plan exist and "
+            "review_decision task has no implementation plan review decision"
+        ),
+        extra_arguments={
+            "architecture_brief_ref": architecture_ref,
+            "implementation_plan_ref": implementation_ref,
         },
     )
 
@@ -3095,6 +3507,11 @@ def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
             create_delivery_execution_plan_artifact
         ),
         "prepare_delivery_review_decision": prepare_delivery_review_decision,
+        "create_architecture_brief_artifact": create_architecture_brief_artifact,
+        "create_implementation_plan_artifact": create_implementation_plan_artifact,
+        "prepare_implementation_plan_review_decision": (
+            prepare_implementation_plan_review_decision
+        ),
         "create_growth_brief_artifact": create_growth_brief_artifact,
         "create_growth_experiment_plan_artifact": (
             create_growth_experiment_plan_artifact
@@ -3785,6 +4202,85 @@ def _delivery_execution_plan_payload_for_existing_ref(
     if payload.get("scope_brief_ref") != scope_brief_ref:
         raise WorkroomStateError(
             "delivery execution plan artifact metadata does not match scope brief ref"
+        )
+    return payload
+
+
+def _implementation_architecture_brief_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/architecture_brief.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("architecture brief artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "implementation_planning"
+        or parts[3] != "architecture_brief.md"
+    ):
+        raise WorkroomStateError("architecture brief artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("architecture brief artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "architecture brief artifact metadata does not match ref"
+        )
+    return payload
+
+
+def _implementation_plan_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+    architecture_brief_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/implementation_plan.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("implementation plan artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "implementation_planning"
+        or parts[3] != "implementation_plan.md"
+    ):
+        raise WorkroomStateError("implementation plan artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "implementation_plan_metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("implementation plan artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "implementation plan artifact metadata does not match ref"
+        )
+    if payload.get("architecture_brief_ref") != architecture_brief_ref:
+        raise WorkroomStateError(
+            "implementation plan artifact metadata does not match architecture brief ref"
         )
     return payload
 

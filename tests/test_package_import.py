@@ -127,6 +127,38 @@ class PackageImportTests(unittest.TestCase):
             agency_workroom.__all__,
         )
 
+    def test_implementation_planning_company_spec_is_exported_from_package(
+        self,
+    ) -> None:
+        self.assertTrue(callable(agency_workroom.implementation_planning_company_spec))
+        self.assertTrue(callable(agency_workroom.create_architecture_brief_artifact))
+        self.assertTrue(callable(agency_workroom.create_implementation_plan_artifact))
+        self.assertTrue(
+            callable(agency_workroom.prepare_implementation_plan_review_decision)
+        )
+        self.assertTrue(
+            callable(agency_workroom.build_implementation_plan_review_decision_record)
+        )
+        self.assertIn(
+            "implementation_planning_company_spec",
+            agency_workroom.__all__,
+        )
+        self.assertIn("create_architecture_brief_artifact", agency_workroom.__all__)
+        self.assertIn("create_implementation_plan_artifact", agency_workroom.__all__)
+        self.assertIn(
+            "prepare_implementation_plan_review_decision",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "build_implementation_plan_review_decision_record",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX",
+            agency_workroom.__all__,
+        )
+        self.assertIn("IMPLEMENTATION_PLAN_ARTIFACT_PREFIX", agency_workroom.__all__)
+
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))
         self.assertTrue(callable(agency_workroom.LocalRouteReadiness))

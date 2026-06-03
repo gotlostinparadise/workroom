@@ -62,6 +62,9 @@ The MCP tools are agent-facing:
 - `create_delivery_scope_brief_artifact`
 - `create_delivery_execution_plan_artifact`
 - `prepare_delivery_review_decision`
+- `create_architecture_brief_artifact`
+- `create_implementation_plan_artifact`
+- `prepare_implementation_plan_review_decision`
 - `create_growth_brief_artifact`
 - `create_growth_experiment_plan_artifact`
 - `prepare_growth_review_decision`
@@ -156,6 +159,21 @@ prepared review decision record under the run workspace. These routes are local
 only: they do not run shell commands, mutate projects, approve execution,
 execute the plan, deploy, push, post, call external APIs, or start background
 workers.
+
+Workroom also includes a fifth bundled company spec, `implementation_planning`.
+It uses a solution architect for an `architecture_brief` task, an implementation
+planner for an `implementation_plan` task, and a plan reviewer for a
+`review_decision` task. Its required context variables are `objective`,
+`constraints`, and `acceptance_criteria`. `recommend_next_tool_call` can
+recommend `create_architecture_brief_artifact`, then
+`create_implementation_plan_artifact` after the architecture brief ref exists,
+then `prepare_implementation_plan_review_decision` after both implementation
+planning evidence refs exist. `run_next_local_step` or `advance_company_goal`
+can write local `architecture_brief.md` and `implementation_plan.md` artifacts
+plus a prepared review decision record under the run workspace. These routes
+are local only: they do not run shell commands, mutate projects, approve
+implementation, execute the plan, deploy, push, post, call external APIs, or
+start background workers.
 
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
@@ -286,11 +304,12 @@ research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
 Business Validation is the default registered `CompanySpec`. Release
-Hardening, Growth Brief, and Delivery Planning are additional registered specs
-that prove the runtime can start, inspect, recommend, and execute bounded local
-work for companies with different vocabulary, roles, and task sequences. A
-company spec defines the departments, roles, task templates, and metadata that
-create a goal-specific company run. The current reference vertical keeps the
+Hardening, Growth Brief, Delivery Planning, and Implementation Planning are
+additional registered specs that prove the runtime can start, inspect,
+recommend, and execute bounded local work for companies with different
+vocabulary, roles, and task sequences. A company spec defines the departments,
+roles, task templates, and metadata that create a goal-specific company run. The
+current reference vertical keeps the
 existing validation behavior, but startup now routes through the generic
 company start contract so future company types can use the same runtime path.
 

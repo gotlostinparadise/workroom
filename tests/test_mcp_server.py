@@ -24,6 +24,9 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_delivery_scope_brief_artifact",
                 "create_delivery_execution_plan_artifact",
                 "prepare_delivery_review_decision",
+                "create_architecture_brief_artifact",
+                "create_implementation_plan_artifact",
+                "prepare_implementation_plan_review_decision",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -177,6 +180,46 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertIn("execution_plan_ref", schema["properties"])
         self.assertIn("workspace_path", schema["properties"])
 
+    def test_implementation_planning_tools_have_required_fastmcp_arguments(
+        self,
+    ) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        architecture_tool = next(
+            tool for tool in tools if tool.name == "create_architecture_brief_artifact"
+        )
+        plan_tool = next(
+            tool for tool in tools if tool.name == "create_implementation_plan_artifact"
+        )
+        review_tool = next(
+            tool
+            for tool in tools
+            if tool.name == "prepare_implementation_plan_review_decision"
+        )
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(architecture_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "architecture_brief_ref",
+                "workspace_path",
+            },
+            set(plan_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "architecture_brief_ref",
+                "implementation_plan_ref",
+                "workspace_path",
+            },
+            set(review_tool.inputSchema["required"]),
+        )
+
     def test_release_quality_gate_tool_has_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())
         quality_tool = next(
@@ -287,6 +330,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "business_validation",
                 "delivery_planning",
                 "growth_brief",
+                "implementation_planning",
                 "release_hardening",
             ],
             [spec["spec_id"] for spec in result["company_specs"]],

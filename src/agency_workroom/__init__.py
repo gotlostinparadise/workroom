@@ -1,5 +1,6 @@
 """External Workroom workflow package."""
 
+from . import implementation_planning, implementation_review
 from .agent_session import (
     EXTERNAL_CAPABILITY_CATEGORIES,
     DEVOPS_OPERATION_PREFIX,
@@ -9,6 +10,8 @@ from .agent_session import (
     GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX,
     GROWTH_BRIEF_ARTIFACT_PREFIX,
     GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX,
+    IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX,
+    IMPLEMENTATION_PLAN_ARTIFACT_PREFIX,
     LANDING_ARTIFACT_PREFIX,
     LANDING_QA_REPORT_PREFIX,
     LOCAL_STEP_TOOL_NAMES,
@@ -19,12 +22,14 @@ from .agent_session import (
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
+    create_architecture_brief_artifact,
     create_cross_role_run_brief,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
     create_growth_brief_artifact,
     create_growth_experiment_plan_artifact,
+    create_implementation_plan_artifact,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -40,6 +45,7 @@ from .agent_session import (
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
     prepare_growth_review_decision,
+    prepare_implementation_plan_review_decision,
     prepare_release_readiness_decision,
     record_work_result,
     recommend_next_tool_call,
@@ -65,6 +71,7 @@ from .company_specs import (
     business_validation_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
+    implementation_planning_company_spec,
     release_hardening_company_spec,
 )
 from .company_briefing import (
@@ -75,6 +82,7 @@ from .company_briefing import (
 from .goal_intake import workflow_request_from_goal
 from .delivery_review import build_delivery_review_decision_record
 from .growth_review import build_growth_review_decision_record
+from .implementation_review import build_implementation_plan_review_decision_record
 from .local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
@@ -173,6 +181,8 @@ __all__ = [
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "GROWTH_BRIEF_ARTIFACT_PREFIX",
     "GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX",
+    "IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX",
+    "IMPLEMENTATION_PLAN_ARTIFACT_PREFIX",
     "GitHubPagesDeployProposal",
     "HandoffRecord",
     "LANDING_ARTIFACT_PREFIX",
@@ -214,12 +224,14 @@ __all__ = [
     "build_company_brief",
     "build_delivery_review_decision_record",
     "build_growth_review_decision_record",
+    "build_implementation_plan_review_decision_record",
     "build_local_route_recommendation",
     "build_local_route_recommendation_from_readiness",
     "build_local_route_readiness",
     "business_validation_company_spec",
     "check_workroom_mcp_config",
     "compact_company_brief",
+    "create_architecture_brief_artifact",
     "create_cross_role_run_brief",
     "create_cross_role_run_brief_files",
     "create_delivery_execution_plan_artifact",
@@ -228,6 +240,7 @@ __all__ = [
     "delivery_planning_company_spec",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
+    "create_implementation_plan_artifact",
     "build_role_work_request",
     "build_role_work_result",
     "create_landing_artifact",
@@ -245,6 +258,9 @@ __all__ = [
     "get_local_route",
     "get_mcp_tool_manifest",
     "growth_brief_company_spec",
+    "implementation_planning_company_spec",
+    "implementation_planning",
+    "implementation_review",
     "is_local_route_tool",
     "list_company_spec_options",
     "list_company_specs",
@@ -257,6 +273,7 @@ __all__ = [
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "prepare_growth_review_decision",
+    "prepare_implementation_plan_review_decision",
     "prepare_release_readiness_decision",
     "record_work_result",
     "recommend_next_tool_call",

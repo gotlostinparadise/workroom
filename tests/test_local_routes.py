@@ -27,6 +27,9 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_delivery_scope_brief_artifact",
                 "create_delivery_execution_plan_artifact",
                 "prepare_delivery_review_decision",
+                "create_architecture_brief_artifact",
+                "create_implementation_plan_artifact",
+                "prepare_implementation_plan_review_decision",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -94,6 +97,45 @@ class LocalRouteRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             {
+                "tool_name": "create_architecture_brief_artifact",
+                "delegated_role": "solution_architect",
+                "result_kind": "architecture_brief_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["recommend_next_tool_call"],
+                "executor_name": "create_architecture_brief_artifact",
+            },
+            route_payloads["create_architecture_brief_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "create_implementation_plan_artifact",
+                "delegated_role": "implementation_planner",
+                "result_kind": "implementation_plan_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_architecture_brief_artifact"],
+                "executor_name": "create_implementation_plan_artifact",
+            },
+            route_payloads["create_implementation_plan_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "prepare_implementation_plan_review_decision",
+                "delegated_role": "plan_reviewer",
+                "result_kind": "implementation_plan_review_decision",
+                "record_kind": "decision",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_implementation_plan_artifact"],
+                "executor_name": "prepare_implementation_plan_review_decision",
+            },
+            route_payloads["prepare_implementation_plan_review_decision"],
+        )
+        self.assertEqual(
+            {
                 "tool_name": "create_growth_brief_artifact",
                 "delegated_role": "growth_strategist",
                 "result_kind": "growth_brief_artifact",
@@ -148,6 +190,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
             if tool_name in {
                 "prepare_delivery_review_decision",
                 "prepare_growth_review_decision",
+                "prepare_implementation_plan_review_decision",
                 "prepare_release_readiness_decision",
             }:
                 continue

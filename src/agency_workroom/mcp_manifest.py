@@ -87,6 +87,24 @@ _TOOL_ARGUMENTS = {
         "execution_plan_ref",
         "workspace_path",
     ),
+    "create_architecture_brief_artifact": (
+        "run_id",
+        "task_ref",
+        "workspace_path",
+    ),
+    "create_implementation_plan_artifact": (
+        "run_id",
+        "task_ref",
+        "architecture_brief_ref",
+        "workspace_path",
+    ),
+    "prepare_implementation_plan_review_decision": (
+        "run_id",
+        "task_ref",
+        "architecture_brief_ref",
+        "implementation_plan_ref",
+        "workspace_path",
+    ),
     "create_growth_brief_artifact": ("run_id", "task_ref", "workspace_path"),
     "create_growth_experiment_plan_artifact": (
         "run_id",

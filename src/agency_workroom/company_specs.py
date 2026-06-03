@@ -375,9 +375,115 @@ def delivery_planning_company_spec() -> CompanySpec:
     )
 
 
+def implementation_planning_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="implementation_planning_team",
+        departments=(
+            Department(
+                department_id="architecture",
+                display_name="Architecture Department",
+                purpose="Frame solution boundaries, dependencies, and risks",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="planning",
+                display_name="Planning Department",
+                purpose="Turn architecture evidence into a TDD implementation plan",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="review",
+                display_name="Review Department",
+                purpose="Prepare local review decisions before implementation starts",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="solution_architect",
+                display_name="Solution Architect",
+                responsibilities=(
+                    "Prepare architecture briefs for bounded Codex implementation work"
+                ),
+                department_id="architecture",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="implementation_planner",
+                display_name="Implementation Planner",
+                responsibilities=(
+                    "Prepare TDD implementation plans from architecture evidence"
+                ),
+                department_id="planning",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="plan_reviewer",
+                display_name="Plan Reviewer",
+                responsibilities=(
+                    "Prepare local review decisions for implementation plans"
+                ),
+                department_id="review",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="implementation_planning",
+        version="v1",
+        display_name="Implementation Planning",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="solution_architect",
+                category="architecture_brief",
+                title="Prepare architecture brief",
+                summary_template=(
+                    "Frame architecture for '{objective}' under constraints: "
+                    "{constraints}. Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "architecture_brief"},
+            ),
+            CompanyTaskTemplate(
+                role_id="implementation_planner",
+                category="implementation_plan",
+                title="Prepare implementation plan",
+                summary_template=(
+                    "Prepare a TDD implementation plan for '{objective}' under "
+                    "constraints: {constraints}. Acceptance criteria: "
+                    "{acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={
+                    "artifact_kind": "implementation_plan",
+                    "depends_on": "architecture_brief",
+                },
+            ),
+            CompanyTaskTemplate(
+                role_id="plan_reviewer",
+                category="review_decision",
+                title="Prepare local implementation plan review decision",
+                summary_template=(
+                    "Prepare a local review decision for the implementation "
+                    "plan for '{objective}'. Acceptance criteria: "
+                    "{acceptance_criteria}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "implementation_plan_review"},
+            ),
+        ),
+        metadata={"reference_vertical": "implementation_planning"},
+    )
+
+
 __all__ = [
     "business_validation_company_spec",
     "delivery_planning_company_spec",
     "growth_brief_company_spec",
+    "implementation_planning_company_spec",
     "release_hardening_company_spec",
 ]
