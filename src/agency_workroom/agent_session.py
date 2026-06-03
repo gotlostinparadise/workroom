@@ -17,6 +17,9 @@ from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .runbook_closeout_packet import create_runbook_closeout_packet_files
 from .runbook_operating_packet import create_runbook_operating_packet_files
 from .runbook_progress_report import create_runbook_progress_report_files
+from .runbook_release_readiness_smoke import (
+    create_runbook_release_readiness_smoke_files,
+)
 from .runbook_smoke_example import create_runbook_smoke_example_files
 from .runbook_context_transfer import create_runbook_context_transfer_files
 from .devops_operations import (
@@ -627,6 +630,21 @@ def create_runbook_closeout_packet(
     clean_workspace_path = _required_text("workspace_path", workspace_path)
     run_ids = _run_ids_from_json(run_ids_json)
     return create_runbook_closeout_packet_files(
+        workspace_path=clean_workspace_path,
+        run_ids=run_ids,
+        runbook_id=runbook_id,
+    )
+
+
+def create_runbook_release_readiness_smoke(
+    *,
+    workspace_path: str,
+    run_ids_json: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run_ids = _run_ids_from_json(run_ids_json)
+    return create_runbook_release_readiness_smoke_files(
         workspace_path=clean_workspace_path,
         run_ids=run_ids,
         runbook_id=runbook_id,
@@ -6267,6 +6285,7 @@ __all__ = [
     "create_runbook_closeout_packet",
     "create_runbook_operating_packet",
     "create_runbook_progress_report",
+    "create_runbook_release_readiness_smoke",
     "create_runbook_smoke_example",
     "create_goal_run_report",
     "create_growth_brief_artifact",

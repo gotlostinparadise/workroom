@@ -23,6 +23,7 @@ from agency_workroom.agent_session import (
     create_runbook_closeout_packet,
     create_runbook_operating_packet,
     create_runbook_progress_report,
+    create_runbook_release_readiness_smoke,
     create_runbook_smoke_example,
     create_runbook_context_transfer,
     create_architecture_brief_artifact,
@@ -769,6 +770,57 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("runbook-closeout-packet.v1", result["schema_version"])
         self.assertEqual(["run_design"], payload["run_ids"])
         self.assertEqual("review_required", payload["closeout_status"])
+        self.assertFalse((workspace_path / "runs" / "run_implementation").exists())
+
+    def test_create_runbook_release_readiness_smoke_reads_fixture_chain_only(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        run = CompanyGoalRun(
+            run_id="run_design",
+            user_id="usr_codex",
+            goal="Review a design",
+            company_spec_id="design_review",
+            company_spec_version="v1",
+            team={"roles": []},
+            plan={"summary": "Review a design", "tasks": []},
+            commits=(),
+            tasks=(
+                TaskState(
+                    task_ref="workroom-task://run_design/review",
+                    role_id="design_reviewer",
+                    category="design_review",
+                    title="Review design",
+                    status="completed",
+                    result_refs=(
+                        "workroom-artifact://runs/run_design/design/review.json",
+                    ),
+                ),
+            ),
+        )
+        save_company_goal_run(workspace_path, run)
+        create_runbook_operating_packet(workspace_path=str(workspace_path))
+        create_runbook_smoke_example(workspace_path=str(workspace_path))
+        create_runbook_progress_report(
+            workspace_path=str(workspace_path),
+            run_ids_json='["run_design"]',
+        )
+        create_runbook_closeout_packet(
+            workspace_path=str(workspace_path),
+            run_ids_json='["run_design"]',
+        )
+
+        result = create_runbook_release_readiness_smoke(
+            workspace_path=str(workspace_path),
+            run_ids_json='["run_design"]',
+        )
+
+        payload = json.loads(Path(result["smoke_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(
+            "runbook-release-readiness-smoke.v1",
+            result["schema_version"],
+        )
+        self.assertEqual(["run_design"], payload["run_ids"])
+        self.assertEqual("review_required", payload["smoke_status"])
         self.assertFalse((workspace_path / "runs" / "run_implementation").exists())
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:

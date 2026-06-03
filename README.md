@@ -101,6 +101,7 @@ The MCP tools are agent-facing:
 - `create_runbook_operating_packet`
 - `create_runbook_progress_report`
 - `create_runbook_closeout_packet`
+- `create_runbook_release_readiness_smoke`
 - `create_runbook_smoke_example`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
@@ -129,8 +130,10 @@ Recommended first calls:
 4. `list_company_runbooks`
 5. `create_runbook_operating_packet`
 6. `create_runbook_smoke_example`
-7. `create_runbook_progress_report` after one or more runbook stage runs exist
-8. `start_company_goal`
+7. `start_company_goal`
+8. `create_runbook_progress_report` after one or more runbook stage runs exist
+9. `create_runbook_closeout_packet` after runbook stage runs and review reports exist
+10. `create_runbook_release_readiness_smoke` after the runbook fixture chain exists
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or
@@ -431,6 +434,15 @@ available context transfers, evidence-chain readiness, and per-run review
 quality. It does not create those per-run reports automatically, start
 companies, advance runs, execute local steps, approve decisions, deploy, push,
 post, call external APIs, or start background workers.
+
+`create_runbook_release_readiness_smoke` writes a local JSON and Markdown smoke
+report under `runbooks/<runbook_id>/` for an existing runbook fixture chain.
+Codex passes `workspace_path`, `run_ids_json`, and optional `runbook_id`;
+Workroom reads the existing operating packet, smoke example, progress report,
+and closeout packet, then summarizes fixture validity, context-transfer
+readiness, evidence-chain readiness, and the next continuation recommendation.
+It does not create companies, advance runs, execute local steps, approve
+decisions, deploy, push, post, call external APIs, or start background workers.
 
 `create_runbook_context_transfer` writes a local JSON and Markdown handoff
 artifact under `runs/<source_run_id>/reports/` for moving from one runbook

@@ -35,6 +35,7 @@ _TOOL_ORDER = (
     "create_runbook_smoke_example",
     "create_runbook_progress_report",
     "create_runbook_closeout_packet",
+    "create_runbook_release_readiness_smoke",
 )
 
 _READ_ONLY_TOOLS = {
@@ -247,6 +248,7 @@ _TOOL_ARGUMENTS = {
     "create_runbook_operating_packet": ("workspace_path",),
     "create_runbook_progress_report": ("workspace_path", "run_ids_json"),
     "create_runbook_closeout_packet": ("workspace_path", "run_ids_json"),
+    "create_runbook_release_readiness_smoke": ("workspace_path", "run_ids_json"),
     "create_runbook_smoke_example": ("workspace_path",),
 }
 
@@ -255,6 +257,7 @@ _OPTIONAL_TOOL_ARGUMENTS = {
     "create_runbook_operating_packet": ("runbook_id",),
     "create_runbook_progress_report": ("runbook_id",),
     "create_runbook_closeout_packet": ("runbook_id",),
+    "create_runbook_release_readiness_smoke": ("runbook_id",),
     "create_runbook_smoke_example": ("runbook_id", "example_goal"),
     "prepare_github_pages_deploy_proposal": (
         "target_repo_full_name",
@@ -298,6 +301,7 @@ _RECOMMENDED_AFTER = {
     "create_runbook_operating_packet": ("list_company_runbooks",),
     "create_runbook_progress_report": ("create_runbook_smoke_example",),
     "create_runbook_closeout_packet": ("create_runbook_progress_report",),
+    "create_runbook_release_readiness_smoke": ("create_runbook_closeout_packet",),
     "create_runbook_smoke_example": ("create_runbook_operating_packet",),
 }
 

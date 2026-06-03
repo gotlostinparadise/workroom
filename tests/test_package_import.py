@@ -262,6 +262,9 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.create_runbook_closeout_packet))
         self.assertTrue(callable(agency_workroom.create_runbook_operating_packet))
         self.assertTrue(callable(agency_workroom.create_runbook_progress_report))
+        self.assertTrue(
+            callable(agency_workroom.create_runbook_release_readiness_smoke)
+        )
         self.assertTrue(callable(agency_workroom.create_runbook_smoke_example))
         self.assertTrue(callable(agency_workroom.recommend_chain_continuation))
         self.assertTrue(callable(agency_workroom.create_goal_run_report))
@@ -287,6 +290,9 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertTrue(
             callable(agency_workroom.create_runbook_progress_report_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_runbook_release_readiness_smoke_files)
         )
         self.assertTrue(callable(agency_workroom.create_runbook_smoke_example_files))
         self.assertTrue(
@@ -317,6 +323,10 @@ class PackageImportTests(unittest.TestCase):
             agency_workroom.__all__,
         )
         self.assertIn(
+            "create_runbook_release_readiness_smoke",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
             "create_runbook_smoke_example",
             agency_workroom.__all__,
         )
@@ -338,6 +348,10 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn(
             "create_runbook_progress_report_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_runbook_release_readiness_smoke_files",
             agency_workroom.__all__,
         )
         self.assertIn(
