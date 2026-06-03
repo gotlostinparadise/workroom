@@ -23,6 +23,9 @@ TOOL_NAMES = (
     "create_architecture_brief_artifact",
     "create_implementation_plan_artifact",
     "prepare_implementation_plan_review_decision",
+    "create_verification_matrix_artifact",
+    "create_verification_plan_artifact",
+    "prepare_verification_review_decision",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
     "prepare_growth_review_decision",
@@ -280,6 +283,54 @@ def prepare_implementation_plan_review_decision(
         task_ref=task_ref,
         architecture_brief_ref=architecture_brief_ref,
         implementation_plan_ref=implementation_plan_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_verification_matrix_artifact(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local verification matrix artifact for verification planning."""
+    return agent_session.create_verification_matrix_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_verification_plan_artifact(
+    run_id: str,
+    task_ref: str,
+    verification_matrix_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local verification plan from a verification matrix artifact."""
+    return agent_session.create_verification_plan_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        verification_matrix_ref=verification_matrix_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def prepare_verification_review_decision(
+    run_id: str,
+    task_ref: str,
+    verification_matrix_ref: str,
+    verification_plan_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Prepare a local review decision for a verification plan."""
+    return agent_session.prepare_verification_review_decision(
+        run_id=run_id,
+        task_ref=task_ref,
+        verification_matrix_ref=verification_matrix_ref,
+        verification_plan_ref=verification_plan_ref,
         workspace_path=workspace_path,
     )
 
@@ -557,6 +608,9 @@ __all__ = [
     "create_architecture_brief_artifact",
     "create_implementation_plan_artifact",
     "prepare_implementation_plan_review_decision",
+    "create_verification_matrix_artifact",
+    "create_verification_plan_artifact",
+    "prepare_verification_review_decision",
     "create_cross_role_run_brief",
     "create_goal_run_report",
     "create_growth_brief_artifact",

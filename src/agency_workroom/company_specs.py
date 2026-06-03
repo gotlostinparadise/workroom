@@ -480,10 +480,117 @@ def implementation_planning_company_spec() -> CompanySpec:
     )
 
 
+def verification_orchestration_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="verification_orchestration_team",
+        departments=(
+            Department(
+                department_id="strategy",
+                display_name="Verification Strategy Department",
+                purpose="Map changed surfaces, risk level, and acceptance coverage",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="verification",
+                display_name="Verification Department",
+                purpose="Prepare bounded local verification plans and evidence flow",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="review",
+                display_name="Review Department",
+                purpose="Prepare local review decisions before verification runs",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="verification_strategist",
+                display_name="Verification Strategist",
+                responsibilities=(
+                    "Prepare verification matrices for complex Codex work"
+                ),
+                department_id="strategy",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="verification_planner",
+                display_name="Verification Planner",
+                responsibilities=(
+                    "Prepare bounded verification plans from matrix evidence"
+                ),
+                department_id="verification",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="verification_reviewer",
+                display_name="Verification Reviewer",
+                responsibilities=(
+                    "Prepare local review decisions for verification plans"
+                ),
+                department_id="review",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="verification_orchestration",
+        version="v1",
+        display_name="Verification Orchestration",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="verification_strategist",
+                category="verification_matrix",
+                title="Prepare verification matrix",
+                summary_template=(
+                    "Map verification coverage for '{objective}' across changed "
+                    "surface: {changed_surface}. Risk level: {risk_level}. "
+                    "Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "verification_matrix"},
+            ),
+            CompanyTaskTemplate(
+                role_id="verification_planner",
+                category="verification_plan",
+                title="Prepare verification plan",
+                summary_template=(
+                    "Prepare a bounded verification plan for '{objective}' across "
+                    "changed surface: {changed_surface}. Risk level: "
+                    "{risk_level}. Acceptance criteria: {acceptance_criteria}."
+                ),
+                priority="high",
+                metadata={
+                    "artifact_kind": "verification_plan",
+                    "depends_on": "verification_matrix",
+                },
+            ),
+            CompanyTaskTemplate(
+                role_id="verification_reviewer",
+                category="review_decision",
+                title="Prepare local verification review decision",
+                summary_template=(
+                    "Prepare a local review decision for the verification plan "
+                    "for '{objective}'. Risk level: {risk_level}. Acceptance "
+                    "criteria: {acceptance_criteria}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "verification_plan_review"},
+            ),
+        ),
+        metadata={"reference_vertical": "verification_orchestration"},
+    )
+
+
 __all__ = [
     "business_validation_company_spec",
     "delivery_planning_company_spec",
     "growth_brief_company_spec",
     "implementation_planning_company_spec",
     "release_hardening_company_spec",
+    "verification_orchestration_company_spec",
 ]

@@ -30,6 +30,9 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_architecture_brief_artifact",
                 "create_implementation_plan_artifact",
                 "prepare_implementation_plan_review_decision",
+                "create_verification_matrix_artifact",
+                "create_verification_plan_artifact",
+                "prepare_verification_review_decision",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -136,6 +139,45 @@ class LocalRouteRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             {
+                "tool_name": "create_verification_matrix_artifact",
+                "delegated_role": "verification_strategist",
+                "result_kind": "verification_matrix_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["recommend_next_tool_call"],
+                "executor_name": "create_verification_matrix_artifact",
+            },
+            route_payloads["create_verification_matrix_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "create_verification_plan_artifact",
+                "delegated_role": "verification_planner",
+                "result_kind": "verification_plan_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_verification_matrix_artifact"],
+                "executor_name": "create_verification_plan_artifact",
+            },
+            route_payloads["create_verification_plan_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "prepare_verification_review_decision",
+                "delegated_role": "verification_reviewer",
+                "result_kind": "verification_review_decision",
+                "record_kind": "decision",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_verification_plan_artifact"],
+                "executor_name": "prepare_verification_review_decision",
+            },
+            route_payloads["prepare_verification_review_decision"],
+        )
+        self.assertEqual(
+            {
                 "tool_name": "create_growth_brief_artifact",
                 "delegated_role": "growth_strategist",
                 "result_kind": "growth_brief_artifact",
@@ -192,6 +234,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "prepare_growth_review_decision",
                 "prepare_implementation_plan_review_decision",
                 "prepare_release_readiness_decision",
+                "prepare_verification_review_decision",
             }:
                 continue
             self.assertEqual("handoff", payload["record_kind"])

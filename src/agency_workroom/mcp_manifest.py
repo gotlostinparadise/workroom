@@ -105,6 +105,24 @@ _TOOL_ARGUMENTS = {
         "implementation_plan_ref",
         "workspace_path",
     ),
+    "create_verification_matrix_artifact": (
+        "run_id",
+        "task_ref",
+        "workspace_path",
+    ),
+    "create_verification_plan_artifact": (
+        "run_id",
+        "task_ref",
+        "verification_matrix_ref",
+        "workspace_path",
+    ),
+    "prepare_verification_review_decision": (
+        "run_id",
+        "task_ref",
+        "verification_matrix_ref",
+        "verification_plan_ref",
+        "workspace_path",
+    ),
     "create_growth_brief_artifact": ("run_id", "task_ref", "workspace_path"),
     "create_growth_experiment_plan_artifact": (
         "run_id",

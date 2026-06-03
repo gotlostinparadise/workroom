@@ -87,6 +87,25 @@ LOCAL_ROUTES = (
         recommended_after=("create_implementation_plan_artifact",),
     ),
     LocalRoute(
+        tool_name="create_verification_matrix_artifact",
+        delegated_role="verification_strategist",
+        result_kind="verification_matrix_artifact",
+        recommended_after=("recommend_next_tool_call",),
+    ),
+    LocalRoute(
+        tool_name="create_verification_plan_artifact",
+        delegated_role="verification_planner",
+        result_kind="verification_plan_artifact",
+        recommended_after=("create_verification_matrix_artifact",),
+    ),
+    LocalRoute(
+        tool_name="prepare_verification_review_decision",
+        delegated_role="verification_reviewer",
+        result_kind="verification_review_decision",
+        record_kind="decision",
+        recommended_after=("create_verification_plan_artifact",),
+    ),
+    LocalRoute(
         tool_name="create_growth_brief_artifact",
         delegated_role="growth_strategist",
         result_kind="growth_brief_artifact",

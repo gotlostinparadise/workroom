@@ -8,6 +8,7 @@ from .company_specs import (
     growth_brief_company_spec,
     implementation_planning_company_spec,
     release_hardening_company_spec,
+    verification_orchestration_company_spec,
 )
 from .models import CompanySpec, WorkroomModelError
 
@@ -19,6 +20,7 @@ _COMPANY_SPEC_FACTORIES: dict[str, Callable[[], CompanySpec]] = {
     "growth_brief": growth_brief_company_spec,
     "implementation_planning": implementation_planning_company_spec,
     "release_hardening": release_hardening_company_spec,
+    "verification_orchestration": verification_orchestration_company_spec,
 }
 
 

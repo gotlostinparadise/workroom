@@ -1,6 +1,11 @@
 """External Workroom workflow package."""
 
-from . import implementation_planning, implementation_review
+from . import (
+    implementation_planning,
+    implementation_review,
+    verification_orchestration,
+    verification_review,
+)
 from .agent_session import (
     EXTERNAL_CAPABILITY_CATEGORIES,
     DEVOPS_OPERATION_PREFIX,
@@ -19,6 +24,8 @@ from .agent_session import (
     RELEASE_NOTES_ARTIFACT_PREFIX,
     RELEASE_QUALITY_GATE_REPORT_PREFIX,
     RELEASE_READINESS_DECISION_PREFIX,
+    VERIFICATION_MATRIX_ARTIFACT_PREFIX,
+    VERIFICATION_PLAN_ARTIFACT_PREFIX,
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
@@ -35,6 +42,8 @@ from .agent_session import (
     create_release_checklist_artifact,
     create_release_notes_artifact,
     create_release_quality_gate_report,
+    create_verification_matrix_artifact,
+    create_verification_plan_artifact,
     execute_github_pages_deploy,
     evaluate_company_goal_run,
     get_company_state,
@@ -47,6 +56,7 @@ from .agent_session import (
     prepare_growth_review_decision,
     prepare_implementation_plan_review_decision,
     prepare_release_readiness_decision,
+    prepare_verification_review_decision,
     record_work_result,
     recommend_next_tool_call,
     replay_company_goal_run,
@@ -73,6 +83,7 @@ from .company_specs import (
     growth_brief_company_spec,
     implementation_planning_company_spec,
     release_hardening_company_spec,
+    verification_orchestration_company_spec,
 )
 from .company_briefing import (
     build_company_brief,
@@ -83,6 +94,11 @@ from .goal_intake import workflow_request_from_goal
 from .delivery_review import build_delivery_review_decision_record
 from .growth_review import build_growth_review_decision_record
 from .implementation_review import build_implementation_plan_review_decision_record
+from .verification_orchestration import (
+    create_verification_matrix_artifact_files,
+    create_verification_plan_artifact_files,
+)
+from .verification_review import build_verification_review_decision_record
 from .local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
@@ -183,6 +199,8 @@ __all__ = [
     "GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX",
     "IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX",
     "IMPLEMENTATION_PLAN_ARTIFACT_PREFIX",
+    "VERIFICATION_MATRIX_ARTIFACT_PREFIX",
+    "VERIFICATION_PLAN_ARTIFACT_PREFIX",
     "GitHubPagesDeployProposal",
     "HandoffRecord",
     "LANDING_ARTIFACT_PREFIX",
@@ -225,6 +243,7 @@ __all__ = [
     "build_delivery_review_decision_record",
     "build_growth_review_decision_record",
     "build_implementation_plan_review_decision_record",
+    "build_verification_review_decision_record",
     "build_local_route_recommendation",
     "build_local_route_recommendation_from_readiness",
     "build_local_route_readiness",
@@ -241,6 +260,10 @@ __all__ = [
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
     "create_implementation_plan_artifact",
+    "create_verification_matrix_artifact",
+    "create_verification_plan_artifact",
+    "create_verification_matrix_artifact_files",
+    "create_verification_plan_artifact_files",
     "build_role_work_request",
     "build_role_work_result",
     "create_landing_artifact",
@@ -258,6 +281,7 @@ __all__ = [
     "get_local_route",
     "get_mcp_tool_manifest",
     "growth_brief_company_spec",
+    "verification_orchestration_company_spec",
     "implementation_planning_company_spec",
     "implementation_planning",
     "implementation_review",
@@ -274,6 +298,7 @@ __all__ = [
     "prepare_github_pages_deploy_proposal",
     "prepare_growth_review_decision",
     "prepare_implementation_plan_review_decision",
+    "prepare_verification_review_decision",
     "prepare_release_readiness_decision",
     "record_work_result",
     "recommend_next_tool_call",

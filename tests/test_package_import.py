@@ -159,6 +159,38 @@ class PackageImportTests(unittest.TestCase):
         )
         self.assertIn("IMPLEMENTATION_PLAN_ARTIFACT_PREFIX", agency_workroom.__all__)
 
+    def test_verification_orchestration_company_spec_is_exported_from_package(
+        self,
+    ) -> None:
+        self.assertTrue(
+            callable(agency_workroom.verification_orchestration_company_spec)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_verification_matrix_artifact_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_verification_plan_artifact_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.build_verification_review_decision_record)
+        )
+        self.assertIn(
+            "verification_orchestration_company_spec",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_verification_matrix_artifact_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_verification_plan_artifact_files",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "build_verification_review_decision_record",
+            agency_workroom.__all__,
+        )
+
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))
         self.assertTrue(callable(agency_workroom.LocalRouteReadiness))

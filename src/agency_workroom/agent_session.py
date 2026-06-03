@@ -38,6 +38,11 @@ from .implementation_planning import (
 from .implementation_review import (
     build_implementation_plan_review_decision_record,
 )
+from .verification_orchestration import (
+    create_verification_matrix_artifact_files,
+    create_verification_plan_artifact_files,
+)
+from .verification_review import build_verification_review_decision_record
 from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
@@ -116,6 +121,8 @@ DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
 IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 IMPLEMENTATION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
+VERIFICATION_MATRIX_ARTIFACT_PREFIX = "workroom-artifact://"
+VERIFICATION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 GROWTH_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
@@ -801,6 +808,97 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
                     reason=(
                         "review_decision task is completed without an "
                         "implementation plan review decision ref"
+                    ),
+                )
+        return _no_local_recommendation(run.run_id)
+    verification_matrix_task = _optional_task_for_category(run, "verification_matrix")
+    if verification_matrix_task is not None:
+        matrix_ref = _result_ref_for_kind(run, "verification_matrix_artifact")
+        verification_plan_task = _optional_task_for_category(run, "verification_plan")
+        verification_plan_ref = _result_ref_for_kind(
+            run,
+            "verification_plan_artifact",
+        )
+        review_task = _optional_task_for_category(run, "review_decision")
+        review_ref = _result_ref_for_kind(run, "verification_review_decision")
+        if verification_matrix_task.status == "blocked":
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason="verification_matrix task is blocked",
+                blocker_summary=verification_matrix_task.blocker_summary,
+            )
+        matrix_readiness = _verification_matrix_route_readiness(
+            matrix_task=verification_matrix_task,
+            matrix_ref=matrix_ref,
+        )
+        if matrix_readiness is not None:
+            return build_local_route_recommendation_from_readiness(
+                run_id=run.run_id,
+                workspace_path=workspace_path,
+                readiness=matrix_readiness,
+            )
+        if matrix_ref is None and verification_matrix_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="verification matrix artifact ref",
+                reason=(
+                    "verification_matrix task is completed without a "
+                    "verification matrix artifact ref"
+                ),
+            )
+        if verification_plan_task is not None:
+            if verification_plan_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="verification_plan task is blocked",
+                    blocker_summary=verification_plan_task.blocker_summary,
+                )
+            plan_readiness = _verification_plan_route_readiness(
+                plan_task=verification_plan_task,
+                matrix_ref=matrix_ref,
+                plan_ref=verification_plan_ref,
+            )
+            if plan_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=plan_readiness,
+                )
+            if verification_plan_ref is None and verification_plan_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="verification plan artifact ref",
+                    reason=(
+                        "verification_plan task is completed without a "
+                        "verification plan artifact ref"
+                    ),
+                )
+        if review_task is not None:
+            if review_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="review_decision task is blocked",
+                    blocker_summary=review_task.blocker_summary,
+                )
+            review_readiness = _verification_review_decision_route_readiness(
+                review_task=review_task,
+                matrix_ref=matrix_ref,
+                plan_ref=verification_plan_ref,
+                review_ref=review_ref,
+            )
+            if review_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=review_readiness,
+                )
+            if review_ref is None and review_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="verification review decision ref",
+                    reason=(
+                        "review_decision task is completed without a "
+                        "verification review decision ref"
                     ),
                 )
         return _no_local_recommendation(run.run_id)
@@ -2060,6 +2158,231 @@ def prepare_implementation_plan_review_decision(
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "decision": decision}
 
 
+def create_verification_matrix_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "verification_matrix":
+        raise WorkroomStateError("task is not a verification_matrix task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(VERIFICATION_MATRIX_ARTIFACT_PREFIX)
+            and "/verification_orchestration/" in ref
+            and ref.endswith("/verification_matrix.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _verification_matrix_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_verification_matrix_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_verification_plan_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    verification_matrix_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_verification_matrix_ref = _required_text(
+        "verification_matrix_ref",
+        verification_matrix_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "verification_plan":
+        raise WorkroomStateError("task is not a verification_plan task")
+    if not _artifact_ref_recorded_in_run(run, clean_verification_matrix_ref):
+        raise WorkroomStateError("verification matrix artifact is not recorded in run state")
+    _verification_matrix_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_verification_matrix_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(VERIFICATION_PLAN_ARTIFACT_PREFIX)
+            and "/verification_orchestration/" in ref
+            and ref.endswith("/verification_plan.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _verification_plan_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+            verification_matrix_ref=clean_verification_matrix_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_verification_plan_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+        verification_matrix_ref=clean_verification_matrix_ref,
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def prepare_verification_review_decision(
+    *,
+    run_id: str,
+    task_ref: str,
+    verification_matrix_ref: str,
+    verification_plan_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_verification_matrix_ref = _required_text(
+        "verification_matrix_ref",
+        verification_matrix_ref,
+    )
+    clean_verification_plan_ref = _required_text(
+        "verification_plan_ref",
+        verification_plan_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "review_decision":
+        raise WorkroomStateError("task is not a review_decision task")
+    if not _artifact_ref_recorded_in_run(run, clean_verification_matrix_ref):
+        raise WorkroomStateError("verification matrix artifact is not recorded in run state")
+    if not _artifact_ref_recorded_in_run(run, clean_verification_plan_ref):
+        raise WorkroomStateError("verification plan artifact is not recorded in run state")
+    _verification_matrix_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_verification_matrix_ref,
+    )
+    _verification_plan_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_verification_plan_ref,
+        verification_matrix_ref=clean_verification_matrix_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        decision = _decision_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            decision_ref=existing_ref,
+            decision_type="verification_plan_review",
+            source_refs=(clean_verification_matrix_ref, clean_verification_plan_ref),
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "decision": decision,
+        }
+    decision_record = build_verification_review_decision_record(
+        run=run,
+        task=current_task,
+        verification_matrix_ref=clean_verification_matrix_ref,
+        verification_plan_ref=clean_verification_plan_ref,
+    )
+    decision = write_decision_record(workspace_path, decision_record)
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(decision["decision_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "decision": decision}
+
+
 def create_release_quality_gate_report(
     *,
     run_id: str,
@@ -3007,6 +3330,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/decisions/" in ref
             and ref.endswith(".json")
         )
+    if kind == "verification_review_decision":
+        return (
+            ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        )
     if kind == "growth_brief_artifact":
         return (
             ref.startswith(GROWTH_BRIEF_ARTIFACT_PREFIX)
@@ -3042,6 +3371,18 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             ref.startswith(IMPLEMENTATION_PLAN_ARTIFACT_PREFIX)
             and "/implementation_planning/" in ref
             and ref.endswith("/implementation_plan.md")
+        )
+    if kind == "verification_matrix_artifact":
+        return (
+            ref.startswith(VERIFICATION_MATRIX_ARTIFACT_PREFIX)
+            and "/verification_orchestration/" in ref
+            and ref.endswith("/verification_matrix.md")
+        )
+    if kind == "verification_plan_artifact":
+        return (
+            ref.startswith(VERIFICATION_PLAN_ARTIFACT_PREFIX)
+            and "/verification_orchestration/" in ref
+            and ref.endswith("/verification_plan.md")
         )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
@@ -3173,6 +3514,73 @@ def _implementation_plan_review_decision_route_readiness(
         extra_arguments={
             "architecture_brief_ref": architecture_ref,
             "implementation_plan_ref": implementation_ref,
+        },
+    )
+
+
+def _verification_matrix_route_readiness(
+    *,
+    matrix_task: TaskState,
+    matrix_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if matrix_ref is not None:
+        return None
+    if matrix_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_verification_matrix_artifact",
+        task_ref=matrix_task.task_ref,
+        reason=(
+            "verification_matrix task is ready and has no verification matrix "
+            "artifact"
+        ),
+    )
+
+
+def _verification_plan_route_readiness(
+    *,
+    plan_task: TaskState,
+    matrix_ref: str | None,
+    plan_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if matrix_ref is None or plan_ref is not None:
+        return None
+    if plan_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_verification_plan_artifact",
+        task_ref=plan_task.task_ref,
+        reason=(
+            "verification matrix exists and verification_plan task has no "
+            "verification plan artifact"
+        ),
+        extra_arguments={
+            "verification_matrix_ref": matrix_ref,
+        },
+    )
+
+
+def _verification_review_decision_route_readiness(
+    *,
+    review_task: TaskState,
+    matrix_ref: str | None,
+    plan_ref: str | None,
+    review_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if matrix_ref is None or plan_ref is None or review_ref is not None:
+        return None
+    if review_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="prepare_verification_review_decision",
+        task_ref=review_task.task_ref,
+        reason=(
+            "verification matrix and verification plan exist and "
+            "review_decision task has no verification review decision"
+        ),
+        extra_arguments={
+            "verification_matrix_ref": matrix_ref,
+            "verification_plan_ref": plan_ref,
         },
     )
 
@@ -3512,6 +3920,9 @@ def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
         "prepare_implementation_plan_review_decision": (
             prepare_implementation_plan_review_decision
         ),
+        "create_verification_matrix_artifact": create_verification_matrix_artifact,
+        "create_verification_plan_artifact": create_verification_plan_artifact,
+        "prepare_verification_review_decision": prepare_verification_review_decision,
         "create_growth_brief_artifact": create_growth_brief_artifact,
         "create_growth_experiment_plan_artifact": (
             create_growth_experiment_plan_artifact
@@ -4285,6 +4696,85 @@ def _implementation_plan_payload_for_existing_ref(
     return payload
 
 
+def _verification_matrix_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/verification_matrix.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("verification matrix artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "verification_orchestration"
+        or parts[3] != "verification_matrix.md"
+    ):
+        raise WorkroomStateError("verification matrix artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("verification matrix artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "verification matrix artifact metadata does not match ref"
+        )
+    return payload
+
+
+def _verification_plan_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+    verification_matrix_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/verification_plan.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("verification plan artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "verification_orchestration"
+        or parts[3] != "verification_plan.md"
+    ):
+        raise WorkroomStateError("verification plan artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "verification_plan_metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("verification plan artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "verification plan artifact metadata does not match ref"
+        )
+    if payload.get("verification_matrix_ref") != verification_matrix_ref:
+        raise WorkroomStateError(
+            "verification plan artifact metadata does not match verification matrix ref"
+        )
+    return payload
+
+
 def _growth_experiment_plan_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -4537,12 +5027,16 @@ __all__ = [
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "GROWTH_BRIEF_ARTIFACT_PREFIX",
     "GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX",
+    "IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX",
+    "IMPLEMENTATION_PLAN_ARTIFACT_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "RELEASE_QUALITY_GATE_REPORT_PREFIX",
     "RELEASE_NOTES_ARTIFACT_PREFIX",
     "RELEASE_READINESS_DECISION_PREFIX",
+    "VERIFICATION_MATRIX_ARTIFACT_PREFIX",
+    "VERIFICATION_PLAN_ARTIFACT_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
@@ -4552,11 +5046,14 @@ __all__ = [
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
+    "create_implementation_plan_artifact",
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",
     "create_release_notes_artifact",
     "create_release_quality_gate_report",
+    "create_verification_matrix_artifact",
+    "create_verification_plan_artifact",
     "execute_github_pages_deploy",
     "evaluate_company_goal_run",
     "get_company_state",
@@ -4567,7 +5064,9 @@ __all__ = [
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
     "prepare_growth_review_decision",
+    "prepare_implementation_plan_review_decision",
     "prepare_release_readiness_decision",
+    "prepare_verification_review_decision",
     "record_work_result",
     "recommend_next_tool_call",
     "replay_company_goal_run",

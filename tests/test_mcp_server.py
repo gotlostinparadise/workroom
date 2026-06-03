@@ -27,6 +27,9 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_architecture_brief_artifact",
                 "create_implementation_plan_artifact",
                 "prepare_implementation_plan_review_decision",
+                "create_verification_matrix_artifact",
+                "create_verification_plan_artifact",
+                "prepare_verification_review_decision",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -220,6 +223,44 @@ class WorkroomMcpServerTests(unittest.TestCase):
             set(review_tool.inputSchema["required"]),
         )
 
+    def test_verification_orchestration_tools_have_required_fastmcp_arguments(
+        self,
+    ) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        matrix_tool = next(
+            tool for tool in tools if tool.name == "create_verification_matrix_artifact"
+        )
+        plan_tool = next(
+            tool for tool in tools if tool.name == "create_verification_plan_artifact"
+        )
+        review_tool = next(
+            tool for tool in tools if tool.name == "prepare_verification_review_decision"
+        )
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(matrix_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "verification_matrix_ref",
+                "workspace_path",
+            },
+            set(plan_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "verification_matrix_ref",
+                "verification_plan_ref",
+                "workspace_path",
+            },
+            set(review_tool.inputSchema["required"]),
+        )
+
     def test_release_quality_gate_tool_has_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())
         quality_tool = next(
@@ -332,6 +373,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "growth_brief",
                 "implementation_planning",
                 "release_hardening",
+                "verification_orchestration",
             ],
             [spec["spec_id"] for spec in result["company_specs"]],
         )

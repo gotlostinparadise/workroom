@@ -8,6 +8,7 @@ from agency_workroom.company_specs import (
     growth_brief_company_spec,
     implementation_planning_company_spec,
     release_hardening_company_spec,
+    verification_orchestration_company_spec,
 )
 from agency_workroom.models import (
     CompanySpec,
@@ -174,6 +175,50 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         self.assertIn("{acceptance_criteria}", summary_text)
         self.assertEqual(
             "implementation_planning",
+            spec.metadata["reference_vertical"],
+        )
+
+    def test_verification_orchestration_company_spec_has_matrix_plan_review_sequence(
+        self,
+    ) -> None:
+        spec = verification_orchestration_company_spec()
+
+        self.assertEqual("verification_orchestration", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Verification Orchestration", spec.display_name)
+        self.assertEqual(
+            ["verification_matrix", "verification_plan", "review_decision"],
+            [task.category for task in spec.task_templates],
+        )
+        self.assertEqual(
+            {"strategy", "verification", "review"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {
+                "verification_strategist",
+                "verification_planner",
+                "verification_reviewer",
+            },
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertEqual(
+            [
+                "verification_strategist",
+                "verification_planner",
+                "verification_reviewer",
+            ],
+            [task.role_id for task in spec.task_templates],
+        )
+        summary_text = "\n".join(
+            task.summary_template for task in spec.task_templates
+        )
+        self.assertIn("{objective}", summary_text)
+        self.assertIn("{changed_surface}", summary_text)
+        self.assertIn("{risk_level}", summary_text)
+        self.assertIn("{acceptance_criteria}", summary_text)
+        self.assertEqual(
+            "verification_orchestration",
             spec.metadata["reference_vertical"],
         )
 

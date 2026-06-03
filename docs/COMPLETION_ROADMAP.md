@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v23.
+Status: Canonical plan v24.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -246,6 +246,12 @@ These milestones are complete enough to be treated as foundation:
     It can create local architecture and implementation-plan artifacts followed
     by a prepared local review decision, without executing implementation work
     or mutating project files.
+
+39. Verification Orchestration Company v1.
+    Verification Orchestration is registered as the sixth bundled
+    `CompanySpec`. It can create local verification matrix and verification
+    plan artifacts followed by a prepared local review decision, without
+    running shell commands, approving verification, or mutating project files.
 
 ## Milestone Plan
 
@@ -861,6 +867,41 @@ Exit criteria:
   execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
 
+### 29. Verification Orchestration Company v1
+
+Status: Done.
+
+Goal: let Codex spawn a small local company that turns changed implementation
+surfaces into a verification matrix, a bounded verification plan, and a review
+decision before verification commands are run.
+
+Exit criteria:
+
+- `verification_orchestration` is registered as a bundled `CompanySpec`
+  without changing the default Business Validation startup path.
+- `list_company_specs` exposes Verification Orchestration and its required
+  context variables: `objective`, `changed_surface`, `risk_level`, and
+  `acceptance_criteria`.
+- `start_company_goal` can start
+  `company_spec_id="verification_orchestration"` through the generic run
+  context path.
+- Verification Orchestration plans `verification_matrix` for
+  `verification_strategist`, `verification_plan` for `verification_planner`,
+  and `review_decision` for `verification_reviewer`.
+- `recommend_next_tool_call`, `run_next_local_step`, and
+  `advance_company_goal` progress through
+  `create_verification_matrix_artifact`,
+  `create_verification_plan_artifact`, and
+  `prepare_verification_review_decision`.
+- The MCP server and manifest expose all three local tools with stable
+  required arguments.
+- Existing Business Validation, Release Hardening, Growth Brief, Delivery
+  Planning, Implementation Planning, route registry, run inspection, and
+  reporting behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  verification execution, deploys, pushes, posts, external API calls, or new
+  external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -878,7 +919,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as a bounded company capability for verification
-orchestration, design review, or implementation-plan quality review. Only add
-more infrastructure first if live repo truth shows it is the safer prerequisite.
-Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+complex Codex work, such as a bounded design review company, implementation-plan
+quality review capability, or another local-only company that improves
+cross-role task quality. Only add more infrastructure first if live repo truth
+shows it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

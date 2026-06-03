@@ -65,6 +65,9 @@ The MCP tools are agent-facing:
 - `create_architecture_brief_artifact`
 - `create_implementation_plan_artifact`
 - `prepare_implementation_plan_review_decision`
+- `create_verification_matrix_artifact`
+- `create_verification_plan_artifact`
+- `prepare_verification_review_decision`
 - `create_growth_brief_artifact`
 - `create_growth_experiment_plan_artifact`
 - `prepare_growth_review_decision`
@@ -175,6 +178,21 @@ are local only: they do not run shell commands, mutate projects, approve
 implementation, execute the plan, deploy, push, post, call external APIs, or
 start background workers.
 
+Workroom also includes a sixth bundled company spec,
+`verification_orchestration`. It uses a verification strategist for a
+`verification_matrix` task, a verification planner for a `verification_plan`
+task, and a verification reviewer for a `review_decision` task. Its required
+context variables are `objective`, `changed_surface`, `risk_level`, and
+`acceptance_criteria`. `recommend_next_tool_call` can recommend
+`create_verification_matrix_artifact`, then
+`create_verification_plan_artifact` after the matrix ref exists, then
+`prepare_verification_review_decision` after both verification evidence refs
+exist. `run_next_local_step` or `advance_company_goal` can write local
+`verification_matrix.md` and `verification_plan.md` artifacts plus a prepared
+review decision record under the run workspace. These routes are local only:
+they do not run shell commands, mutate projects, approve verification, execute
+the plan, deploy, push, post, call external APIs, or start background workers.
+
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
@@ -213,10 +231,13 @@ recommendation. It can advance landing artifact creation, landing QA, or local
 GitHub Pages deploy proposal preparation for Business Validation, scope brief
 and execution plan artifacts plus review decision preparation for Delivery
 Planning, market brief and experiment plan artifacts plus review decision
-preparation for Growth Brief, or release checklist, quality gate, release
-notes, and readiness decision preparation for Release Hardening. It does not
-loop, push to GitHub, post externally, or run unapproved tools such as raw
-result recording.
+preparation for Growth Brief, architecture and implementation-plan artifacts
+plus review decision preparation for Implementation Planning, verification
+matrix and verification-plan artifacts plus review decision preparation for
+Verification Orchestration, or release checklist, quality gate, release notes,
+and readiness decision preparation for Release Hardening. It does not loop,
+push to GitHub, post externally, or run unapproved tools such as raw result
+recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
@@ -304,12 +325,12 @@ research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
 Business Validation is the default registered `CompanySpec`. Release
-Hardening, Growth Brief, Delivery Planning, and Implementation Planning are
-additional registered specs that prove the runtime can start, inspect,
-recommend, and execute bounded local work for companies with different
-vocabulary, roles, and task sequences. A company spec defines the departments,
-roles, task templates, and metadata that create a goal-specific company run. The
-current reference vertical keeps the
+Hardening, Growth Brief, Delivery Planning, Implementation Planning, and
+Verification Orchestration are additional registered specs that prove the
+runtime can start, inspect, recommend, and execute bounded local work for
+companies with different vocabulary, roles, and task sequences. A company spec
+defines the departments, roles, task templates, and metadata that create a
+goal-specific company run. The current reference vertical keeps the
 existing validation behavior, but startup now routes through the generic
 company start contract so future company types can use the same runtime path.
 
