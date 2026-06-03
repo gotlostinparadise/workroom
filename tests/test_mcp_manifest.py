@@ -81,6 +81,7 @@ class McpManifestTests(unittest.TestCase):
             "create_cross_role_task_quality_report",
             "create_company_evidence_chain_report",
             "create_runbook_context_transfer",
+            "create_runbook_closeout_packet",
             "create_runbook_operating_packet",
             "create_runbook_progress_report",
             "create_runbook_smoke_example",
@@ -403,6 +404,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_runbook_smoke_example"],
             progress_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_runbook_closeout_packet_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        closeout_tool = tools["create_runbook_closeout_packet"]
+
+        self.assertEqual("inspection", closeout_tool["phase"])
+        self.assertTrue(closeout_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", closeout_tool["external_effect_risk"])
+        self.assertEqual(
+            ["workspace_path", "run_ids_json"],
+            closeout_tool["required_arguments"],
+        )
+        self.assertEqual(["runbook_id"], closeout_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_runbook_progress_report"],
+            closeout_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_runbook_context_transfer_tool(self) -> None:

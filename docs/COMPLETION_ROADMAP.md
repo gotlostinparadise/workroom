@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v34.
+Status: Canonical plan v35.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -314,6 +314,12 @@ These milestones are complete enough to be treated as foundation:
     packet sequence and reporting completed stages, missing stages, blockers,
     available context transfers, and evidence-chain readiness without starting
     or advancing any company.
+
+50. Runbook Closeout Packet v1.
+    Workroom can write a local JSON/Markdown release-review packet for existing
+    runbook stage runs, combining runbook progress, existing cross-role reports,
+    existing task-quality reports, context-transfer readiness, and
+    evidence-chain readiness without starting or advancing any company.
 
 ## Milestone Plan
 
@@ -1258,6 +1264,38 @@ Exit criteria:
   approval, implementation execution, verification execution, deploys, pushes,
   posts, external API calls, or new external effects are added.
 
+### 40. Runbook Closeout Packet v1
+
+Status: Done.
+
+Goal: give Codex a single local release-review packet for an existing
+multi-company runbook execution before deciding whether the work is ready,
+needs context transfer, needs an evidence chain, or needs more company stages.
+
+Exit criteria:
+
+- `create_runbook_closeout_packet` accepts `workspace_path`, `run_ids_json`,
+  and optional `runbook_id`.
+- The tool writes `runbook_closeout_packet.json` and Markdown files under
+  `runbooks/<runbook_id>/`.
+- The payload uses schema `runbook-closeout-packet.v1`.
+- The payload refreshes and links the runbook progress report.
+- The payload reads existing cross-role run briefs and cross-role task-quality
+  reports when present, without creating them automatically.
+- The payload reports closeout status, ready-for-release flag, missing stages,
+  blockers, available context transfers, evidence-chain readiness, per-run
+  review refs, quality scores, and readiness findings.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required workspace path and run-ids JSON arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation,
+  runbook listing, context transfer, operating packet, smoke example, and
+  progress report behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, project mutation outside local Workroom runbook closeout files,
+  approval, implementation execution, verification execution, deploys, pushes,
+  posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1274,8 +1312,9 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer a
-runbook closeout/readiness artifact that combines the progress report,
-cross-role reports, task-quality reports, and evidence-chain readiness into a
-single local release-review packet for a multi-company runbook execution. Only
-add more infrastructure first if live repo truth shows it is the safer
-prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+release-readiness smoke of the full runbook reporting sequence using persisted
+local fixtures: operating packet, smoke example, progress report, closeout
+packet, context transfer readiness, evidence-chain readiness, and continuation
+recommendation. Only add more infrastructure first if live repo truth shows it
+is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

@@ -41,6 +41,7 @@ from .agent_session import (
     create_company_evidence_chain_report,
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
+    create_runbook_closeout_packet,
     create_runbook_operating_packet,
     create_runbook_progress_report,
     create_runbook_smoke_example,
@@ -98,6 +99,7 @@ from .company_runbooks import (
     list_company_runbook_templates,
 )
 from .runbook_context_transfer import create_runbook_context_transfer_files
+from .runbook_closeout_packet import create_runbook_closeout_packet_files
 from .runbook_operating_packet import create_runbook_operating_packet_files
 from .runbook_progress_report import create_runbook_progress_report_files
 from .runbook_smoke_example import create_runbook_smoke_example_files
@@ -319,6 +321,8 @@ __all__ = [
     "create_cross_role_task_quality_report_files",
     "create_runbook_context_transfer",
     "create_runbook_context_transfer_files",
+    "create_runbook_closeout_packet",
+    "create_runbook_closeout_packet_files",
     "create_runbook_operating_packet",
     "create_runbook_operating_packet_files",
     "create_runbook_progress_report",

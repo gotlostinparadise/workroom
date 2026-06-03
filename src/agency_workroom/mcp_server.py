@@ -59,6 +59,7 @@ TOOL_NAMES = (
     "create_runbook_operating_packet",
     "create_runbook_smoke_example",
     "create_runbook_progress_report",
+    "create_runbook_closeout_packet",
 )
 
 
@@ -793,6 +794,20 @@ def create_runbook_progress_report(
     )
 
 
+@mcp.tool()
+def create_runbook_closeout_packet(
+    workspace_path: str,
+    run_ids_json: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    """Write a local closeout packet for existing runs in a Workroom runbook."""
+    return agent_session.create_runbook_closeout_packet(
+        workspace_path=workspace_path,
+        run_ids_json=run_ids_json,
+        runbook_id=runbook_id,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -821,6 +836,7 @@ __all__ = [
     "create_company_evidence_chain_report",
     "recommend_chain_continuation",
     "create_runbook_context_transfer",
+    "create_runbook_closeout_packet",
     "create_runbook_operating_packet",
     "create_runbook_progress_report",
     "create_runbook_smoke_example",

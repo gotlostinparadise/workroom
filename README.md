@@ -100,6 +100,7 @@ The MCP tools are agent-facing:
 - `list_company_runbooks`
 - `create_runbook_operating_packet`
 - `create_runbook_progress_report`
+- `create_runbook_closeout_packet`
 - `create_runbook_smoke_example`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
@@ -420,6 +421,16 @@ and reports completed stages, missing stages, blockers, available context
 transfers, and evidence-chain readiness. It does not start companies, advance
 runs, execute local steps, approve decisions, deploy, push, post, call external
 APIs, or start background workers.
+
+`create_runbook_closeout_packet` writes a local JSON and Markdown release-review
+packet under `runbooks/<runbook_id>/` for existing runbook stage runs. Codex
+passes `workspace_path`, `run_ids_json`, and optional `runbook_id`; Workroom
+refreshes the runbook progress report, reads existing cross-role and task
+quality reports when present, and summarizes missing stages, blockers,
+available context transfers, evidence-chain readiness, and per-run review
+quality. It does not create those per-run reports automatically, start
+companies, advance runs, execute local steps, approve decisions, deploy, push,
+post, call external APIs, or start background workers.
 
 `create_runbook_context_transfer` writes a local JSON and Markdown handoff
 artifact under `runs/<source_run_id>/reports/` for moving from one runbook
