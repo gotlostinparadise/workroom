@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v43.
+Status: Canonical plan v44.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -366,6 +366,11 @@ These milestones are complete enough to be treated as foundation:
     The release-candidate audit treats its own MCP tool as required release
     surface, so manifest/server drift that removes the audit entrypoint cannot
     still report release-candidate readiness.
+
+59. Release Audit Manual Gate Commands v1.
+    The release-candidate audit Markdown now includes the exact manual gate
+    commands from the payload, and the installed MCP smoke gate is an executable
+    command rather than prose-only operator guidance.
 
 ## Milestone Plan
 
@@ -1545,6 +1550,27 @@ Exit criteria:
   the existing `missing_required_release_tool` error finding and blocks
   release-candidate readiness.
 - Tests assert the release audit requires its own public MCP entrypoint.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 49. Release Audit Manual Gate Commands v1
+
+Status: Done.
+
+Goal: make the release-candidate audit Markdown actionable for an operator by
+surfacing the exact manual verification commands and replacing prose-only MCP
+smoke guidance with an executable installed-environment check.
+
+Exit criteria:
+
+- The fresh editable install gate command starts from a clean temporary venv.
+- The installed MCP smoke gate command imports the installed Workroom package,
+  reads the MCP tool registry, and asserts required public entrypoints are
+  present.
+- The release-candidate audit Markdown includes each manual gate command.
+- Tests cover the fresh-install command, installed MCP smoke command, and
+  Markdown command rendering.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

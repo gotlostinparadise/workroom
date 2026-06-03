@@ -95,10 +95,25 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             ["source_suite", "fresh_editable_install_suite", "installed_mcp_stdio_smoke"],
             [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],
         )
+        gate_commands = {
+            gate["gate_id"]: gate["command"]
+            for gate in payload["manual_verification_gates"]
+        }
+        self.assertIn(
+            "rm -rf /tmp/workroom-release-candidate-venv",
+            gate_commands["fresh_editable_install_suite"],
+        )
+        self.assertIn(
+            "names = set(mcp_server.TOOL_NAMES)",
+            gate_commands["installed_mcp_stdio_smoke"],
+        )
         self.assertIn("Release Candidate Audit", markdown)
         self.assertIn("Missing MCP tool exports: 0", markdown)
         self.assertIn("Kernel dependency mode: absolute_file", markdown)
-        self.assertIn("installed_mcp_stdio_smoke", markdown)
+        self.assertIn(
+            "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
+            markdown,
+        )
 
     def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
         root = self.temp_root()

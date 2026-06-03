@@ -406,6 +406,7 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "fresh_editable_install_suite",
             "command": (
+                "rm -rf /tmp/workroom-release-candidate-venv && "
                 "python -m venv /tmp/workroom-release-candidate-venv && "
                 "/tmp/workroom-release-candidate-venv/bin/python -m pip install -e . && "
                 "/tmp/workroom-release-candidate-venv/bin/python -m unittest discover -s tests -v"
@@ -414,8 +415,12 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "installed_mcp_stdio_smoke",
             "command": (
-                "python -m agency_workroom.mcp_server via installed editable env; "
-                "verify tool manifest and tool schema"
+                "/tmp/workroom-release-candidate-venv/bin/python -c "
+                "\"from agency_workroom import mcp_server; "
+                "names = set(mcp_server.TOOL_NAMES); "
+                "assert 'create_release_candidate_audit' in names; "
+                "assert 'submit_goal_intake_result' in names; "
+                "print({'tool_count': len(names), 'required_tools_present': True})\""
             ),
         },
         {
@@ -492,7 +497,11 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     )
     lines.extend(["", "## Manual Gates", ""])
     for gate in _mapping_list(payload.get("manual_verification_gates")):
-        lines.append(f"- {_single_line(gate.get('gate_id', ''))}")
+        lines.append(
+            "- "
+            f"{_single_line(gate.get('gate_id', ''))}: "
+            f"`{_single_line(gate.get('command', ''))}`"
+        )
     lines.extend(["", "## Findings", ""])
     for finding in _mapping_list(payload.get("audit_findings")):
         lines.append(
