@@ -17,6 +17,7 @@ from agency_workroom.agent_session import (
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
+    create_company_evidence_chain_report,
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
     create_architecture_brief_artifact,
@@ -5100,6 +5101,65 @@ class AgentSessionTests(unittest.TestCase):
             "private task quality goal",
             ledger_path.read_text(encoding="utf-8"),
         )
+
+    def test_create_company_evidence_chain_report_links_multiple_runs(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        design, workspace_path = self.started_design_review_run(root)
+        implementation_quality, _workspace_path = (
+            self.started_implementation_quality_run(root)
+        )
+        before_design = get_company_state(
+            run_id=design["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        before_quality = get_company_state(
+            run_id=implementation_quality["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        report = create_company_evidence_chain_report(
+            run_ids_json=json.dumps([design["run_id"], implementation_quality["run_id"]]),
+            workspace_path=str(workspace_path),
+        )
+        after_design = get_company_state(
+            run_id=design["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        after_quality = get_company_state(
+            run_id=implementation_quality["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertTrue(Path(report["chain_path"]).exists())
+        self.assertTrue(Path(report["markdown_path"]).exists())
+        payload = json.loads(Path(report["chain_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("company-evidence-chain-report.v1", payload["schema_version"])
+        self.assertEqual(
+            [design["run_id"], implementation_quality["run_id"]],
+            payload["run_ids"],
+        )
+        self.assertTrue(payload["expected_stage_coverage"]["design_review"]["present"])
+        self.assertTrue(
+            payload["expected_stage_coverage"]["implementation_plan_quality"]["present"]
+        )
+        self.assertEqual(before_design["tasks"], after_design["tasks"])
+        self.assertEqual(before_quality["tasks"], after_quality["tasks"])
+
+    def test_create_company_evidence_chain_report_rejects_duplicate_run_ids(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        design, workspace_path = self.started_design_review_run(root)
+
+        with self.assertRaisesRegex(WorkroomStateError, "run ids must be unique"):
+            create_company_evidence_chain_report(
+                run_ids_json=json.dumps([design["run_id"], design["run_id"]]),
+                workspace_path=str(workspace_path),
+            )
 
     def test_replay_audit_and_evaluate_company_goal_run_are_read_only(self) -> None:
         assert_external_kernel_dependency(self)

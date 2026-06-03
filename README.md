@@ -88,6 +88,7 @@ The MCP tools are agent-facing:
 - `create_goal_run_report`
 - `create_cross_role_run_brief`
 - `create_cross_role_task_quality_report`
+- `create_company_evidence_chain_report`
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
@@ -357,6 +358,16 @@ without result refs, blocked tasks without blocker summaries, pending
 decisions without source refs, and weak next-tool arguments. It does not
 advance the run, approve decisions, execute plans, deploy, post, call external
 APIs, or start background workers.
+
+`create_company_evidence_chain_report` writes a durable local JSON and
+Markdown report under `evidence_chains/<chain_id>/` for multiple company runs.
+Codex passes `run_ids_json` as a JSON array string of run IDs from the same
+workspace. The report preserves that order, summarizes each run, shows expected
+coverage for Design Review, Implementation Planning, Implementation Plan
+Quality, and Verification Orchestration, and flags missing stages, pending
+decisions, and failed per-run audits. It does not start companies, advance
+runs, approve decisions, execute plans, deploy, post, call external APIs, or
+start background workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a

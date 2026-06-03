@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v27.
+Status: Canonical plan v28.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -271,6 +271,12 @@ These milestones are complete enough to be treated as foundation:
     scores task evidence by department and flags completed tasks without result
     refs, blocked tasks without blocker summaries, pending decisions without
     source refs, audit findings, and weak next-tool arguments.
+
+43. Multi-Run Evidence Chain v1.
+    Workroom can create a durable local JSON/Markdown evidence-chain report for
+    multiple company runs in one workspace, preserving Codex-supplied run
+    order while surfacing expected stage coverage, per-run audit status,
+    pending decisions, and deduplicated evidence refs.
 
 ## Milestone Plan
 
@@ -1016,6 +1022,34 @@ Exit criteria:
   implementation execution, verification execution, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 33. Multi-Run Evidence Chain v1
+
+Status: Done.
+
+Goal: let Codex connect several existing company runs into one local evidence
+chain for complex tasks that move from design review through implementation
+quality and verification planning.
+
+Exit criteria:
+
+- `create_company_evidence_chain_report` accepts `run_ids_json` and
+  `workspace_path`.
+- The tool writes local `company_evidence_chain_report.json` and
+  `company_evidence_chain_report.md` files under
+  `evidence_chains/<chain_id>/`.
+- The report preserves Codex-supplied run order and includes deterministic
+  `chain_id`, expected stage coverage, per-run summaries, findings, and
+  deduplicated evidence refs.
+- Duplicate run IDs fail closed before report creation.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required `run_ids_json` and `workspace_path` arguments.
+- Existing company specs, local route execution, supervisor turns, per-run
+  reports, replay, audit, evaluation, cross-role brief, and task quality report
+  behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  implementation execution, verification execution, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1033,8 +1067,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as runtime integration that connects design-review,
-implementation-quality, and verification evidence, or another local-only
-company that improves the chain from design to implementation to verification.
-Only add more infrastructure first if live repo truth shows it is the safer
-prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+complex Codex work, such as guided next-company recommendations based on
+multi-run evidence-chain gaps, or a local chain continuation planner that tells
+Codex which company to spawn next without starting it automatically. Only add
+more infrastructure first if live repo truth shows it is the safer prerequisite.
+Preserve the no-loop, no-external-effect, Kernel-boundary floor.

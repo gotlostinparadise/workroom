@@ -257,6 +257,7 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("is_local_route_tool", agency_workroom.__all__)
 
     def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.create_company_evidence_chain_report))
         self.assertTrue(callable(agency_workroom.create_goal_run_report))
         self.assertTrue(callable(agency_workroom.create_cross_role_run_brief))
         self.assertTrue(
@@ -265,6 +266,17 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.create_cross_role_run_brief_files))
         self.assertTrue(
             callable(agency_workroom.create_cross_role_task_quality_report_files)
+        )
+        self.assertTrue(
+            callable(agency_workroom.create_company_evidence_chain_report_files)
+        )
+        self.assertIn(
+            "create_company_evidence_chain_report",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_company_evidence_chain_report_files",
+            agency_workroom.__all__,
         )
         self.assertIn("create_goal_run_report", agency_workroom.__all__)
         self.assertIn("create_cross_role_run_brief", agency_workroom.__all__)

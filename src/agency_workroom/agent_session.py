@@ -9,6 +9,7 @@ from pathlib import Path
 from string import Formatter
 
 from .company_briefing import compact_company_brief
+from .company_evidence_chain import create_company_evidence_chain_report_files
 from .cross_role_brief import create_cross_role_run_brief_files
 from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .devops_operations import (
@@ -3838,6 +3839,54 @@ def create_cross_role_task_quality_report(
     )
 
 
+def create_company_evidence_chain_report(
+    *,
+    run_ids_json: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run_ids = _run_ids_from_json(run_ids_json)
+    runs: list[CompanyGoalRun] = []
+    inspections: list[dict[str, object]] = []
+    for run_id in run_ids:
+        run = load_company_goal_run(clean_workspace_path, run_id)
+        summary = summarize_run(run_id=run_id, workspace_path=clean_workspace_path)
+        recommendation = recommend_next_tool_call(
+            run_id=run_id,
+            workspace_path=clean_workspace_path,
+        )
+        replay = replay_company_goal_run_files(
+            workspace_path=clean_workspace_path,
+            run=run,
+            recommendation=recommendation,
+        )
+        audit = audit_company_goal_run_files(
+            workspace_path=clean_workspace_path,
+            replay=replay,
+        )
+        evaluation = evaluate_company_goal_run_files(
+            workspace_path=clean_workspace_path,
+            run=run,
+            summary=summary,
+            recommendation=recommendation,
+        )
+        runs.append(run)
+        inspections.append(
+            {
+                "summary": summary,
+                "recommendation": recommendation,
+                "replay": replay,
+                "audit": audit,
+                "evaluation": evaluation,
+            }
+        )
+    return create_company_evidence_chain_report_files(
+        workspace_path=clean_workspace_path,
+        runs=tuple(runs),
+        inspections=tuple(inspections),
+    )
+
+
 def replay_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     clean_run_id = _required_text("run_id", run_id)
     clean_workspace_path = _required_text("workspace_path", workspace_path)
@@ -3902,6 +3951,21 @@ def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WorkroomModelError(f"{name} is required")
     return value.strip()
+
+
+def _run_ids_from_json(run_ids_json: str) -> tuple[str, ...]:
+    if not isinstance(run_ids_json, str):
+        raise WorkroomStateError("run_ids_json must be text")
+    try:
+        decoded = json.loads(run_ids_json)
+    except json.JSONDecodeError as exc:
+        raise WorkroomStateError("run_ids_json must be valid JSON") from exc
+    if not isinstance(decoded, list) or not decoded:
+        raise WorkroomStateError("run_ids_json must be a non-empty JSON array")
+    run_ids = tuple(_required_text("run_id", item) for item in decoded)
+    if len(set(run_ids)) != len(run_ids):
+        raise WorkroomStateError("run ids must be unique")
+    return run_ids
 
 
 def _task_index_for(run: CompanyGoalRun, task_ref: str) -> int:
@@ -6070,6 +6134,7 @@ __all__ = [
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
+    "create_company_evidence_chain_report",
     "create_design_critique_artifact",
     "create_design_risk_report_artifact",
     "create_delivery_scope_brief_artifact",
