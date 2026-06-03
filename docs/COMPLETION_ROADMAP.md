@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v52.
+Status: Canonical plan v53.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -406,6 +406,10 @@ These milestones are complete enough to be treated as foundation:
 67. Release Audit Export Drift Markdown v1.
     The human-facing release-candidate audit Markdown now renders missing
     MCP-tool and session-function export names.
+
+68. Release Audit Package Surface Markdown v1.
+    The human-facing release-candidate audit Markdown now renders package
+    metadata source, Python requirement, and Kernel dependency details.
 
 ## Milestone Plan
 
@@ -1762,6 +1766,29 @@ Exit criteria:
 - JSON payload shape, audit status behavior, readiness behavior, finding
   severity ordering, manual gate commands, MCP registration, and
   package-surface behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 58. Release Audit Package Surface Markdown v1
+
+Status: Done.
+
+Goal: make package-surface evidence actionable from the human-facing
+release-candidate audit Markdown without requiring operators to open the JSON
+payload.
+
+Exit criteria:
+
+- Markdown package surface renders the Python requirement.
+- Markdown package surface renders whether `pyproject.toml` was readable.
+- Markdown package surface renders whether installed metadata was readable.
+- Markdown package surface renders the raw Kernel dependency string.
+- Tests cover both source-checkout and installed-metadata package-surface
+  Markdown output.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, and
+  package-surface calculation remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

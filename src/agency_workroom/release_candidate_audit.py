@@ -550,6 +550,25 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     )
     lines.append(
         "- "
+        f"Requires Python: {_single_line(package_surface.get('requires_python', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Pyproject readable: "
+        f"{_single_line(package_surface.get('pyproject_readable', False))}"
+    )
+    lines.append(
+        "- "
+        f"Installed metadata readable: "
+        f"{_single_line(package_surface.get('installed_metadata_readable', False))}"
+    )
+    lines.append(
+        "- "
+        f"Kernel dependency: "
+        f"{_single_line(package_surface.get('kernel_dependency', ''))}"
+    )
+    lines.append(
+        "- "
         f"Kernel dependency mode: "
         f"{_single_line(package_surface.get('kernel_dependency_mode', ''))}"
     )

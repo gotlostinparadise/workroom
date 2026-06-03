@@ -22,6 +22,7 @@ Scope:
 - Release-candidate audit explicit empty findings Markdown state.
 - Release-candidate audit MCP drift Markdown details.
 - Release-candidate audit export drift Markdown details.
+- Release-candidate audit package-surface Markdown details.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -62,6 +63,8 @@ Release-candidate audit result:
 - Manual gate commands rendered in Markdown: `true`
 - Kernel dependency mode: `absolute_file`
 - Distribution scope: `local_editable_checkout`
+- Markdown package surface renders Python requirement, metadata source
+  readability, and raw Kernel dependency.
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -80,18 +83,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 533 tests in 9.058s
+Ran 534 tests in 9.028s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-export-drift-markdown-venv
-python -m venv /tmp/workroom-release-export-drift-markdown-venv
-/tmp/workroom-release-export-drift-markdown-venv/bin/python -m pip install -e .
-/tmp/workroom-release-export-drift-markdown-venv/bin/python -m unittest discover -s tests -v
-Ran 533 tests in 9.114s
+rm -rf /tmp/workroom-release-package-surface-markdown-venv
+python -m venv /tmp/workroom-release-package-surface-markdown-venv
+/tmp/workroom-release-package-surface-markdown-venv/bin/python -m pip install -e .
+/tmp/workroom-release-package-surface-markdown-venv/bin/python -m unittest discover -s tests -v
+Ran 534 tests in 9.019s
 OK
 ```
 
