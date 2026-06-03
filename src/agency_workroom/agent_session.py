@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 from string import Formatter
 
+from .chain_continuation import recommend_chain_continuation_from_report_path
 from .company_briefing import compact_company_brief
 from .company_evidence_chain import create_company_evidence_chain_report_files
 from .cross_role_brief import create_cross_role_run_brief_files
@@ -3887,6 +3888,11 @@ def create_company_evidence_chain_report(
     )
 
 
+def recommend_chain_continuation(*, chain_report_path: str) -> dict[str, object]:
+    clean_chain_report_path = _required_text("chain_report_path", chain_report_path)
+    return recommend_chain_continuation_from_report_path(clean_chain_report_path)
+
+
 def replay_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     clean_run_id = _required_text("run_id", run_id)
     clean_workspace_path = _required_text("workspace_path", workspace_path)
@@ -6170,6 +6176,7 @@ __all__ = [
     "prepare_release_readiness_decision",
     "prepare_verification_review_decision",
     "record_work_result",
+    "recommend_chain_continuation",
     "recommend_next_tool_call",
     "replay_company_goal_run",
     "run_next_local_step",

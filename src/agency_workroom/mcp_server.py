@@ -47,6 +47,7 @@ TOOL_NAMES = (
     "create_cross_role_run_brief",
     "create_cross_role_task_quality_report",
     "create_company_evidence_chain_report",
+    "recommend_chain_continuation",
     "replay_company_goal_run",
     "audit_company_goal_run",
     "evaluate_company_goal_run",
@@ -669,6 +670,14 @@ def create_company_evidence_chain_report(
 
 
 @mcp.tool()
+def recommend_chain_continuation(chain_report_path: str) -> dict[str, object]:
+    """Recommend the next Workroom company to start from an evidence chain."""
+    return agent_session.recommend_chain_continuation(
+        chain_report_path=chain_report_path,
+    )
+
+
+@mcp.tool()
 def replay_company_goal_run(run_id: str, workspace_path: str) -> dict[str, object]:
     """Replay persisted local Workroom records for a company run."""
     return agent_session.replay_company_goal_run(
@@ -745,6 +754,7 @@ __all__ = [
     "create_cross_role_run_brief",
     "create_cross_role_task_quality_report",
     "create_company_evidence_chain_report",
+    "recommend_chain_continuation",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

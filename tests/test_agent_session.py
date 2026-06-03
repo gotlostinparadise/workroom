@@ -52,6 +52,7 @@ from agency_workroom.agent_session import (
     prepare_verification_review_decision,
     prepare_release_readiness_decision,
     record_work_result,
+    recommend_chain_continuation,
     recommend_next_tool_call,
     replay_company_goal_run,
     run_next_local_step,
@@ -5160,6 +5161,49 @@ class AgentSessionTests(unittest.TestCase):
                 run_ids_json=json.dumps([design["run_id"], design["run_id"]]),
                 workspace_path=str(workspace_path),
             )
+
+    def test_recommend_chain_continuation_loads_chain_report(self) -> None:
+        root = self.temp_root()
+        report_path = root / "company_evidence_chain_report.json"
+        report_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "company-evidence-chain-report.v1",
+                    "chain_id": "chain_session",
+                    "chain_status": "review_recommended",
+                    "run_ids": ["run_design"],
+                    "expected_stage_coverage": {
+                        "design_review": {
+                            "present": True,
+                            "run_ids": ["run_design"],
+                        },
+                        "implementation_planning": {
+                            "present": False,
+                            "run_ids": [],
+                        },
+                        "implementation_plan_quality": {
+                            "present": True,
+                            "run_ids": ["run_quality"],
+                        },
+                        "verification_orchestration": {
+                            "present": True,
+                            "run_ids": ["run_verify"],
+                        },
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        recommendation = recommend_chain_continuation(
+            chain_report_path=str(report_path),
+        )
+
+        self.assertEqual("start_company_goal", recommendation["recommended_tool"])
+        self.assertEqual(
+            "implementation_planning",
+            recommendation["arguments"]["company_spec_id"],
+        )
 
     def test_replay_audit_and_evaluate_company_goal_run_are_read_only(self) -> None:
         assert_external_kernel_dependency(self)

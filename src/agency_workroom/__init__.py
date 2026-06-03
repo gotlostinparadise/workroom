@@ -74,6 +74,7 @@ from .agent_session import (
     prepare_release_readiness_decision,
     prepare_verification_review_decision,
     record_work_result,
+    recommend_chain_continuation,
     recommend_next_tool_call,
     replay_company_goal_run,
     run_next_local_step,
@@ -81,6 +82,11 @@ from .agent_session import (
     start_company_goal,
     submit_goal_intake_result,
     summarize_run,
+)
+from .chain_continuation import (
+    ChainContinuationError,
+    recommend_chain_continuation_from_report_path,
+    recommend_chain_continuation_from_report_payload,
 )
 from .run_inspection import (
     audit_company_goal_run_files,
@@ -212,6 +218,7 @@ __all__ = [
     "CompanyGoalRun",
     "CompanySpec",
     "CompanyTaskTemplate",
+    "ChainContinuationError",
     "CompanyWorkflowResult",
     "DEFAULT_COMPANY_SPEC_ID",
     "DEVOPS_OPERATION_PREFIX",
@@ -355,6 +362,9 @@ __all__ = [
     "prepare_verification_review_decision",
     "prepare_release_readiness_decision",
     "record_work_result",
+    "recommend_chain_continuation",
+    "recommend_chain_continuation_from_report_path",
+    "recommend_chain_continuation_from_report_payload",
     "recommend_next_tool_call",
     "release_hardening_company_spec",
     "replay_company_goal_run",

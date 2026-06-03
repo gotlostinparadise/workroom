@@ -38,6 +38,7 @@ class McpManifestTests(unittest.TestCase):
             "replay_company_goal_run",
             "audit_company_goal_run",
             "evaluate_company_goal_run",
+            "recommend_chain_continuation",
             "get_mcp_tool_manifest",
             "check_workroom_mcp_config",
             "list_company_specs",
@@ -319,6 +320,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_cross_role_task_quality_report"],
             chain_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_chain_continuation_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        planner_tool = tools["recommend_chain_continuation"]
+
+        self.assertEqual("inspection", planner_tool["phase"])
+        self.assertFalse(planner_tool["mutates_workroom_state"])
+        self.assertEqual("none", planner_tool["external_effect_risk"])
+        self.assertEqual(
+            ["chain_report_path"],
+            planner_tool["required_arguments"],
+        )
+        self.assertEqual([], planner_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_company_evidence_chain_report"],
+            planner_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_implementation_plan_quality_local_tools(self) -> None:

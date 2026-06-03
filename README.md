@@ -89,6 +89,7 @@ The MCP tools are agent-facing:
 - `create_cross_role_run_brief`
 - `create_cross_role_task_quality_report`
 - `create_company_evidence_chain_report`
+- `recommend_chain_continuation`
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
@@ -368,6 +369,14 @@ Quality, and Verification Orchestration, and flags missing stages, pending
 decisions, and failed per-run audits. It does not start companies, advance
 runs, approve decisions, execute plans, deploy, post, call external APIs, or
 start background workers.
+
+`recommend_chain_continuation` is a read-only planner for an existing
+`company_evidence_chain_report.json` file. Codex passes `chain_report_path`;
+Workroom returns either a blocked no-op when all expected stages are present or
+a `start_company_goal` recommendation with `company_spec_id` and `context_json`
+arguments for the earliest missing stage. The planner itself does not start a
+company, advance runs, approve decisions, execute plans, deploy, post, call
+external APIs, or start background workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a

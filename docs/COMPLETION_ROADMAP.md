@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v28.
+Status: Canonical plan v29.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -277,6 +277,12 @@ These milestones are complete enough to be treated as foundation:
     multiple company runs in one workspace, preserving Codex-supplied run
     order while surfacing expected stage coverage, per-run audit status,
     pending decisions, and deduplicated evidence refs.
+
+44. Chain Continuation Planner v1.
+    Workroom can read an existing multi-run evidence-chain report and return a
+    reviewable `start_company_goal` recommendation for the earliest missing
+    expected company stage, including a `company_spec_id` and `context_json`
+    scaffold, without starting the company automatically.
 
 ## Milestone Plan
 
@@ -1050,6 +1056,35 @@ Exit criteria:
   implementation execution, verification execution, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 34. Chain Continuation Planner v1
+
+Status: Done.
+
+Goal: let Codex continue a complex evidence chain by turning missing expected
+stages into explicit, reviewable next-company startup arguments.
+
+Exit criteria:
+
+- `recommend_chain_continuation` accepts `chain_report_path`.
+- The tool reads a local `company_evidence_chain_report.json` payload and
+  returns a `chain-continuation-recommendation.v1` payload.
+- The recommendation selects the earliest missing expected stage in the
+  established Design Review -> Implementation Planning -> Implementation Plan
+  Quality -> Verification Orchestration order.
+- For missing stages, the recommendation includes `recommended_tool` set to
+  `start_company_goal`, `company_spec_id`, and a deterministic `context_json`
+  scaffold with required context keys and prior run IDs.
+- For complete chains, the recommendation is a blocked no-op with no tool
+  arguments.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required `chain_report_path`.
+- Existing company specs, local route execution, supervisor turns, per-run
+  reports, replay, audit, evaluation, cross-role brief, task quality report,
+  and evidence-chain report behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  implementation execution, verification execution, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1067,8 +1102,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as guided next-company recommendations based on
-multi-run evidence-chain gaps, or a local chain continuation planner that tells
-Codex which company to spawn next without starting it automatically. Only add
-more infrastructure first if live repo truth shows it is the safer prerequisite.
-Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+complex Codex work, such as richer multi-company runbook templates that map
+design, planning, quality, and verification companies into repeatable Codex
+operating sequences. Only add more infrastructure first if live repo truth
+shows it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.
