@@ -55,8 +55,8 @@ def create_release_quality_gate_report_files(
         "release_variables": release_variables,
         "gates": gates,
         "residual_risks": [
-            "release notes route is not complete",
-            "readiness decision route is not complete",
+            "release-owner approval remains outside Workroom",
+            "launch execution remains outside this local quality gate",
         ],
         "passed": passed,
     }

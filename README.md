@@ -62,6 +62,7 @@ The MCP tools are agent-facing:
 - `create_release_checklist_artifact`
 - `create_release_quality_gate_report`
 - `create_release_notes_artifact`
+- `prepare_release_readiness_decision`
 - `prepare_github_pages_deploy_proposal`
 - `prepare_github_pages_deploy_execution_plan`
 - `execute_github_pages_deploy`
@@ -109,12 +110,12 @@ without deploying it.
 
 Workroom also includes a second bundled company spec, `release_hardening`.
 It uses release, QA, documentation, and coordination roles with release-specific
-task categories. Its local artifact path can write a deterministic release
-hardening checklist under the run workspace. Codex can call the read-only
-`list_company_specs` tool to discover registered specs and their
-`required_context_variables`, then call `start_company_goal` with optional
-`company_spec_id` and `context_json`. Omitting the arguments keeps the default
-`business_validation` company. Passing
+task categories. Its local path can write a deterministic release hardening
+checklist, quality gate report, release notes, and readiness decision under the
+run workspace. Codex can call the read-only `list_company_specs` tool to
+discover registered specs and their `required_context_variables`, then call
+`start_company_goal` with optional `company_spec_id` and `context_json`.
+Omitting the arguments keeps the default `business_validation` company. Passing
 `company_spec_id="release_hardening"` starts the release company through the
 same local startup path. This does not deploy, push, post, or call external
 APIs.
@@ -124,10 +125,12 @@ path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
 `create_release_quality_gate_report` for the `quality_gates` task after the
 checklist exists, then `create_release_notes_artifact` for the `release_notes`
-task after the quality report exists. `run_next_local_step` or
-`advance_company_goal` executes one local artifact step per call and records
-role-work and handoff evidence. Workroom then stops after release notes;
-readiness decisions need their own future local route or human decision.
+task after the quality report exists, then
+`prepare_release_readiness_decision` for the `coordination` task after release
+notes exist. `run_next_local_step` or `advance_company_goal` executes one local
+step per call and records role-work, handoff, or decision evidence. The
+readiness decision is a local prepared decision only; it does not approve a
+launch, deploy, push, post, or call external APIs.
 
 `context_json` is a JSON object string for Workroom-local run variables. For
 example:
@@ -150,8 +153,9 @@ executing that tool.
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
 GitHub Pages deploy proposal preparation for Business Validation, or release
-checklist creation for Release Hardening. It does not loop, push to GitHub,
-post externally, or run unapproved tools such as raw result recording.
+checklist, quality gate, release notes, and readiness decision preparation for
+Release Hardening. It does not loop, push to GitHub, post externally, or run
+unapproved tools such as raw result recording.
 
 `advance_company_goal` is the first goal-specific supervisor tool. It performs
 one bounded supervisor turn for a run: observe state, choose the next safe local

@@ -153,7 +153,10 @@ def _release_note_sections(
         },
         {
             "title": "Residual Risks",
-            "body": "Readiness decision routing is not complete in this Workroom slice.",
+            "body": (
+                "Release-owner approval and launch execution remain outside "
+                "this local Workroom route."
+            ),
         },
     ]
 

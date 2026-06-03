@@ -52,6 +52,7 @@ class McpManifestTests(unittest.TestCase):
             "create_release_checklist_artifact",
             "create_release_quality_gate_report",
             "create_release_notes_artifact",
+            "prepare_release_readiness_decision",
             "prepare_github_pages_deploy_proposal",
             "create_goal_run_report",
         ):
@@ -161,6 +162,31 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_release_quality_gate_report"],
             notes_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_release_readiness_local_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        readiness_tool = tools["prepare_release_readiness_decision"]
+
+        self.assertEqual("local_execution", readiness_tool["phase"])
+        self.assertTrue(readiness_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", readiness_tool["external_effect_risk"])
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "checklist_ref",
+                "quality_report_ref",
+                "release_notes_ref",
+                "workspace_path",
+            ],
+            readiness_tool["required_arguments"],
+        )
+        self.assertEqual([], readiness_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_release_notes_artifact"],
+            readiness_tool["recommended_after"],
         )
 
     def test_validate_workroom_mcp_config_rejects_blank_relative_and_equal_paths(self) -> None:

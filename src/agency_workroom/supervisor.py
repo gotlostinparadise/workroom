@@ -162,7 +162,7 @@ def plan_supervisor_transition(
             reason=reason,
             recommendation=recommendation,
             requires_approval=False,
-            record_kind="handoff",
+            record_kind=_record_kind_for_local_tool(recommended_tool),
             task_ref=task_ref,
             result_ref="",
         )
@@ -723,9 +723,17 @@ def _delegated_role_for_local_tool(tool_name: str) -> str:
         return "quality_reviewer"
     if tool_name == "create_release_notes_artifact":
         return "docs_writer"
+    if tool_name == "prepare_release_readiness_decision":
+        return "coordination_manager"
     if tool_name == "prepare_github_pages_deploy_proposal":
         return "devops_operator"
     return "goal_supervisor"
+
+
+def _record_kind_for_local_tool(tool_name: str) -> str:
+    if tool_name == "prepare_release_readiness_decision":
+        return "decision"
+    return "handoff"
 
 
 def _result_ref_for_kind(run: CompanyGoalRun, kind: str) -> str | None:
@@ -753,6 +761,8 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         )
     if kind == "release_notes_artifact":
         return "/release_hardening/" in ref and ref.endswith("/release_notes.md")
+    if kind == "release_readiness_decision":
+        return "/decisions/" in ref and ref.endswith(".json")
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -892,9 +902,14 @@ def _current_department_for_phase(
         "deploy_preparation": "devops",
         "approval_required": "devops",
         "promotion_preparation": "growth",
-        "decision": "strategy",
         "complete": "coordination",
     }
+    if phase == "decision":
+        if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
+            task = _first_open_task(run)
+            if task is not None:
+                return role_departments.get(task.role_id, "coordination")
+        return "strategy"
     if phase in phase_departments:
         return phase_departments[phase]
     if phase == "blocked":

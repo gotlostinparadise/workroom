@@ -20,6 +20,7 @@ TOOL_NAMES = (
     "create_release_checklist_artifact",
     "create_release_quality_gate_report",
     "create_release_notes_artifact",
+    "prepare_release_readiness_decision",
     "prepare_github_pages_deploy_proposal",
     "prepare_github_pages_deploy_execution_plan",
     "execute_github_pages_deploy",
@@ -226,6 +227,26 @@ def create_release_notes_artifact(
 
 
 @mcp.tool()
+def prepare_release_readiness_decision(
+    run_id: str,
+    task_ref: str,
+    checklist_ref: str,
+    quality_report_ref: str,
+    release_notes_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Prepare a local release readiness decision for Release Hardening."""
+    return agent_session.prepare_release_readiness_decision(
+        run_id=run_id,
+        task_ref=task_ref,
+        checklist_ref=checklist_ref,
+        quality_report_ref=quality_report_ref,
+        release_notes_ref=release_notes_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
 def prepare_github_pages_deploy_proposal(
     run_id: str,
     task_ref: str,
@@ -373,6 +394,7 @@ __all__ = [
     "create_release_checklist_artifact",
     "create_release_quality_gate_report",
     "create_release_notes_artifact",
+    "prepare_release_readiness_decision",
     "execute_github_pages_deploy",
     "get_company_state",
     "get_mcp_tool_manifest",

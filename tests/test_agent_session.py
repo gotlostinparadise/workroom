@@ -28,6 +28,7 @@ from agency_workroom.agent_session import (
     list_next_actions,
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
+    prepare_release_readiness_decision,
     record_work_result,
     recommend_next_tool_call,
     replay_company_goal_run,
@@ -1086,6 +1087,67 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", persisted_task["status"])
         self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
 
+    def test_prepare_release_readiness_decision_completes_coordination_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_release_run(root)
+        release_task = self.task_by_category(started, "release_plan")
+        quality_task = self.task_by_category(started, "quality_gates")
+        notes_task = self.task_by_category(started, "release_notes")
+        coordination_task = self.task_by_category(started, "coordination")
+        checklist = create_release_checklist_artifact(
+            run_id=started["run_id"],
+            task_ref=release_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        quality = create_release_quality_gate_report(
+            run_id=started["run_id"],
+            task_ref=quality_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        notes = create_release_notes_artifact(
+            run_id=started["run_id"],
+            task_ref=notes_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            quality_report_ref=quality["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = prepare_release_readiness_decision(
+            run_id=started["run_id"],
+            task_ref=coordination_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            quality_report_ref=quality["report"]["report_ref"],
+            release_notes_ref=notes["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = prepare_release_readiness_decision(
+            run_id=started["run_id"],
+            task_ref=coordination_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            quality_report_ref=quality["report"]["report_ref"],
+            release_notes_ref=notes["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertEqual("release_readiness", first["decision"]["decision_type"])
+        self.assertEqual("prepared", first["decision"]["status"])
+        self.assertIn(first["decision"]["decision_ref"], first["task"]["result_refs"])
+        self.assertTrue(Path(first["decision"]["decision_path"]).exists())
+        self.assertEqual(first["decision"], second["decision"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = self.task_by_category(state, "coordination")
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
     def test_create_landing_qa_report_completes_testing_task(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -1975,6 +2037,139 @@ class AgentSessionTests(unittest.TestCase):
             recommendation["missing_prerequisites"],
         )
 
+    def test_recommend_next_tool_call_routes_release_readiness_after_notes(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        started, workspace_path = self.started_release_run(root)
+        release_task = self.task_by_category(started, "release_plan")
+        quality_task = self.task_by_category(started, "quality_gates")
+        notes_task = self.task_by_category(started, "release_notes")
+        coordination_task = self.task_by_category(started, "coordination")
+        checklist = create_release_checklist_artifact(
+            run_id=started["run_id"],
+            task_ref=release_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        quality = create_release_quality_gate_report(
+            run_id=started["run_id"],
+            task_ref=quality_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        notes = create_release_notes_artifact(
+            run_id=started["run_id"],
+            task_ref=notes_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            quality_report_ref=quality["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+        state_before = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        ledger_before = ledger_path.read_text(encoding="utf-8")
+        workspace_before = self.workspace_file_snapshot(workspace_path)
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "prepare_release_readiness_decision",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": coordination_task["task_ref"],
+                "checklist_ref": checklist["artifact"]["artifact_ref"],
+                "quality_report_ref": quality["report"]["report_ref"],
+                "release_notes_ref": notes["artifact"]["artifact_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+        self.assertEqual(
+            state_before,
+            get_company_state(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            ),
+        )
+        self.assertEqual(ledger_before, ledger_path.read_text(encoding="utf-8"))
+        self.assertEqual(workspace_before, self.workspace_file_snapshot(workspace_path))
+
+    def test_recommend_next_tool_call_detects_missing_readiness_decision_ref(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_release_run(root)
+        release_task = self.task_by_category(started, "release_plan")
+        quality_task = self.task_by_category(started, "quality_gates")
+        notes_task = self.task_by_category(started, "release_notes")
+        checklist = create_release_checklist_artifact(
+            run_id=started["run_id"],
+            task_ref=release_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        quality = create_release_quality_gate_report(
+            run_id=started["run_id"],
+            task_ref=quality_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        create_release_notes_artifact(
+            run_id=started["run_id"],
+            task_ref=notes_task["task_ref"],
+            checklist_ref=checklist["artifact"]["artifact_ref"],
+            quality_report_ref=quality["report"]["report_ref"],
+            workspace_path=str(workspace_path),
+        )
+        run = load_company_goal_run(workspace_path, started["run_id"])
+        coordination_task = next(task for task in run.tasks if task.category == "coordination")
+        corrupted_coordination_task = replace(
+            coordination_task,
+            status="completed",
+            result_refs=(),
+        )
+        corrupted_run = CompanyGoalRun(
+            run_id=run.run_id,
+            user_id=run.user_id,
+            goal=run.goal,
+            company_spec_id=run.company_spec_id,
+            company_spec_version=run.company_spec_version,
+            team=run.team,
+            plan=run.plan,
+            commits=run.commits,
+            tasks=tuple(
+                corrupted_coordination_task
+                if task.task_ref == coordination_task.task_ref
+                else task
+                for task in run.tasks
+            ),
+        )
+        save_company_goal_run(workspace_path, corrupted_run)
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("", recommendation["recommended_tool"])
+        self.assertFalse(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+        self.assertEqual(
+            ["release readiness decision ref"],
+            recommendation["missing_prerequisites"],
+        )
+
     def test_run_next_local_step_executes_landing_artifact_first(self) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
@@ -2063,7 +2258,7 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(fourth["blocked"])
         self.assertEqual("github_pages task is blocked", fourth["reason"])
 
-    def test_run_next_local_step_executes_release_checklist_quality_and_notes(
+    def test_run_next_local_step_executes_complete_release_hardening_pipeline(
         self,
     ) -> None:
         assert_external_kernel_dependency(self)
@@ -2086,6 +2281,10 @@ class AgentSessionTests(unittest.TestCase):
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
         )
+        fifth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
         state = get_company_state(
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
@@ -2093,6 +2292,7 @@ class AgentSessionTests(unittest.TestCase):
         release_task = self.task_by_category(state, "release_plan")
         quality_task = self.task_by_category(state, "quality_gates")
         notes_task = self.task_by_category(state, "release_notes")
+        coordination_task = self.task_by_category(state, "coordination")
 
         self.assertTrue(first["executed"])
         self.assertEqual("create_release_checklist_artifact", first["executed_tool"])
@@ -2112,9 +2312,18 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(Path(third["result"]["artifact"]["artifact_path"]).exists())
         self.assertEqual("completed", notes_task["status"])
         self.assertIn(third["result"]["artifact"]["artifact_ref"], notes_task["result_refs"])
-        self.assertFalse(fourth["executed"])
-        self.assertEqual("", fourth["executed_tool"])
-        self.assertFalse(fourth["blocked"])
+        self.assertTrue(fourth["executed"])
+        self.assertEqual("prepare_release_readiness_decision", fourth["executed_tool"])
+        self.assertIn("decision", fourth["result"])
+        self.assertTrue(Path(fourth["result"]["decision"]["decision_path"]).exists())
+        self.assertEqual("completed", coordination_task["status"])
+        self.assertIn(
+            fourth["result"]["decision"]["decision_ref"],
+            coordination_task["result_refs"],
+        )
+        self.assertFalse(fifth["executed"])
+        self.assertEqual("", fifth["executed_tool"])
+        self.assertFalse(fifth["blocked"])
 
     def test_run_next_local_step_rejects_unsupported_recommendation_without_mutation(self) -> None:
         assert_external_kernel_dependency(self)
@@ -2453,6 +2662,73 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual(
             [third_turn["result_ref"]],
             third_turn["role_work_result"]["artifact_refs"],
+        )
+
+    def test_advance_company_goal_executes_release_readiness_decision_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_release_run(root)
+
+        first_turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second_turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third_turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth_turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        coordination_task = self.task_by_category(state, "coordination")
+
+        self.assertEqual(
+            "create_release_checklist_artifact",
+            first_turn["transition"]["selected_tool"],
+        )
+        self.assertEqual(
+            "create_release_quality_gate_report",
+            second_turn["transition"]["selected_tool"],
+        )
+        self.assertEqual(
+            "create_release_notes_artifact",
+            third_turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("local_step_executed", fourth_turn["action_type"])
+        self.assertEqual("local_step", fourth_turn["transition"]["outcome"])
+        self.assertEqual("decision", fourth_turn["transition"]["record_kind"])
+        self.assertEqual(
+            "prepare_release_readiness_decision",
+            fourth_turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("run_next_local_step", fourth_turn["selected_tool"])
+        self.assertEqual("coordination_manager", fourth_turn["delegated_role"])
+        self.assertEqual("completed", coordination_task["status"])
+        self.assertIn(fourth_turn["result_ref"], coordination_task["result_refs"])
+        self.assertIn("/decisions/", fourth_turn["result_ref"])
+        self.assertEqual("release_readiness", fourth_turn["decision"]["decision_type"])
+        self.assertEqual(fourth_turn["decision"]["decision_ref"], fourth_turn["decision_ref"])
+        self.assertTrue(Path(fourth_turn["decision_path"]).exists())
+        self.assertIn("role_work_request_ref", fourth_turn)
+        self.assertIn("role_work_result_ref", fourth_turn)
+        self.assertEqual(
+            [fourth_turn["result_ref"]],
+            fourth_turn["role_work_result"]["artifact_refs"],
+        )
+        self.assertEqual(
+            ["completed", "completed", "completed", "completed"],
+            [task["status"] for task in state["tasks"]],
         )
 
     def test_advance_company_goal_reaches_approval_required_without_devops_execution(self) -> None:

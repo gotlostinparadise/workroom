@@ -59,6 +59,7 @@ from .release_quality import (
     create_release_quality_gate_report_files,
 )
 from .release_notes import ReleaseNotesError, create_release_notes_artifact_files
+from .release_readiness import build_release_readiness_decision_record
 from .session_store import (
     WorkroomStateError,
     load_goal_intake_run,
@@ -92,6 +93,7 @@ LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_CHECKLIST_ARTIFACT_PREFIX = "workroom-artifact://"
 RELEASE_QUALITY_GATE_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_NOTES_ARTIFACT_PREFIX = "workroom-artifact://"
+RELEASE_READINESS_DECISION_PREFIX = "workroom-artifact://"
 GOAL_RUN_REPORT_PREFIX = "workroom-artifact://"
 LOCAL_STEP_TOOL_NAMES = (
     "create_landing_artifact",
@@ -99,6 +101,7 @@ LOCAL_STEP_TOOL_NAMES = (
     "create_release_checklist_artifact",
     "create_release_quality_gate_report",
     "create_release_notes_artifact",
+    "prepare_release_readiness_decision",
     "prepare_github_pages_deploy_proposal",
 )
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
@@ -593,6 +596,12 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
     )
     if release_notes_recommendation is not None:
         return release_notes_recommendation
+    release_readiness_recommendation = _release_readiness_recommendation(
+        run=run,
+        workspace_path=workspace_path,
+    )
+    if release_readiness_recommendation is not None:
+        return release_readiness_recommendation
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         blocked_task = _first_blocked_task(run)
         if blocked_task is not None:
@@ -769,6 +778,8 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
         result = create_release_quality_gate_report(**arguments)
     elif recommended_tool == "create_release_notes_artifact":
         result = create_release_notes_artifact(**arguments)
+    elif recommended_tool == "prepare_release_readiness_decision":
+        result = prepare_release_readiness_decision(**arguments)
     elif recommended_tool == "prepare_github_pages_deploy_proposal":
         result = prepare_github_pages_deploy_proposal(**arguments)
     else:
@@ -920,6 +931,7 @@ def advance_company_goal(*, run_id: str, workspace_path: str) -> dict[str, objec
             "role_work_result_ref": role_result_payload["result_ref"],
             "role_work_result_path": role_result_payload["result_path"],
         }
+        response = _attach_decision_from_step_result(response, step_result)
         return _attach_operational_record(
             response=response,
             workspace_path=clean_workspace_path,
@@ -1325,6 +1337,106 @@ def create_release_notes_artifact(
     )
     save_company_goal_run(workspace_path, updated_run)
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def prepare_release_readiness_decision(
+    *,
+    run_id: str,
+    task_ref: str,
+    checklist_ref: str,
+    quality_report_ref: str,
+    release_notes_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_checklist_ref = _required_text("checklist_ref", checklist_ref)
+    clean_quality_report_ref = _required_text(
+        "quality_report_ref",
+        quality_report_ref,
+    )
+    clean_release_notes_ref = _required_text("release_notes_ref", release_notes_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "coordination":
+        raise WorkroomStateError("task is not a coordination task")
+    if not _artifact_ref_recorded_in_run(run, clean_checklist_ref):
+        raise WorkroomStateError("release checklist is not recorded in run state")
+    if not _artifact_ref_recorded_in_run(run, clean_quality_report_ref):
+        raise WorkroomStateError("release quality report is not recorded in run state")
+    if not _artifact_ref_recorded_in_run(run, clean_release_notes_ref):
+        raise WorkroomStateError("release notes are not recorded in run state")
+    _release_checklist_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_checklist_ref,
+    )
+    _release_quality_gate_report_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        report_ref=clean_quality_report_ref,
+        checklist_ref=clean_checklist_ref,
+    )
+    _release_notes_artifact_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_release_notes_ref,
+        checklist_ref=clean_checklist_ref,
+        quality_report_ref=clean_quality_report_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        decision = _decision_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            decision_ref=existing_ref,
+            decision_type="release_readiness",
+            source_refs=(
+                clean_checklist_ref,
+                clean_quality_report_ref,
+                clean_release_notes_ref,
+            ),
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "decision": decision,
+        }
+    decision_record = build_release_readiness_decision_record(
+        run=run,
+        task=current_task,
+        checklist_ref=clean_checklist_ref,
+        quality_report_ref=clean_quality_report_ref,
+        release_notes_ref=clean_release_notes_ref,
+    )
+    decision = write_decision_record(workspace_path, decision_record)
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(decision["decision_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "decision": decision}
 
 
 def create_landing_qa_report(
@@ -1768,6 +1880,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/release_hardening/" in ref
             and ref.endswith("/release_notes.md")
         )
+    if kind == "release_readiness_decision":
+        return (
+            ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -1908,6 +2026,63 @@ def _release_notes_recommendation(
                 reason=(
                     "release_notes task is completed without a release notes "
                     "artifact ref"
+                ),
+            )
+    return None
+
+
+def _release_readiness_recommendation(
+    *,
+    run: CompanyGoalRun,
+    workspace_path: str,
+) -> dict[str, object] | None:
+    coordination_task = _optional_task_for_category(run, "coordination")
+    if coordination_task is None:
+        return None
+    checklist_ref = _result_ref_for_kind(run, "release_checklist")
+    quality_report_ref = _result_ref_for_kind(run, "release_quality_gate_report")
+    release_notes_ref = _result_ref_for_kind(run, "release_notes_artifact")
+    readiness_ref = _result_ref_for_kind(run, "release_readiness_decision")
+    if coordination_task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason="coordination task is blocked",
+            blocker_summary=coordination_task.blocker_summary,
+        )
+    if (
+        checklist_ref is None
+        or quality_report_ref is None
+        or release_notes_ref is None
+    ):
+        return None
+    if readiness_ref is None:
+        if coordination_task.status in _NEXT_ACTION_STATUSES:
+            return NextToolRecommendation(
+                run_id=run.run_id,
+                recommended_tool="prepare_release_readiness_decision",
+                arguments={
+                    "run_id": run.run_id,
+                    "task_ref": coordination_task.task_ref,
+                    "checklist_ref": checklist_ref,
+                    "quality_report_ref": quality_report_ref,
+                    "release_notes_ref": release_notes_ref,
+                    "workspace_path": workspace_path,
+                },
+                reason=(
+                    "release checklist, quality report, and release notes exist "
+                    "and coordination task has no readiness decision"
+                ),
+                missing_prerequisites=(),
+                will_mutate_state=True,
+                blocked=False,
+            ).to_payload()
+        if coordination_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="release readiness decision ref",
+                reason=(
+                    "coordination task is completed without a release readiness "
+                    "decision ref"
                 ),
             )
     return None
@@ -2090,6 +2265,9 @@ def _result_ref_from_step_result(step_result: dict[str, object]) -> str:
     proposal = result.get("deploy_proposal")
     if isinstance(proposal, dict) and isinstance(proposal.get("proposal_ref"), str):
         return proposal["proposal_ref"]
+    decision = result.get("decision")
+    if isinstance(decision, dict) and isinstance(decision.get("decision_ref"), str):
+        return decision["decision_ref"]
     evidence = result.get("evidence")
     if isinstance(evidence, dict) and isinstance(evidence.get("evidence_ref"), str):
         return evidence["evidence_ref"]
@@ -2104,6 +2282,28 @@ def _task_ref_from_step_result(step_result: dict[str, object]) -> str:
     if isinstance(task, dict) and isinstance(task.get("task_ref"), str):
         return task["task_ref"]
     return ""
+
+
+def _attach_decision_from_step_result(
+    response: dict[str, object],
+    step_result: dict[str, object],
+) -> dict[str, object]:
+    result = step_result.get("result")
+    if not isinstance(result, dict):
+        return response
+    decision = result.get("decision")
+    if not isinstance(decision, dict):
+        return response
+    decision_ref = decision.get("decision_ref")
+    decision_path = decision.get("decision_path")
+    if not isinstance(decision_ref, str) or not isinstance(decision_path, str):
+        return response
+    return {
+        **response,
+        "decision": decision,
+        "decision_ref": decision_ref,
+        "decision_path": decision_path,
+    }
 
 
 def _attach_operational_record(
@@ -2581,6 +2781,41 @@ def _release_notes_artifact_payload_for_existing_ref(
     return payload
 
 
+def _decision_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    decision_ref: str,
+    decision_type: str,
+    source_refs: tuple[str, ...],
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = ".json"
+    if not decision_ref.startswith(prefix) or not decision_ref.endswith(suffix):
+        raise WorkroomStateError("decision ref is invalid")
+    parts = decision_ref[len(prefix) :].split("/")
+    if len(parts) != 3 or parts[1] != "decisions":
+        raise WorkroomStateError("decision ref is invalid")
+    ref_run_id, _decisions, filename = parts
+    decision_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "decisions"
+        / filename
+    )
+    try:
+        payload = json.loads(decision_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("decision record is corrupt") from exc
+    if payload.get("decision_ref") != decision_ref:
+        raise WorkroomStateError("decision record metadata does not match ref")
+    if payload.get("decision_type") != decision_type:
+        raise WorkroomStateError("decision record type does not match")
+    if payload.get("source_refs") != list(source_refs):
+        raise WorkroomStateError("decision record source refs do not match")
+    return {**payload, "decision_path": str(decision_path)}
+
+
 def _landing_qa_report_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -2676,6 +2911,7 @@ __all__ = [
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
     "RELEASE_QUALITY_GATE_REPORT_PREFIX",
     "RELEASE_NOTES_ARTIFACT_PREFIX",
+    "RELEASE_READINESS_DECISION_PREFIX",
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
@@ -2693,6 +2929,7 @@ __all__ = [
     "list_next_actions",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
+    "prepare_release_readiness_decision",
     "record_work_result",
     "recommend_next_tool_call",
     "replay_company_goal_run",

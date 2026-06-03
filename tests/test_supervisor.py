@@ -264,6 +264,13 @@ class SupervisorCoreTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         third_reloaded = load_company_goal_run(workspace_path, started["run_id"])
+        decision_snapshot = build_supervisor_snapshot(third_reloaded)
+        advanced_fourth = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth_reloaded = load_company_goal_run(workspace_path, started["run_id"])
+        complete_snapshot = build_supervisor_snapshot(fourth_reloaded)
 
         self.assertEqual("local_production", snapshot["phase"])
         self.assertEqual("release", snapshot["current_department"])
@@ -321,6 +328,22 @@ class SupervisorCoreTests(unittest.TestCase):
             ["completed", "completed", "completed", "planned"],
             [task.status for task in third_reloaded.tasks],
         )
+        self.assertEqual("decision", decision_snapshot["phase"])
+        self.assertEqual("coordination", decision_snapshot["current_department"])
+        self.assertEqual("local_step", advanced_fourth["transition"]["outcome"])
+        self.assertEqual("decision", advanced_fourth["transition"]["record_kind"])
+        self.assertEqual(
+            "prepare_release_readiness_decision",
+            advanced_fourth["transition"]["selected_tool"],
+        )
+        self.assertEqual("coordination_manager", advanced_fourth["delegated_role"])
+        self.assertEqual("release_readiness", advanced_fourth["decision"]["decision_type"])
+        self.assertEqual(
+            ["completed", "completed", "completed", "completed"],
+            [task.status for task in fourth_reloaded.tasks],
+        )
+        self.assertEqual("complete", complete_snapshot["phase"])
+        self.assertEqual("coordination", complete_snapshot["current_department"])
 
     def test_plan_supervisor_transition_for_local_step(self) -> None:
         run = self.make_run(self.make_tasks())

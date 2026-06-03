@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v11.
+Status: Canonical plan v12.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -181,6 +181,11 @@ These milestones are complete enough to be treated as foundation:
     Release Hardening can advance its `release_notes` task after the quality
     gate report by creating deterministic local release notes and recording
     docs-to-coordination handoff evidence.
+
+27. Release Readiness Decision v1.
+    Release Hardening can complete its `coordination` task after checklist,
+    quality gate, and release notes evidence exist by preparing a local
+    `release_readiness` decision record.
 
 ## Milestone Plan
 
@@ -476,14 +481,40 @@ Exit criteria:
   planned Release Hardening `release_notes` task with recorded release
   checklist and quality gate report refs.
 - The recommendation remains read-only.
-- `run_next_local_step` executes the release notes artifact once and then
-  stops.
+- `run_next_local_step` executes the release notes artifact once and then makes
+  the readiness decision route eligible.
 - `advance_company_goal` records supervisor, role-work, and docs-to-coordination
   handoff evidence for the release notes step.
 - The MCP server and manifest expose `create_release_notes_artifact`.
 - Business Validation local-step behavior remains unchanged.
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
+
+### 17. Release Readiness Decision v1
+
+Status: Done.
+
+Goal: route Release Hardening's `coordination` task through a deterministic
+local readiness decision after checklist, quality gate, and release notes
+evidence exist.
+
+Exit criteria:
+
+- `recommend_next_tool_call` recommends `prepare_release_readiness_decision` for
+  a planned Release Hardening `coordination` task with recorded release
+  checklist, quality gate report, and release notes refs.
+- The recommendation remains read-only.
+- `run_next_local_step` executes the readiness decision once and then the
+  Release Hardening run has no planned tasks remaining.
+- `advance_company_goal` records supervisor, role-work, and decision evidence
+  for the readiness decision step.
+- The decision record has `decision_type: release_readiness`, status
+  `prepared`, source refs for all three prerequisite artifacts, and
+  `boundary: local_decision_only`.
+- The MCP server and manifest expose `prepare_release_readiness_decision`.
+- Business Validation local-step behavior remains unchanged.
+- No Kernel changes, hidden loops, approval, deploys, pushes, posts, external
+  API calls, or new external effects are added.
 
 ## Plan Change Rules
 
@@ -501,6 +532,6 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that adds the Release Hardening readiness decision contract
-or another review artifact path for non-default company specs without adding
-hidden loops, unapproved external effects, or Kernel product behavior.
+the smallest slice that reduces per-company route duplication through reusable
+local-route or decision-route metadata, or adds another company spec only after
+preserving the no-loop, no-external-effect, Kernel-boundary floor.
