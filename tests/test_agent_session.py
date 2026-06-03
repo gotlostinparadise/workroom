@@ -88,6 +88,32 @@ class AgentSessionTests(unittest.TestCase):
         for tool_name in LOCAL_ROUTE_TOOL_NAMES:
             self.assertNotIn(f'recommended_tool="{tool_name}"', source)
 
+    def test_local_route_recommendations_use_readiness_helpers(self) -> None:
+        source = "\n".join(
+            inspect.getsource(function)
+            for function in (
+                agent_session.recommend_next_tool_call,
+                agent_session._release_checklist_recommendation,
+                agent_session._release_quality_gate_recommendation,
+                agent_session._release_notes_recommendation,
+                agent_session._release_readiness_recommendation,
+            )
+        )
+
+        for helper_name in (
+            "_landing_artifact_route_readiness",
+            "_landing_qa_route_readiness",
+            "_github_pages_deploy_proposal_route_readiness",
+            "_release_checklist_route_readiness",
+            "_release_quality_gate_route_readiness",
+            "_release_notes_route_readiness",
+            "_release_readiness_route_readiness",
+        ):
+            self.assertIn(helper_name, source)
+        self.assertIn("build_local_route_recommendation_from_readiness", source)
+        for tool_name in LOCAL_ROUTE_TOOL_NAMES:
+            self.assertNotIn(f'tool_name="{tool_name}"', source)
+
     def temp_root(self) -> Path:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)

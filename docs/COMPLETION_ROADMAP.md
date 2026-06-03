@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v15.
+Status: Canonical plan v16.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -200,6 +200,11 @@ These milestones are complete enough to be treated as foundation:
     Existing allowlisted local routes now build successful recommendation
     payloads through a registry-backed helper after explicit route eligibility
     predicates select the next route.
+
+31. Local Route Readiness Helper v1.
+    Existing successful local-route eligibility checks now return explicit
+    route-readiness values before Workroom builds successful recommendation
+    payloads.
 
 ## Milestone Plan
 
@@ -600,6 +605,29 @@ Exit criteria:
 - No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 21. Local Route Readiness Helper v1
+
+Status: Done.
+
+Goal: make current successful local-route eligibility decisions explicit
+readiness values while preserving recommendation behavior.
+
+Exit criteria:
+
+- A `LocalRouteReadiness` value records the local route tool, task ref, reason,
+  and ordered route-specific arguments.
+- Readiness builders validate route tools through the local route registry and
+  fail closed for unknown tools.
+- Successful recommendation payloads can be built from readiness values through
+  the existing registry-backed recommendation helper.
+- Business Validation and Release Hardening successful recommendation branches
+  use named route-readiness helpers for current routes.
+- Route order, blocked checks, missing-prerequisite checks, no-local fallback,
+  passing-QA blocker behavior, reason text, argument names, public tool names,
+  response shapes, local execution, and supervisor behavior remain unchanged.
+- No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -616,7 +644,7 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that moves route eligibility predicates into explicit
-route-readiness helpers only where tests prove no behavior drift. Add another
-company spec only after preserving the no-loop, no-external-effect,
-Kernel-boundary floor.
+a source-moving slice that adds the next bounded company capability, such as a
+third company spec with one local artifact route. Only add more route-registry
+infrastructure first if live repo truth shows it is the safer prerequisite.
+Preserve the no-loop, no-external-effect, Kernel-boundary floor.

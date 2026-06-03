@@ -132,8 +132,8 @@ step per call and records role-work, handoff, or decision evidence. The
 readiness decision is a local prepared decision only; it does not approve a
 launch, deploy, push, post, or call external APIs.
 
-Registered local routes share registry-backed recommendation payload
-construction after explicit eligibility predicates select the next route.
+Registered local routes now produce explicit route-readiness values before
+Workroom builds registry-backed successful recommendation payloads.
 
 `context_json` is a JSON object string for Workroom-local run variables. For
 example:

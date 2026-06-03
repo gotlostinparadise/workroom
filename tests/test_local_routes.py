@@ -7,7 +7,10 @@ from agency_workroom import local_routes
 from agency_workroom.local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
+    LocalRouteReadiness,
     build_local_route_recommendation,
+    build_local_route_recommendation_from_readiness,
+    build_local_route_readiness,
     execute_local_route,
     get_local_route,
     is_local_route_tool,
@@ -129,6 +132,83 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 workspace_path="/tmp/workspace",
                 reason="not a registered local route",
             )
+
+    def test_build_local_route_readiness_preserves_ordered_extra_arguments(
+        self,
+    ) -> None:
+        readiness = build_local_route_readiness(
+            tool_name="prepare_release_readiness_decision",
+            task_ref="workroom-item://coordination",
+            reason="ready for release decision",
+            extra_arguments={
+                "checklist_ref": "workroom-artifact://release/checklist.md",
+                "quality_report_ref": "workroom-artifact://release/quality.json",
+                "release_notes_ref": "workroom-artifact://release/notes.md",
+            },
+        )
+
+        self.assertIsInstance(readiness, LocalRouteReadiness)
+        self.assertEqual("prepare_release_readiness_decision", readiness.tool_name)
+        self.assertEqual("workroom-item://coordination", readiness.task_ref)
+        self.assertEqual("ready for release decision", readiness.reason)
+        self.assertEqual(
+            (
+                ("checklist_ref", "workroom-artifact://release/checklist.md"),
+                ("quality_report_ref", "workroom-artifact://release/quality.json"),
+                ("release_notes_ref", "workroom-artifact://release/notes.md"),
+            ),
+            readiness.extra_arguments,
+        )
+
+    def test_build_local_route_readiness_fails_closed_for_unknown_tool(
+        self,
+    ) -> None:
+        with self.assertRaises(WorkroomStateError):
+            build_local_route_readiness(
+                tool_name="submit_goal_intake_result",
+                task_ref="workroom-item://intake",
+                reason="not a registered local route",
+            )
+
+    def test_build_recommendation_from_readiness_uses_standard_payload_shape(
+        self,
+    ) -> None:
+        readiness = build_local_route_readiness(
+            tool_name="create_release_quality_gate_report",
+            task_ref="workroom-item://quality",
+            reason="release checklist exists and quality gate report is missing",
+            extra_arguments={
+                "checklist_ref": "workroom-artifact://release/checklist.md",
+            },
+        )
+
+        payload = build_local_route_recommendation_from_readiness(
+            run_id="run_ready",
+            workspace_path="/tmp/workspace",
+            readiness=readiness,
+        )
+
+        self.assertEqual("run_ready", payload["run_id"])
+        self.assertEqual(
+            "create_release_quality_gate_report",
+            payload["recommended_tool"],
+        )
+        self.assertEqual(
+            "release checklist exists and quality gate report is missing",
+            payload["reason"],
+        )
+        self.assertEqual([], payload["missing_prerequisites"])
+        self.assertTrue(payload["will_mutate_state"])
+        self.assertFalse(payload["blocked"])
+        self.assertEqual(
+            {
+                "run_id": "run_ready",
+                "task_ref": "workroom-item://quality",
+                "checklist_ref": "workroom-artifact://release/checklist.md",
+                "workspace_path": "/tmp/workspace",
+            },
+            payload["arguments"],
+        )
 
     def test_execute_local_route_calls_registered_executor_with_arguments(self) -> None:
         calls: list[dict[str, object]] = []

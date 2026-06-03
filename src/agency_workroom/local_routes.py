@@ -96,6 +96,43 @@ def is_local_route_tool(tool_name: str) -> bool:
     return tool_name in _LOCAL_ROUTES_BY_TOOL
 
 
+@dataclass(frozen=True)
+class LocalRouteReadiness:
+    tool_name: str
+    task_ref: str
+    reason: str
+    extra_arguments: tuple[tuple[str, object], ...] = ()
+
+    def __post_init__(self) -> None:
+        get_local_route(self.tool_name)
+        object.__setattr__(
+            self,
+            "extra_arguments",
+            tuple(self.extra_arguments),
+        )
+
+
+def build_local_route_readiness(
+    *,
+    tool_name: str,
+    task_ref: str,
+    reason: str,
+    extra_arguments: Mapping[str, object] | None = None,
+) -> LocalRouteReadiness:
+    route = get_local_route(tool_name)
+    ordered_extra_arguments = (
+        ()
+        if extra_arguments is None
+        else tuple(dict(extra_arguments).items())
+    )
+    return LocalRouteReadiness(
+        tool_name=route.tool_name,
+        task_ref=task_ref,
+        reason=reason,
+        extra_arguments=ordered_extra_arguments,
+    )
+
+
 def build_local_route_recommendation(
     *,
     tool_name: str,
@@ -125,6 +162,22 @@ def build_local_route_recommendation(
     ).to_payload()
 
 
+def build_local_route_recommendation_from_readiness(
+    *,
+    run_id: str,
+    workspace_path: str,
+    readiness: LocalRouteReadiness,
+) -> dict[str, object]:
+    return build_local_route_recommendation(
+        tool_name=readiness.tool_name,
+        run_id=run_id,
+        task_ref=readiness.task_ref,
+        workspace_path=workspace_path,
+        reason=readiness.reason,
+        extra_arguments=dict(readiness.extra_arguments),
+    )
+
+
 def execute_local_route(
     tool_name: str,
     *,
@@ -142,7 +195,10 @@ __all__ = [
     "LOCAL_ROUTE_TOOL_NAMES",
     "LOCAL_ROUTES",
     "LocalRoute",
+    "LocalRouteReadiness",
     "build_local_route_recommendation",
+    "build_local_route_recommendation_from_readiness",
+    "build_local_route_readiness",
     "execute_local_route",
     "get_local_route",
     "is_local_route_tool",
