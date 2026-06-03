@@ -21,6 +21,7 @@ from agency_workroom.agent_session import (
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
     create_runbook_operating_packet,
+    create_runbook_smoke_example,
     create_runbook_context_transfer,
     create_architecture_brief_artifact,
     create_design_critique_artifact,
@@ -676,6 +677,19 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("complex_codex_delivery", result["runbook_id"])
         self.assertTrue(Path(result["packet_path"]).exists())
         self.assertTrue(Path(result["markdown_path"]).exists())
+        self.assertFalse((workspace_path / "runs").exists())
+
+    def test_create_runbook_smoke_example_writes_local_example_only(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        result = create_runbook_smoke_example(workspace_path=str(workspace_path))
+
+        self.assertEqual("runbook-smoke-example.v1", result["schema_version"])
+        self.assertEqual("complex_codex_delivery", result["runbook_id"])
+        self.assertTrue(Path(result["example_path"]).exists())
+        self.assertTrue(Path(result["markdown_path"]).exists())
+        self.assertTrue(Path(result["packet_path"]).exists())
         self.assertFalse((workspace_path / "runs").exists())
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:

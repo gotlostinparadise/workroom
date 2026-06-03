@@ -57,6 +57,7 @@ TOOL_NAMES = (
     "list_company_specs",
     "list_company_runbooks",
     "create_runbook_operating_packet",
+    "create_runbook_smoke_example",
 )
 
 
@@ -763,6 +764,20 @@ def create_runbook_operating_packet(
     )
 
 
+@mcp.tool()
+def create_runbook_smoke_example(
+    workspace_path: str,
+    runbook_id: str = "",
+    example_goal: str = "",
+) -> dict[str, object]:
+    """Write a local validated dry-run example for a Workroom runbook."""
+    return agent_session.create_runbook_smoke_example(
+        workspace_path=workspace_path,
+        runbook_id=runbook_id,
+        example_goal=example_goal,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -792,6 +807,7 @@ __all__ = [
     "recommend_chain_continuation",
     "create_runbook_context_transfer",
     "create_runbook_operating_packet",
+    "create_runbook_smoke_example",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

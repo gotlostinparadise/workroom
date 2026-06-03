@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v32.
+Status: Canonical plan v33.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -301,6 +301,12 @@ These milestones are complete enough to be treated as foundation:
     runbook, including setup, start, inspection, context-transfer,
     evidence-chain, continuation, and stop-rule templates without starting or
     advancing any company.
+
+48. Runbook Smoke Example v1.
+    Workroom can write a local JSON/Markdown dry-run example for the bundled
+    runbook, expanding the operating packet into an ordered MCP call sequence
+    and validating referenced tools against the current manifest without
+    starting or advancing any company.
 
 ## Milestone Plan
 
@@ -1184,6 +1190,37 @@ Exit criteria:
   approval, implementation execution, verification execution, deploys, pushes,
   posts, external API calls, or new external effects are added.
 
+### 38. Runbook Smoke Example v1
+
+Status: Done.
+
+Goal: give Codex a local dry-run example that turns the bundled runbook
+operating packet into a validated ordered MCP call sequence.
+
+Exit criteria:
+
+- `create_runbook_smoke_example` accepts `workspace_path` and optional
+  `runbook_id` and `example_goal`.
+- The tool writes `runbook_smoke_example.json` and Markdown files under
+  `runbooks/<runbook_id>/`.
+- The payload uses schema `runbook-smoke-example.v1`.
+- The tool writes or refreshes the operating packet before building the smoke
+  example.
+- The payload includes setup, stage-start, inspection, context-transfer,
+  evidence-chain, and continuation dry-run steps.
+- The payload validates referenced tool names against the current MCP manifest
+  and reports missing tools without executing any step.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required workspace path and optional runbook id and example goal arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation,
+  runbook listing, context transfer, and operating packet behavior remains
+  unchanged.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, project mutation outside local Workroom runbook example files,
+  approval, implementation execution, verification execution, deploys, pushes,
+  posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1200,10 +1237,9 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer a
-packet-driven runbook smoke/example artifact that demonstrates the practical
-Design Review -> Implementation Planning -> Implementation Plan Quality ->
-Verification Orchestration sequence using the operating packet, context
-transfer, evidence-chain reporting, and continuation planning without starting
-hidden loops or adding external effects. Only add more infrastructure first if
-live repo truth shows it is the safer prerequisite. Preserve the no-loop,
-no-external-effect, Kernel-boundary floor.
+runbook progress/status artifact that reads actual workspace runs against the
+operating packet sequence and reports completed stages, missing stages,
+available context transfers, evidence-chain readiness, and continuation
+recommendations without starting hidden loops or adding external effects. Only
+add more infrastructure first if live repo truth shows it is the safer
+prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.

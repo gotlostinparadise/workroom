@@ -82,6 +82,7 @@ class McpManifestTests(unittest.TestCase):
             "create_company_evidence_chain_report",
             "create_runbook_context_transfer",
             "create_runbook_operating_packet",
+            "create_runbook_smoke_example",
         ):
             self.assertTrue(tools[name]["mutates_workroom_state"], name)
             self.assertEqual("local_files", tools[name]["external_effect_risk"], name)
@@ -366,6 +367,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(["workspace_path"], packet_tool["required_arguments"])
         self.assertEqual(["runbook_id"], packet_tool["optional_arguments"])
         self.assertEqual(["list_company_runbooks"], packet_tool["recommended_after"])
+
+    def test_tool_manifest_exposes_runbook_smoke_example_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        smoke_tool = tools["create_runbook_smoke_example"]
+
+        self.assertEqual("setup", smoke_tool["phase"])
+        self.assertTrue(smoke_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", smoke_tool["external_effect_risk"])
+        self.assertEqual(["workspace_path"], smoke_tool["required_arguments"])
+        self.assertEqual(
+            ["runbook_id", "example_goal"],
+            smoke_tool["optional_arguments"],
+        )
+        self.assertEqual(
+            ["create_runbook_operating_packet"],
+            smoke_tool["recommended_after"],
+        )
 
     def test_tool_manifest_exposes_runbook_context_transfer_tool(self) -> None:
         manifest = workroom_mcp_tool_manifest()
