@@ -529,6 +529,32 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"Missing required release tools: "
         f"{_render_string_list(mcp_surface.get('missing_required_tools'))}"
     )
+    release_smoke = _mapping(payload.get("runbook_release_smoke"))
+    lines.extend(["", "## Runbook Release Smoke", ""])
+    lines.append(
+        "- "
+        f"Ref: {_single_line(release_smoke.get('ref', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Schema: {_single_line(release_smoke.get('schema_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Status: {_single_line(release_smoke.get('status', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Ready: {_single_line(release_smoke.get('ready', False))}"
+    )
+    lines.append(
+        "- "
+        f"Valid: {_single_line(release_smoke.get('valid', False))}"
+    )
+    lines.append(
+        "- "
+        f"Run IDs: {_render_string_list(release_smoke.get('run_ids'))}"
+    )
     package_surface = _mapping(payload.get("package_surface"))
     export_surface = _mapping(payload.get("export_surface"))
     lines.extend(["", "## Export Surface", ""])

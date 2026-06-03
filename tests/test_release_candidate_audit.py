@@ -114,6 +114,13 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Missing from manifest: none", markdown)
         self.assertIn("Missing from server: none", markdown)
         self.assertIn("Missing required release tools: none", markdown)
+        self.assertIn("## Runbook Release Smoke", markdown)
+        self.assertIn(f"Ref: {smoke['smoke_ref']}", markdown)
+        self.assertIn("Schema: runbook-release-readiness-smoke.v1", markdown)
+        self.assertIn("Status: ready", markdown)
+        self.assertIn("Ready: True", markdown)
+        self.assertIn("Valid: True", markdown)
+        self.assertIn("Run IDs: run_design, run_plan, run_quality, run_verify", markdown)
         self.assertIn("Requires Python:", markdown)
         self.assertIn("Pyproject readable: True", markdown)
         self.assertIn("Installed metadata readable: False", markdown)
@@ -350,6 +357,49 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "- warning run_ids_mismatch: release-smoke run IDs do not match requested run IDs",
             markdown,
         )
+
+    def test_release_candidate_audit_markdown_renders_release_smoke_details(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "audit_status": "needs_attention",
+                "ready_for_release_candidate_review": False,
+                "mcp_surface": {},
+                "runbook_release_smoke": {
+                    "ref": (
+                        "workroom-artifact://runbooks/complex_codex_delivery/"
+                        "runbook_release_readiness_smoke.json"
+                    ),
+                    "schema_version": "runbook-release-readiness-smoke.v1",
+                    "status": "needs_attention",
+                    "ready": False,
+                    "valid": True,
+                    "run_ids": ["run_plan"],
+                },
+                "export_surface": {},
+                "package_surface": {},
+                "manual_verification_gates": [],
+                "audit_findings": [
+                    {
+                        "severity": "warning",
+                        "code": "run_ids_mismatch",
+                        "message": "release-smoke run IDs do not match requested run IDs",
+                    },
+                ],
+            }
+        )
+
+        self.assertIn("## Runbook Release Smoke", markdown)
+        self.assertIn(
+            "Ref: workroom-artifact://runbooks/complex_codex_delivery/"
+            "runbook_release_readiness_smoke.json",
+            markdown,
+        )
+        self.assertIn("Schema: runbook-release-readiness-smoke.v1", markdown)
+        self.assertIn("Status: needs_attention", markdown)
+        self.assertIn("Ready: False", markdown)
+        self.assertIn("Valid: True", markdown)
+        self.assertIn("Run IDs: run_plan", markdown)
 
     def test_release_candidate_audit_markdown_renders_mcp_drift_names(self) -> None:
         markdown = release_candidate_audit._render_markdown(

@@ -24,6 +24,7 @@ Scope:
 - Release-candidate audit export drift Markdown details.
 - Release-candidate audit package-surface Markdown details.
 - Release-candidate audit boundary Markdown details.
+- Release-candidate audit runbook release-smoke Markdown details.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -68,6 +69,8 @@ Release-candidate audit result:
   readability, and raw Kernel dependency.
 - Markdown boundary sections render Kernel repo, Kernel workflow behavior,
   hidden loop, implicit deploy, and external API call expectations.
+- Markdown runbook release-smoke details render the smoke artifact ref,
+  schema, status, readiness, validity, and run IDs.
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -86,18 +89,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 535 tests in 8.995s
+Ran 536 tests in 9.064s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-boundary-markdown-venv
-python -m venv /tmp/workroom-release-boundary-markdown-venv
-/tmp/workroom-release-boundary-markdown-venv/bin/python -m pip install -e .
-/tmp/workroom-release-boundary-markdown-venv/bin/python -m unittest discover -s tests -v
-Ran 535 tests in 9.067s
+rm -rf /tmp/workroom-release-smoke-markdown-venv
+python -m venv /tmp/workroom-release-smoke-markdown-venv
+/tmp/workroom-release-smoke-markdown-venv/bin/python -m pip install -e .
+/tmp/workroom-release-smoke-markdown-venv/bin/python -m unittest discover -s tests -v
+Ran 536 tests in 9.079s
 OK
 ```
 

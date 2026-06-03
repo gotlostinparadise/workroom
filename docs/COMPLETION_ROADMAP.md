@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v54.
+Status: Canonical plan v55.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -414,6 +414,11 @@ These milestones are complete enough to be treated as foundation:
 69. Release Audit Boundary Markdown v1.
     The human-facing release-candidate audit Markdown now renders the Kernel
     boundary and external-effect boundary assertions already present in JSON.
+
+70. Release Audit Smoke Markdown v1.
+    The human-facing release-candidate audit Markdown now renders the
+    runbook release-readiness smoke ref, schema, status, readiness, validity,
+    and run IDs already present in JSON.
 
 ## Milestone Plan
 
@@ -1818,6 +1823,31 @@ Exit criteria:
 - JSON payload shape, audit status behavior, readiness behavior, finding
   severity ordering, manual gate commands, MCP registration, export-surface
   checks, and package-surface calculation remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 60. Release Audit Smoke Markdown v1
+
+Status: Done.
+
+Goal: make runbook release-smoke evidence actionable from the human-facing
+release-candidate audit Markdown without requiring operators to open the JSON
+payload.
+
+Exit criteria:
+
+- Markdown renders the runbook release-smoke section.
+- Markdown renders the release-smoke artifact ref.
+- Markdown renders the release-smoke schema and status.
+- Markdown renders release-smoke readiness and validity.
+- Markdown renders release-smoke run IDs.
+- Tests cover both generated audit Markdown and direct renderer output for a
+  non-ready release-smoke case.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, export-surface
+  checks, package-surface calculation, and boundary assertions remain
+  unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
