@@ -12,6 +12,7 @@ Scope:
 - Release-candidate audit package metadata fallback for non-editable installs.
 - Public session and MCP wrapper export surface hardening.
 - Release-candidate audit export surface validation.
+- Release-candidate audit self-entrypoint validation.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -43,6 +44,7 @@ Release-candidate audit result:
 - Missing MCP tool exports: `[]`
 - Missing session public function exports: `[]`
 - Required startup tool checked: `submit_goal_intake_result`
+- Required audit entrypoint checked: `create_release_candidate_audit`
 - Kernel dependency mode: `absolute_file`
 - Distribution scope: `local_editable_checkout`
 - Manual gates recorded:
@@ -58,18 +60,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 526 tests in 8.967s
+Ran 526 tests in 8.998s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-audit-export-venv
-python -m venv /tmp/workroom-release-audit-export-venv
-/tmp/workroom-release-audit-export-venv/bin/python -m pip install -e .
-/tmp/workroom-release-audit-export-venv/bin/python -m unittest discover -s tests -v
-Ran 526 tests in 8.996s
+rm -rf /tmp/workroom-release-audit-self-venv
+python -m venv /tmp/workroom-release-audit-self-venv
+/tmp/workroom-release-audit-self-venv/bin/python -m pip install -e .
+/tmp/workroom-release-audit-self-venv/bin/python -m unittest discover -s tests -v
+Ran 526 tests in 9.061s
 OK
 ```
 
@@ -77,13 +79,9 @@ Installed MCP smoke:
 
 ```text
 {
-  "export_surface": {
-    "mcp_tool_export_count": 58,
-    "missing_mcp_tool_exports": [],
-    "missing_session_public_function_exports": [],
-    "session_export_count": 79
-  },
   "has_release_candidate_audit": true,
+  "missing_required_tools": [],
+  "requires_release_candidate_audit": true,
   "tool_count": 55
 }
 ```

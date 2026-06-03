@@ -87,6 +87,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "submit_goal_intake_result",
             release_candidate_audit.REQUIRED_RELEASE_TOOLS,
         )
+        self.assertIn(
+            "create_release_candidate_audit",
+            release_candidate_audit.REQUIRED_RELEASE_TOOLS,
+        )
         self.assertEqual(
             ["source_suite", "fresh_editable_install_suite", "installed_mcp_stdio_smoke"],
             [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],

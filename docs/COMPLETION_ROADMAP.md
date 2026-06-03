@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v42.
+Status: Canonical plan v43.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -361,6 +361,11 @@ These milestones are complete enough to be treated as foundation:
     The release-candidate audit records MCP/session export-surface checks and
     fails release-candidate readiness when registered MCP tools or public
     session functions are missing from module `__all__`.
+
+58. Release Audit Self-Entrypoint Validation v1.
+    The release-candidate audit treats its own MCP tool as required release
+    surface, so manifest/server drift that removes the audit entrypoint cannot
+    still report release-candidate readiness.
 
 ## Milestone Plan
 
@@ -1519,6 +1524,27 @@ Exit criteria:
 - Markdown output summarizes export-surface gaps.
 - Tests cover both the healthy export surface and failing export-surface
   findings.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 48. Release Audit Self-Entrypoint Validation v1
+
+Status: Done.
+
+Goal: close the release-audit self-check gap where
+`create_release_candidate_audit_files(...)` could still run from Python and
+report readiness even if the public MCP audit entrypoint disappeared from the
+server surface.
+
+Exit criteria:
+
+- `create_release_candidate_audit` is included in
+  `REQUIRED_RELEASE_TOOLS`.
+- Missing `create_release_candidate_audit` from the MCP server surface produces
+  the existing `missing_required_release_tool` error finding and blocks
+  release-candidate readiness.
+- Tests assert the release audit requires its own public MCP entrypoint.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

@@ -21,6 +21,7 @@ REQUIRED_RELEASE_TOOLS = (
     "create_runbook_progress_report",
     "create_runbook_closeout_packet",
     "create_runbook_release_readiness_smoke",
+    "create_release_candidate_audit",
     "create_company_evidence_chain_report",
     "recommend_chain_continuation",
 )
