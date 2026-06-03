@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v37.
+Status: Canonical plan v38.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -334,6 +334,12 @@ These milestones are complete enough to be treated as foundation:
     the runbook release-smoke fixture, required release tools, and manual
     release verification gates without running tests, starting stdio, changing
     Kernel, or exercising external effects.
+
+53. Release Readiness Hardening Evidence v1.
+    Workroom has a dated release hardening evidence note that records the
+    current runbook fixture-chain audit, source suite, fresh editable install
+    suite, installed MCP smoke, and Workroom/Kernel clean status for the local
+    release-candidate surface.
 
 ## Milestone Plan
 
@@ -1375,6 +1381,29 @@ Exit criteria:
   execution, verification execution, deploys, pushes, posts, external API
   calls, or new external effects are added.
 
+### 43. Release Readiness Hardening Evidence v1
+
+Status: Done.
+
+Goal: preserve the first full release-readiness hardening pass as a durable
+review artifact instead of relying on transient terminal output.
+
+Exit criteria:
+
+- `docs/release/2026-06-04-release-readiness-hardening.md` records the
+  temporary fixture-chain workspace and generated runbook artifacts.
+- The evidence records release-candidate audit schema, status, ready flag,
+  findings, MCP tool count, manifest/server consistency, and manual gates.
+- The evidence records source suite, fresh editable install suite, installed
+  MCP smoke, Workroom git status, and Kernel git status results.
+- The evidence states residual risk and the remaining need for independent
+  release review.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, test execution automation, installed MCP stdio startup
+  automation, approval, implementation execution, verification execution,
+  deploys, pushes, posts, external API calls, or new external effects are
+  added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1391,10 +1420,9 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer a
-release-readiness hardening pass before adding more workflow behavior: review
-the public MCP tool count and README operator path, run the release-candidate
-audit against persisted local fixtures, verify source and fresh editable
-install suites, perform installed MCP stdio smoke, and confirm Workroom and
-Kernel cleanliness. Only add more infrastructure first if live repo truth shows
-it is the safer prerequisite. Preserve the no-loop, no-external-effect,
-Kernel-boundary floor.
+full independent release review before adding more workflow behavior: review
+architecture boundaries, public MCP naming and operator ergonomics, README and
+roadmap consistency, package installation behavior, and the dated release
+hardening evidence. Fix only concrete findings that block release readiness.
+Only add more infrastructure first if live repo truth shows it is the safer
+prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
