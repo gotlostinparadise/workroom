@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from importlib.metadata import version
+import inspect
 import unittest
 
 import agency_workroom
+from agency_workroom import agent_session
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
@@ -20,6 +22,18 @@ class PackageImportTests(unittest.TestCase):
     def test_mcp_sdk_dependency_uses_supported_major_version(self) -> None:
         major = int(version("mcp").split(".", 1)[0])
         self.assertEqual(1, major)
+
+    def test_agent_session_exports_public_functions(self) -> None:
+        public_functions = [
+            name
+            for name in dir(agent_session)
+            if not name.startswith("_")
+            and inspect.isfunction(getattr(agent_session, name))
+            and getattr(agent_session, name).__module__ == agent_session.__name__
+        ]
+
+        for function_name in public_functions:
+            self.assertIn(function_name, agent_session.__all__)
 
     def test_role_work_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.build_role_work_request))

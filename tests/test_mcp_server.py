@@ -70,6 +70,11 @@ class WorkroomMcpServerTests(unittest.TestCase):
             mcp_server.TOOL_NAMES,
         )
 
+    def test_mcp_server_exports_registered_tool_functions(self) -> None:
+        for tool_name in mcp_server.TOOL_NAMES:
+            self.assertIn(tool_name, mcp_server.__all__)
+            self.assertTrue(callable(getattr(mcp_server, tool_name)))
+
     def test_mcp_server_has_fastmcp_app(self) -> None:
         self.assertEqual("Workroom", mcp_server.mcp.name)
 

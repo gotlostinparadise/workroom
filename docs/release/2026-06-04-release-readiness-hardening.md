@@ -10,6 +10,7 @@ Scope:
 - Release-candidate audit over persisted local fixtures.
 - Release-candidate audit startup-handshake and package-scope hardening.
 - Release-candidate audit package metadata fallback for non-editable installs.
+- Public session and MCP wrapper export surface hardening.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -54,18 +55,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 523 tests in 8.908s
+Ran 525 tests in 9.049s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-metadata-venv
-python -m venv /tmp/workroom-release-metadata-venv
-/tmp/workroom-release-metadata-venv/bin/python -m pip install -e .
-/tmp/workroom-release-metadata-venv/bin/python -m unittest discover -s tests -v
-Ran 523 tests in 9.099s
+rm -rf /tmp/workroom-release-exports-venv
+python -m venv /tmp/workroom-release-exports-venv
+/tmp/workroom-release-exports-venv/bin/python -m pip install -e .
+/tmp/workroom-release-exports-venv/bin/python -m unittest discover -s tests -v
+Ran 525 tests in 9.104s
 OK
 ```
 
@@ -80,6 +81,8 @@ has_submit_goal_intake_result=True
 required_release_tool_checked=True
 start_optional_context=True
 package_surface={'pyproject_readable': True, 'installed_metadata_readable': False, 'kernel_dependency_mode': 'absolute_file', 'distribution_scope': 'local_editable_checkout'}
+mcp_tool_exports_missing=[]
+session_public_exports_missing=[]
 ```
 
 Non-editable package metadata probe:

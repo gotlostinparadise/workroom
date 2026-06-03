@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v40.
+Status: Canonical plan v41.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -352,6 +352,10 @@ These milestones are complete enough to be treated as foundation:
     source/editable checkouts and falls back to installed distribution metadata
     in non-editable installs, preserving Kernel dependency mode and
     distribution-scope evidence.
+
+56. Public Export Surface Hardening v1.
+    Public session and MCP wrapper functions are covered by export guards so
+    installed Python module usage stays aligned with the MCP/server surface.
 
 ## Milestone Plan
 
@@ -1467,6 +1471,29 @@ Exit criteria:
   shell execution from the audit path, installed MCP stdio startup automation,
   deploys, pushes, posts, external API calls, or new external effects are
   added.
+
+### 46. Public Export Surface Hardening v1
+
+Status: Done.
+
+Goal: close the public API release-review finding where a few implemented
+session/MCP wrapper functions were callable but missing from module `__all__`,
+which weakens installed-package ergonomics and makes release exports harder to
+audit.
+
+Exit criteria:
+
+- `agency_workroom.agent_session.__all__` includes every public function
+  defined by `agent_session`.
+- `agency_workroom.mcp_server.__all__` includes every registered MCP tool
+  function in `TOOL_NAMES`.
+- Tests fail if future public session functions or MCP tools are omitted from
+  the exported module surface.
+- Existing MCP registration, manifest order, README tool list, and runtime
+  behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
 
 ## Plan Change Rules
 

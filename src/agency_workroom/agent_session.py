@@ -6307,6 +6307,7 @@ __all__ = [
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
+    "create_architecture_brief_artifact",
     "create_implementation_plan_artifact",
     "create_implementation_plan_quality_report",
     "create_implementation_plan_risk_register",
