@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v55.
+Status: Canonical plan v56.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -419,6 +419,11 @@ These milestones are complete enough to be treated as foundation:
     The human-facing release-candidate audit Markdown now renders the
     runbook release-readiness smoke ref, schema, status, readiness, validity,
     and run IDs already present in JSON.
+
+71. Release Audit Artifact Context Markdown v1.
+    The human-facing release-candidate audit Markdown now renders requested
+    run IDs and Workroom artifact refs while keeping local filesystem paths
+    out of the Markdown.
 
 ## Milestone Plan
 
@@ -1848,6 +1853,29 @@ Exit criteria:
   severity ordering, manual gate commands, MCP registration, export-surface
   checks, package-surface calculation, and boundary assertions remain
   unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 61. Release Audit Artifact Context Markdown v1
+
+Status: Done.
+
+Goal: make the release-candidate audit Markdown self-identifying enough for
+release review while avoiding local filesystem path leakage.
+
+Exit criteria:
+
+- Markdown renders requested run IDs.
+- Markdown renders the release-candidate audit artifact ref.
+- Markdown renders the release-candidate audit Markdown artifact ref.
+- Markdown does not render local `audit_path` or `markdown_path` values.
+- Tests cover both generated audit Markdown and direct renderer output with
+  local private paths present in the payload.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, release-smoke
+  checks, export-surface checks, package-surface calculation, and boundary
+  assertions remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

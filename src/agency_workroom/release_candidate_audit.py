@@ -500,6 +500,12 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"- Status: {_single_line(payload.get('audit_status', ''))}",
         f"- Ready: {_single_line(payload.get('ready_for_release_candidate_review', False))}",
         "",
+        "## Audit Artifacts",
+        "",
+        f"- Requested run IDs: {_render_string_list(payload.get('run_ids'))}",
+        f"- Audit ref: {_single_line(payload.get('audit_ref', ''))}",
+        f"- Markdown ref: {_single_line(payload.get('markdown_ref', ''))}",
+        "",
         "## MCP Surface",
         "",
     ]

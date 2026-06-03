@@ -108,6 +108,14 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             gate_commands["installed_mcp_stdio_smoke"],
         )
         self.assertIn("Release Candidate Audit", markdown)
+        self.assertIn("## Audit Artifacts", markdown)
+        self.assertIn(
+            "Requested run IDs: run_design, run_plan, run_quality, run_verify",
+            markdown,
+        )
+        self.assertIn(f"Audit ref: {audit['audit_ref']}", markdown)
+        self.assertIn(f"Markdown ref: {audit['markdown_ref']}", markdown)
+        self.assertNotIn(str(root), markdown)
         self.assertIn("Missing MCP tool exports: none", markdown)
         self.assertIn("Missing session public function exports: none", markdown)
         self.assertIn("Manifest matches server: True", markdown)
@@ -400,6 +408,46 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Ready: False", markdown)
         self.assertIn("Valid: True", markdown)
         self.assertIn("Run IDs: run_plan", markdown)
+
+    def test_release_candidate_audit_markdown_renders_artifact_context_without_paths(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "run_ids": ["run_design", "run_plan"],
+                "audit_status": "ready",
+                "ready_for_release_candidate_review": True,
+                "audit_ref": (
+                    "workroom-artifact://runbooks/complex_codex_delivery/"
+                    "release_candidate_audit.json"
+                ),
+                "audit_path": "/tmp/private-workspace/runbooks/complex_codex_delivery/release_candidate_audit.json",
+                "markdown_ref": (
+                    "workroom-artifact://runbooks/complex_codex_delivery/"
+                    "release_candidate_audit.md"
+                ),
+                "markdown_path": "/tmp/private-workspace/runbooks/complex_codex_delivery/release_candidate_audit.md",
+                "mcp_surface": {},
+                "runbook_release_smoke": {},
+                "export_surface": {},
+                "package_surface": {},
+                "manual_verification_gates": [],
+                "audit_findings": [],
+            }
+        )
+
+        self.assertIn("## Audit Artifacts", markdown)
+        self.assertIn("Requested run IDs: run_design, run_plan", markdown)
+        self.assertIn(
+            "Audit ref: workroom-artifact://runbooks/complex_codex_delivery/"
+            "release_candidate_audit.json",
+            markdown,
+        )
+        self.assertIn(
+            "Markdown ref: workroom-artifact://runbooks/complex_codex_delivery/"
+            "release_candidate_audit.md",
+            markdown,
+        )
+        self.assertNotIn("/tmp/private-workspace", markdown)
 
     def test_release_candidate_audit_markdown_renders_mcp_drift_names(self) -> None:
         markdown = release_candidate_audit._render_markdown(
