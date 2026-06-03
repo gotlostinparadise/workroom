@@ -76,6 +76,7 @@ class McpManifestTests(unittest.TestCase):
             "prepare_github_pages_deploy_proposal",
             "create_goal_run_report",
             "create_cross_role_run_brief",
+            "create_cross_role_task_quality_report",
         ):
             self.assertTrue(tools[name]["mutates_workroom_state"], name)
             self.assertEqual("local_files", tools[name]["external_effect_risk"], name)
@@ -281,6 +282,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["evaluate_company_goal_run"],
             brief_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_cross_role_task_quality_report_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        quality_tool = tools["create_cross_role_task_quality_report"]
+
+        self.assertEqual("inspection", quality_tool["phase"])
+        self.assertTrue(quality_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", quality_tool["external_effect_risk"])
+        self.assertEqual(
+            ["run_id", "workspace_path"],
+            quality_tool["required_arguments"],
+        )
+        self.assertEqual([], quality_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_cross_role_run_brief"],
+            quality_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_implementation_plan_quality_local_tools(self) -> None:

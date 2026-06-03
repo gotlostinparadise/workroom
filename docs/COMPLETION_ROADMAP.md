@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v26.
+Status: Canonical plan v27.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -265,6 +265,12 @@ These milestones are complete enough to be treated as foundation:
     risk register artifacts followed by a prepared local review decision,
     without approving implementation, executing the plan, running shell
     commands, or mutating project files.
+
+42. Cross-Role Task Quality Review v1.
+    Workroom can create a durable local JSON/Markdown quality report that
+    scores task evidence by department and flags completed tasks without result
+    refs, blocked tasks without blocker summaries, pending decisions without
+    source refs, audit findings, and weak next-tool arguments.
 
 ## Milestone Plan
 
@@ -985,6 +991,31 @@ Exit criteria:
   implementation execution, deploys, pushes, posts, external API calls, or new
   external effects are added.
 
+### 32. Cross-Role Task Quality Review v1
+
+Status: Done.
+
+Goal: make complex multi-role runs easier for Codex to continue safely by
+turning task evidence gaps into an explicit local quality report.
+
+Exit criteria:
+
+- `create_cross_role_task_quality_report` writes local
+  `cross_role_task_quality_report.json` and
+  `cross_role_task_quality_report.md` files under `runs/<run_id>/reports/`.
+- The report includes a quality score, finding counts, department scores,
+  current recommendation, and evidence refs.
+- The report flags completed non-approval tasks without result refs, blocked
+  tasks without blocker summaries, pending decisions without source refs,
+  carried audit findings, and weak next-tool arguments.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required `run_id` and `workspace_path` arguments.
+- Existing company specs, local route execution, supervisor turns, replay,
+  audit, evaluation, and cross-role brief behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  implementation execution, verification execution, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1002,9 +1033,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as richer cross-role task quality review, runtime
-integration that connects design-review and implementation-quality evidence,
-or another local-only company that improves the chain from design to
-implementation to verification. Only add more infrastructure first if live repo
-truth shows it is the safer prerequisite. Preserve the no-loop,
-no-external-effect, Kernel-boundary floor.
+complex Codex work, such as runtime integration that connects design-review,
+implementation-quality, and verification evidence, or another local-only
+company that improves the chain from design to implementation to verification.
+Only add more infrastructure first if live repo truth shows it is the safer
+prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.

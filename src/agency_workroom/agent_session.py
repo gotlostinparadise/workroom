@@ -10,6 +10,7 @@ from string import Formatter
 
 from .company_briefing import compact_company_brief
 from .cross_role_brief import create_cross_role_run_brief_files
+from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .devops_operations import (
     DevOpsOperationError,
     execute_github_pages_deploy_plan_files,
@@ -3799,6 +3800,44 @@ def create_cross_role_run_brief(
     )
 
 
+def create_cross_role_task_quality_report(
+    *,
+    run_id: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    clean_run_id = _required_text("run_id", run_id)
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run = load_company_goal_run(clean_workspace_path, clean_run_id)
+    summary = summarize_run(run_id=clean_run_id, workspace_path=clean_workspace_path)
+    recommendation = recommend_next_tool_call(
+        run_id=clean_run_id,
+        workspace_path=clean_workspace_path,
+    )
+    replay = replay_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        recommendation=recommendation,
+    )
+    audit = audit_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        replay=replay,
+    )
+    evaluation = evaluate_company_goal_run_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        summary=summary,
+        recommendation=recommendation,
+    )
+    return create_cross_role_task_quality_report_files(
+        workspace_path=clean_workspace_path,
+        run=run,
+        replay=replay,
+        audit=audit,
+        evaluation=evaluation,
+        recommendation=recommendation,
+    )
+
+
 def replay_company_goal_run(*, run_id: str, workspace_path: str) -> dict[str, object]:
     clean_run_id = _required_text("run_id", run_id)
     clean_workspace_path = _required_text("workspace_path", workspace_path)
@@ -6036,6 +6075,7 @@ __all__ = [
     "create_delivery_scope_brief_artifact",
     "create_delivery_execution_plan_artifact",
     "create_cross_role_run_brief",
+    "create_cross_role_task_quality_report",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

@@ -18,6 +18,7 @@ from agency_workroom.agent_session import (
     audit_company_goal_run,
     check_workroom_mcp_config,
     create_cross_role_run_brief,
+    create_cross_role_task_quality_report,
     create_architecture_brief_artifact,
     create_design_critique_artifact,
     create_design_risk_report_artifact,
@@ -5045,6 +5046,58 @@ class AgentSessionTests(unittest.TestCase):
         self.assertGreaterEqual(len(payload["pending_decisions"]), 1)
         self.assertNotIn(
             "private cross-role brief goal",
+            ledger_path.read_text(encoding="utf-8"),
+        )
+
+    def test_create_cross_role_task_quality_report_records_evidence_gaps(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        started = self.start_and_submit_company_goal(
+            goal="private task quality goal",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        before_state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = create_cross_role_task_quality_report(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_cross_role_task_quality_report(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        after_state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(first, second)
+        self.assertTrue(Path(first["report_path"]).exists())
+        self.assertTrue(Path(first["markdown_path"]).exists())
+        self.assertEqual(
+            "workroom-artifact://runs/"
+            f"{started['run_id']}/reports/cross_role_task_quality_report.json",
+            first["report_ref"],
+        )
+        payload = json.loads(Path(first["report_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(
+            "cross-role-task-quality-report.v1",
+            payload["schema_version"],
+        )
+        self.assertIn("finding_counts", payload)
+        self.assertIn("department_scores", payload)
+        self.assertEqual(before_state["tasks"], after_state["tasks"])
+        self.assertNotIn(
+            "private task quality goal",
             ledger_path.read_text(encoding="utf-8"),
         )
 

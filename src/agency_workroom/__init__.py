@@ -39,6 +39,7 @@ from .agent_session import (
     check_workroom_mcp_config,
     create_architecture_brief_artifact,
     create_cross_role_run_brief,
+    create_cross_role_task_quality_report,
     create_design_critique_artifact,
     create_design_risk_report_artifact,
     create_delivery_execution_plan_artifact,
@@ -86,6 +87,7 @@ from .run_inspection import (
     replay_company_goal_run_files,
 )
 from .cross_role_brief import create_cross_role_run_brief_files
+from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -288,6 +290,8 @@ __all__ = [
     "create_architecture_brief_artifact",
     "create_cross_role_run_brief",
     "create_cross_role_run_brief_files",
+    "create_cross_role_task_quality_report",
+    "create_cross_role_task_quality_report_files",
     "create_design_critique_artifact",
     "create_design_risk_report_artifact",
     "create_delivery_execution_plan_artifact",

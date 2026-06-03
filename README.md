@@ -87,6 +87,7 @@ The MCP tools are agent-facing:
 - `summarize_run`
 - `create_goal_run_report`
 - `create_cross_role_run_brief`
+- `create_cross_role_task_quality_report`
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
@@ -348,6 +349,14 @@ evaluation, handoff, decision, role-work, and task evidence by department and
 role so Codex can inspect complex multi-role runs before continuing. It does
 not advance the run, approve decisions, execute plans, deploy, post, call
 external APIs, or start background workers.
+
+`create_cross_role_task_quality_report` writes a durable local JSON and
+Markdown quality report for a run under `runs/<run_id>/reports/`. It scores
+task evidence by department, carries audit findings, flags completed tasks
+without result refs, blocked tasks without blocker summaries, pending
+decisions without source refs, and weak next-tool arguments. It does not
+advance the run, approve decisions, execute plans, deploy, post, call external
+APIs, or start background workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a
