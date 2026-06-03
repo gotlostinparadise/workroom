@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v44.
+Status: Canonical plan v45.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -371,6 +371,11 @@ These milestones are complete enough to be treated as foundation:
     The release-candidate audit Markdown now includes the exact manual gate
     commands from the payload, and the installed MCP smoke gate is an executable
     command rather than prose-only operator guidance.
+
+60. Release Audit Required Tool Finding Code v1.
+    Missing required release tools now produce the documented
+    `missing_required_release_tool` error finding, with focused test coverage
+    for the required-tool failure path.
 
 ## Milestone Plan
 
@@ -1571,6 +1576,24 @@ Exit criteria:
 - The release-candidate audit Markdown includes each manual gate command.
 - Tests cover the fresh-install command, installed MCP smoke command, and
   Markdown command rendering.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 50. Release Audit Required Tool Finding Code v1
+
+Status: Done.
+
+Goal: make release-candidate audit findings stable and self-describing by
+aligning the missing-required-tool finding code with the documented release
+review contract.
+
+Exit criteria:
+
+- Missing required release tools produce `missing_required_release_tool`.
+- The finding remains an `error` and blocks release-candidate readiness through
+  the existing audit-status path.
+- Tests cover the missing-required-tool finding path.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

@@ -14,6 +14,7 @@ Scope:
 - Release-candidate audit export surface validation.
 - Release-candidate audit self-entrypoint validation.
 - Release-candidate audit manual gate command rendering.
+- Release-candidate audit required-tool finding code stabilization.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -46,6 +47,7 @@ Release-candidate audit result:
 - Missing session public function exports: `[]`
 - Required startup tool checked: `submit_goal_intake_result`
 - Required audit entrypoint checked: `create_release_candidate_audit`
+- Missing required tool finding code: `missing_required_release_tool`
 - Manual gate commands rendered in Markdown: `true`
 - Kernel dependency mode: `absolute_file`
 - Distribution scope: `local_editable_checkout`
@@ -62,18 +64,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 526 tests in 8.993s
+Ran 527 tests in 8.935s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-candidate-venv
-python -m venv /tmp/workroom-release-candidate-venv
-/tmp/workroom-release-candidate-venv/bin/python -m pip install -e .
-/tmp/workroom-release-candidate-venv/bin/python -m unittest discover -s tests -v
-Ran 526 tests in 9.163s
+rm -rf /tmp/workroom-release-finding-code-venv
+python -m venv /tmp/workroom-release-finding-code-venv
+/tmp/workroom-release-finding-code-venv/bin/python -m pip install -e .
+/tmp/workroom-release-finding-code-venv/bin/python -m unittest discover -s tests -v
+Ran 527 tests in 9.124s
 OK
 ```
 

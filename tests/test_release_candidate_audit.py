@@ -193,6 +193,27 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             {finding["code"] for finding in findings},
         )
 
+    def test_audit_findings_flags_missing_required_release_tools(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "missing_required_tools": ["create_release_candidate_audit"],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            release_smoke={
+                "valid": True,
+                "ready": True,
+                "run_ids": ["run_design"],
+            },
+        )
+
+        self.assertEqual(["missing_required_release_tool"], [findings[0]["code"]])
+        self.assertEqual("error", findings[0]["severity"])
+
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")
 

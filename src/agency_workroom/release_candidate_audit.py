@@ -326,7 +326,7 @@ def _audit_findings(
         findings.append(
             {
                 "severity": "error",
-                "code": "missing_release_tool",
+                "code": "missing_required_release_tool",
                 "message": f"required release tool is missing: {tool_name}",
             }
         )
