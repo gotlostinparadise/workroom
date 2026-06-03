@@ -152,7 +152,11 @@ class PackageImportTests(unittest.TestCase):
 
     def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.create_goal_run_report))
+        self.assertTrue(callable(agency_workroom.create_cross_role_run_brief))
+        self.assertTrue(callable(agency_workroom.create_cross_role_run_brief_files))
         self.assertIn("create_goal_run_report", agency_workroom.__all__)
+        self.assertIn("create_cross_role_run_brief", agency_workroom.__all__)
+        self.assertIn("create_cross_role_run_brief_files", agency_workroom.__all__)
         self.assertIn("GOAL_RUN_REPORT_PREFIX", agency_workroom.__all__)
 
     def test_run_inspection_helpers_are_exported_from_package(self) -> None:

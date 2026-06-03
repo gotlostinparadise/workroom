@@ -32,6 +32,7 @@ TOOL_NAMES = (
     "execute_github_pages_deploy",
     "summarize_run",
     "create_goal_run_report",
+    "create_cross_role_run_brief",
     "replay_company_goal_run",
     "audit_company_goal_run",
     "evaluate_company_goal_run",
@@ -429,6 +430,15 @@ def create_goal_run_report(run_id: str, workspace_path: str) -> dict[str, object
 
 
 @mcp.tool()
+def create_cross_role_run_brief(run_id: str, workspace_path: str) -> dict[str, object]:
+    """Create a local cross-role brief for a Workroom company run."""
+    return agent_session.create_cross_role_run_brief(
+        run_id=run_id,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
 def replay_company_goal_run(run_id: str, workspace_path: str) -> dict[str, object]:
     """Replay persisted local Workroom records for a company run."""
     return agent_session.replay_company_goal_run(
@@ -493,6 +503,7 @@ __all__ = [
     "create_delivery_execution_plan_artifact",
     "create_delivery_scope_brief_artifact",
     "prepare_delivery_review_decision",
+    "create_cross_role_run_brief",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

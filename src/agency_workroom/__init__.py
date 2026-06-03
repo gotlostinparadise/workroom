@@ -19,6 +19,7 @@ from .agent_session import (
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
+    create_cross_role_run_brief,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
@@ -54,6 +55,7 @@ from .run_inspection import (
     evaluate_company_goal_run_files,
     replay_company_goal_run_files,
 )
+from .cross_role_brief import create_cross_role_run_brief_files
 from .mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -218,6 +220,8 @@ __all__ = [
     "business_validation_company_spec",
     "check_workroom_mcp_config",
     "compact_company_brief",
+    "create_cross_role_run_brief",
+    "create_cross_role_run_brief_files",
     "create_delivery_execution_plan_artifact",
     "create_delivery_scope_brief_artifact",
     "create_goal_run_report",

@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v21.
+Status: Canonical plan v22.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -235,6 +235,11 @@ These milestones are complete enough to be treated as foundation:
     the scope brief and execution plan evidence refs exist, without approving,
     executing, mutating a project, running shell commands, or calling external
     APIs.
+
+37. Cross-Role Run Brief v1.
+    Workroom can create a durable local JSON/Markdown brief that organizes
+    replay, audit, evaluation, task, handoff, decision, and role-work evidence
+    by department and role for complex multi-role runs.
 
 ## Milestone Plan
 
@@ -794,6 +799,30 @@ Exit criteria:
   execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
 
+### 27. Cross-Role Run Brief v1
+
+Status: Done.
+
+Goal: give Codex a compact durable brief for inspecting complex multi-role
+Workroom runs before continuing.
+
+Exit criteria:
+
+- `create_cross_role_run_brief` writes local
+  `cross_role_run_brief.json` and `cross_role_run_brief.md` files under
+  `runs/<run_id>/reports/`.
+- The brief groups tasks, result refs, handoff refs, decision refs, and
+  role-work refs by department and role.
+- The brief includes audit status, blockers, pending decisions, recommended
+  next actions, and evidence refs from existing replay/evaluation helpers.
+- The package, MCP server, and MCP manifest expose the tool with required
+  `run_id` and `workspace_path` arguments.
+- Existing goal-run report, replay, audit, evaluation, local route, and company
+  behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -811,7 +840,7 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as a reusable cross-role handoff summary or report for
-multi-role runs, or another bounded company capability. Only add more
-route-registry infrastructure first if live repo truth shows it is the safer
-prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+complex Codex work, such as a bounded company capability for design review,
+implementation planning, or verification orchestration. Only add more
+infrastructure first if live repo truth shows it is the safer prerequisite.
+Preserve the no-loop, no-external-effect, Kernel-boundary floor.

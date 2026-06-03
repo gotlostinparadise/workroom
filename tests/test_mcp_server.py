@@ -36,6 +36,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "execute_github_pages_deploy",
                 "summarize_run",
                 "create_goal_run_report",
+                "create_cross_role_run_brief",
                 "replay_company_goal_run",
                 "audit_company_goal_run",
                 "evaluate_company_goal_run",
@@ -190,6 +191,20 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertIn("run_id", schema["properties"])
         self.assertIn("task_ref", schema["properties"])
         self.assertIn("checklist_ref", schema["properties"])
+        self.assertIn("workspace_path", schema["properties"])
+
+    def test_cross_role_run_brief_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        brief_tool = next(
+            tool for tool in tools if tool.name == "create_cross_role_run_brief"
+        )
+        schema = brief_tool.inputSchema
+
+        self.assertEqual(
+            {"run_id", "workspace_path"},
+            set(schema["required"]),
+        )
+        self.assertIn("run_id", schema["properties"])
         self.assertIn("workspace_path", schema["properties"])
 
     def test_release_notes_tool_has_required_fastmcp_arguments(self) -> None:

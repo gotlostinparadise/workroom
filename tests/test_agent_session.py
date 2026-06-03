@@ -17,6 +17,7 @@ from agency_workroom.agent_session import (
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
+    create_cross_role_run_brief,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
@@ -4063,6 +4064,54 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertNotIn(
             "private practical e2e goal",
+            ledger_path.read_text(encoding="utf-8"),
+        )
+
+    def test_create_cross_role_run_brief_records_department_handoff_context(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        ledger_path = root / "kernel.jsonl"
+        workspace_path = root / "workspace"
+        started = self.start_and_submit_company_goal(
+            goal="private cross-role brief goal",
+            user_id="usr_codex",
+            ledger_path=str(ledger_path),
+            workspace_path=str(workspace_path),
+        )
+        for _ in range(4):
+            advance_company_goal(
+                run_id=started["run_id"],
+                workspace_path=str(workspace_path),
+            )
+
+        brief = create_cross_role_run_brief(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertTrue(Path(brief["brief_path"]).exists())
+        self.assertTrue(Path(brief["markdown_path"]).exists())
+        self.assertEqual(
+            "workroom-artifact://runs/"
+            f"{started['run_id']}/reports/cross_role_run_brief.json",
+            brief["brief_ref"],
+        )
+        payload = json.loads(Path(brief["brief_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("cross-role-run-brief.v1", payload["schema_version"])
+        self.assertEqual("approval_required", payload["overall_status"])
+        self.assertTrue(payload["audit"]["passed"])
+        department_ids = {
+            department["department_id"] for department in payload["departments"]
+        }
+        self.assertIn("product", department_ids)
+        self.assertIn("qa", department_ids)
+        self.assertIn("devops", department_ids)
+        self.assertGreaterEqual(len(payload["role_work_refs"]), 3)
+        self.assertGreaterEqual(len(payload["pending_decisions"]), 1)
+        self.assertNotIn(
+            "private cross-role brief goal",
             ledger_path.read_text(encoding="utf-8"),
         )
 

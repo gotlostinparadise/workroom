@@ -63,6 +63,7 @@ class McpManifestTests(unittest.TestCase):
             "prepare_release_readiness_decision",
             "prepare_github_pages_deploy_proposal",
             "create_goal_run_report",
+            "create_cross_role_run_brief",
         ):
             self.assertTrue(tools[name]["mutates_workroom_state"], name)
             self.assertEqual("local_files", tools[name]["external_effect_risk"], name)
@@ -250,6 +251,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_delivery_execution_plan_artifact"],
             delivery_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_cross_role_run_brief_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        brief_tool = tools["create_cross_role_run_brief"]
+
+        self.assertEqual("inspection", brief_tool["phase"])
+        self.assertTrue(brief_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", brief_tool["external_effect_risk"])
+        self.assertEqual(
+            ["run_id", "workspace_path"],
+            brief_tool["required_arguments"],
+        )
+        self.assertEqual([], brief_tool["optional_arguments"])
+        self.assertEqual(
+            ["evaluate_company_goal_run"],
+            brief_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_release_quality_gate_local_tool(self) -> None:

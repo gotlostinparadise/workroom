@@ -74,6 +74,7 @@ The MCP tools are agent-facing:
 - `execute_github_pages_deploy`
 - `summarize_run`
 - `create_goal_run_report`
+- `create_cross_role_run_brief`
 - `replay_company_goal_run`
 - `audit_company_goal_run`
 - `evaluate_company_goal_run`
@@ -261,6 +262,13 @@ persisted run state, supervisor turns, role-work records, handoffs, decisions,
 and task artifact refs. It does not advance the run, deploy, post, or call
 external APIs. A reproducible local sequence is documented in
 [`docs/examples/practical-e2e-goal-run-v1.md`](docs/examples/practical-e2e-goal-run-v1.md).
+
+`create_cross_role_run_brief` writes a durable local JSON and Markdown brief
+for a run under `runs/<run_id>/reports/`. It organizes existing replay, audit,
+evaluation, handoff, decision, role-work, and task evidence by department and
+role so Codex can inspect complex multi-role runs before continuing. It does
+not advance the run, approve decisions, execute plans, deploy, post, call
+external APIs, or start background workers.
 
 `replay_company_goal_run`, `audit_company_goal_run`, and
 `evaluate_company_goal_run` are read-only inspection tools. They reconstruct a
