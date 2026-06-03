@@ -21,6 +21,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "record_work_result",
                 "create_landing_artifact",
                 "create_landing_qa_report",
+                "create_growth_brief_artifact",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
                 "create_release_notes_artifact",
@@ -72,6 +73,21 @@ class WorkroomMcpServerTests(unittest.TestCase):
             tool for tool in tools if tool.name == "create_release_checklist_artifact"
         )
         schema = release_tool.inputSchema
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(schema["required"]),
+        )
+        self.assertIn("run_id", schema["properties"])
+        self.assertIn("task_ref", schema["properties"])
+        self.assertIn("workspace_path", schema["properties"])
+
+    def test_growth_brief_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        growth_tool = next(
+            tool for tool in tools if tool.name == "create_growth_brief_artifact"
+        )
+        schema = growth_tool.inputSchema
 
         self.assertEqual(
             {"run_id", "task_ref", "workspace_path"},
@@ -150,7 +166,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
 
         self.assertEqual("workroom-company-spec-list.v1", result["schema_version"])
         self.assertEqual(
-            ["business_validation", "release_hardening"],
+            ["business_validation", "growth_brief", "release_hardening"],
             [spec["spec_id"] for spec in result["company_specs"]],
         )
         self.assertFalse(result["writes_files"])

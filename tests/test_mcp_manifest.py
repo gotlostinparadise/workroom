@@ -51,6 +51,7 @@ class McpManifestTests(unittest.TestCase):
             "advance_company_goal",
             "create_landing_artifact",
             "create_landing_qa_report",
+            "create_growth_brief_artifact",
             "create_release_checklist_artifact",
             "create_release_quality_gate_report",
             "create_release_notes_artifact",
@@ -148,6 +149,24 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["recommend_next_tool_call"],
             release_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_growth_brief_local_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        growth_tool = tools["create_growth_brief_artifact"]
+
+        self.assertEqual("local_execution", growth_tool["phase"])
+        self.assertTrue(growth_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", growth_tool["external_effect_risk"])
+        self.assertEqual(
+            ["run_id", "task_ref", "workspace_path"],
+            growth_tool["required_arguments"],
+        )
+        self.assertEqual([], growth_tool["optional_arguments"])
+        self.assertEqual(
+            ["recommend_next_tool_call"],
+            growth_tool["recommended_after"],
         )
 
     def test_tool_manifest_exposes_release_quality_gate_local_tool(self) -> None:

@@ -59,6 +59,7 @@ The MCP tools are agent-facing:
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
+- `create_growth_brief_artifact`
 - `create_release_checklist_artifact`
 - `create_release_quality_gate_report`
 - `create_release_notes_artifact`
@@ -120,6 +121,14 @@ Omitting the arguments keeps the default `business_validation` company. Passing
 same local startup path. This does not deploy, push, post, or call external
 APIs.
 
+Workroom also includes a third bundled company spec, `growth_brief`. It uses a
+local growth strategist role for a single `market_brief` task. Its required
+context variables are `initiative`, `audience`, and `growth_goal`.
+`recommend_next_tool_call` can recommend `create_growth_brief_artifact` for
+that task, and `run_next_local_step` or `advance_company_goal` can write a
+local `growth_brief.md` artifact under the run workspace. This route is local
+only: it does not post, query analytics, call external APIs, or run campaigns.
+
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
@@ -155,10 +164,11 @@ executing that tool.
 
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
-GitHub Pages deploy proposal preparation for Business Validation, or release
-checklist, quality gate, release notes, and readiness decision preparation for
-Release Hardening. It does not loop, push to GitHub, post externally, or run
-unapproved tools such as raw result recording.
+GitHub Pages deploy proposal preparation for Business Validation, a market
+brief artifact for Growth Brief, or release checklist, quality gate, release
+notes, and readiness decision preparation for Release Hardening. It does not
+loop, push to GitHub, post externally, or run unapproved tools such as raw
+result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
@@ -239,12 +249,13 @@ research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
 Business Validation is the default registered `CompanySpec`. Release Hardening
-is the second registered `CompanySpec` and proves the runtime can start and
-inspect a non-Business-Validation company with different vocabulary. A company
-spec defines the departments, roles, task templates, and metadata that create
-a goal-specific company run. The current reference vertical keeps the existing
-validation behavior, but startup now routes through the generic company start
-contract so future company types can use the same runtime path.
+and Growth Brief are additional registered specs that prove the runtime can
+start, inspect, recommend, and execute bounded local work for companies with
+different vocabulary. A company spec defines the departments, roles, task
+templates, and metadata that create a goal-specific company run. The current
+reference vertical keeps the existing validation behavior, but startup now
+routes through the generic company start contract so future company types can
+use the same runtime path.
 
 The generic runtime input is `RunContext`: a goal, summary, and template
 variables for the active company spec. `WorkflowRequest` remains the Business

@@ -218,4 +218,54 @@ def release_hardening_company_spec() -> CompanySpec:
     )
 
 
-__all__ = ["business_validation_company_spec", "release_hardening_company_spec"]
+def growth_brief_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="growth_brief_team",
+        departments=(
+            Department(
+                department_id="growth",
+                display_name="Growth Department",
+                purpose="Frame local growth strategy and experiment options",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="growth_strategist",
+                display_name="Growth Strategist",
+                responsibilities=(
+                    "Prepare local growth briefs and experiment recommendations"
+                ),
+                department_id="growth",
+                authority_scope="local_only",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="growth_brief",
+        version="v1",
+        display_name="Growth Brief",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="growth_strategist",
+                category="market_brief",
+                title="Prepare growth brief",
+                summary_template=(
+                    "Prepare a local growth brief for {initiative}, serving "
+                    "{audience}, with growth goal: {growth_goal}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "growth_brief"},
+            ),
+        ),
+        metadata={"reference_vertical": "growth_brief"},
+    )
+
+
+__all__ = [
+    "business_validation_company_spec",
+    "growth_brief_company_spec",
+    "release_hardening_company_spec",
+]

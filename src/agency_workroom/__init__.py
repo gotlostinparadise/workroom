@@ -5,6 +5,7 @@ from .agent_session import (
     DEVOPS_OPERATION_PREFIX,
     GOAL_RUN_REPORT_PREFIX,
     GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX,
+    GROWTH_BRIEF_ARTIFACT_PREFIX,
     LANDING_ARTIFACT_PREFIX,
     LANDING_QA_REPORT_PREFIX,
     LOCAL_STEP_TOOL_NAMES,
@@ -16,6 +17,7 @@ from .agent_session import (
     audit_company_goal_run,
     check_workroom_mcp_config,
     create_goal_run_report,
+    create_growth_brief_artifact,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -51,6 +53,7 @@ from .mcp_manifest import (
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .company_specs import (
     business_validation_company_spec,
+    growth_brief_company_spec,
     release_hardening_company_spec,
 )
 from .company_briefing import (
@@ -153,6 +156,7 @@ __all__ = [
     "GoalIntakeWorkRequest",
     "GOAL_RUN_REPORT_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
+    "GROWTH_BRIEF_ARTIFACT_PREFIX",
     "GitHubPagesDeployProposal",
     "HandoffRecord",
     "LANDING_ARTIFACT_PREFIX",
@@ -199,6 +203,7 @@ __all__ = [
     "check_workroom_mcp_config",
     "compact_company_brief",
     "create_goal_run_report",
+    "create_growth_brief_artifact",
     "build_role_work_request",
     "build_role_work_result",
     "create_landing_artifact",
@@ -215,6 +220,7 @@ __all__ = [
     "get_company_state",
     "get_local_route",
     "get_mcp_tool_manifest",
+    "growth_brief_company_spec",
     "is_local_route_tool",
     "list_company_spec_options",
     "list_company_specs",

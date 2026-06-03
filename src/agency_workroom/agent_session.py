@@ -20,6 +20,7 @@ from .github_pages_deploy import (
 )
 from .goal_intake import workflow_request_from_goal
 from .goal_run_report import create_goal_run_report_files
+from .growth_brief import create_growth_brief_artifact_files
 from .run_inspection import (
     audit_company_goal_run_files,
     evaluate_company_goal_run_files,
@@ -95,6 +96,7 @@ from .workflow import run_company_workflow
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
+GROWTH_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_ARTIFACT_PREFIX = "workroom-artifact://"
 LANDING_QA_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_CHECKLIST_ARTIFACT_PREFIX = "workroom-artifact://"
@@ -601,6 +603,32 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
     )
     if release_readiness_recommendation is not None:
         return release_readiness_recommendation
+    growth_task = _optional_task_for_category(run, "market_brief")
+    if growth_task is not None:
+        growth_ref = _result_ref_for_kind(run, "growth_brief_artifact")
+        if growth_task.status == "blocked":
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason="market_brief task is blocked",
+                blocker_summary=growth_task.blocker_summary,
+            )
+        growth_readiness = _growth_brief_route_readiness(
+            growth_task=growth_task,
+            growth_ref=growth_ref,
+        )
+        if growth_readiness is not None:
+            return build_local_route_recommendation_from_readiness(
+                run_id=run.run_id,
+                workspace_path=workspace_path,
+                readiness=growth_readiness,
+            )
+        if growth_ref is None and growth_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="growth brief artifact ref",
+                reason="market_brief task is completed without a growth brief ref",
+            )
+        return _no_local_recommendation(run.run_id)
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         blocked_task = _first_blocked_task(run)
         if blocked_task is not None:
@@ -748,6 +776,22 @@ def _landing_qa_route_readiness(
         extra_arguments={
             "artifact_ref": landing_artifact_ref,
         },
+    )
+
+
+def _growth_brief_route_readiness(
+    *,
+    growth_task: TaskState,
+    growth_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if growth_ref is not None:
+        return None
+    if growth_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_growth_brief_artifact",
+        task_ref=growth_task.task_ref,
+        reason="market_brief task is ready and has no growth brief artifact",
     )
 
 
@@ -1181,6 +1225,68 @@ def create_release_checklist_artifact(
             "artifact": artifact,
         }
     artifact = create_release_checklist_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_growth_brief_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "market_brief":
+        raise WorkroomStateError("task is not a market_brief task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(GROWTH_BRIEF_ARTIFACT_PREFIX)
+            and "/growth_brief/" in ref
+            and ref.endswith("/growth_brief.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _growth_brief_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_growth_brief_artifact_files(
         workspace_path=workspace_path,
         run_id=run.run_id,
         task=current_task,
@@ -1924,6 +2030,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/decisions/" in ref
             and ref.endswith(".json")
         )
+    if kind == "growth_brief_artifact":
+        return (
+            ref.startswith(GROWTH_BRIEF_ARTIFACT_PREFIX)
+            and "/growth_brief/" in ref
+            and ref.endswith("/growth_brief.md")
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -2252,6 +2364,7 @@ def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
     return {
         "create_landing_artifact": create_landing_artifact,
         "create_landing_qa_report": create_landing_qa_report,
+        "create_growth_brief_artifact": create_growth_brief_artifact,
         "create_release_checklist_artifact": create_release_checklist_artifact,
         "create_release_quality_gate_report": create_release_quality_gate_report,
         "create_release_notes_artifact": create_release_notes_artifact,
@@ -2827,6 +2940,37 @@ def _release_checklist_payload_for_existing_ref(
     return payload
 
 
+def _growth_brief_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/growth_brief.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("growth brief artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if len(parts) != 4 or parts[1] != "growth_brief" or parts[3] != "growth_brief.md":
+        raise WorkroomStateError("growth brief artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("growth brief artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError("growth brief artifact metadata does not match ref")
+    return payload
+
+
 def _release_quality_gate_report_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -3031,6 +3175,7 @@ __all__ = [
     "DEVOPS_OPERATION_PREFIX",
     "GOAL_RUN_REPORT_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
+    "GROWTH_BRIEF_ARTIFACT_PREFIX",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
     "RELEASE_CHECKLIST_ARTIFACT_PREFIX",
@@ -3041,6 +3186,7 @@ __all__ = [
     "advance_company_goal",
     "audit_company_goal_run",
     "create_goal_run_report",
+    "create_growth_brief_artifact",
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",

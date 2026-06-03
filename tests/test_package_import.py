@@ -72,6 +72,13 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("RELEASE_NOTES_ARTIFACT_PREFIX", agency_workroom.__all__)
         self.assertIn("RELEASE_READINESS_DECISION_PREFIX", agency_workroom.__all__)
 
+    def test_growth_brief_company_spec_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.growth_brief_company_spec))
+        self.assertTrue(callable(agency_workroom.create_growth_brief_artifact))
+        self.assertIn("growth_brief_company_spec", agency_workroom.__all__)
+        self.assertIn("create_growth_brief_artifact", agency_workroom.__all__)
+        self.assertIn("GROWTH_BRIEF_ARTIFACT_PREFIX", agency_workroom.__all__)
+
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))
         self.assertTrue(callable(agency_workroom.LocalRouteReadiness))

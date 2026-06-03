@@ -24,6 +24,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
             (
                 "create_landing_artifact",
                 "create_landing_qa_report",
+                "create_growth_brief_artifact",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
                 "create_release_notes_artifact",
@@ -47,6 +48,19 @@ class LocalRouteRegistryTests(unittest.TestCase):
             self.assertEqual("local_execution", payload["manifest_phase"])
             self.assertEqual("local_files", payload["external_effect_risk"])
 
+        self.assertEqual(
+            {
+                "tool_name": "create_growth_brief_artifact",
+                "delegated_role": "growth_strategist",
+                "result_kind": "growth_brief_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["recommend_next_tool_call"],
+                "executor_name": "create_growth_brief_artifact",
+            },
+            route_payloads["create_growth_brief_artifact"],
+        )
         self.assertEqual(
             {
                 "tool_name": "prepare_release_readiness_decision",

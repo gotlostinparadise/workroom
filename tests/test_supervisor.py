@@ -174,6 +174,21 @@ class SupervisorCoreTests(unittest.TestCase):
             ),
         )
 
+    def test_detect_goal_phase_for_growth_brief_market_task(self) -> None:
+        run = self.make_run(
+            (
+                TaskState(
+                    task_ref="workroom-item://market-brief",
+                    role_id="growth_strategist",
+                    category="market_brief",
+                    title="Prepare growth brief",
+                    status="planned",
+                ),
+            )
+        )
+
+        self.assertEqual("local_production", detect_goal_phase(run))
+
     def test_build_supervisor_snapshot_counts_statuses(self) -> None:
         run = self.make_run(self.make_tasks())
 

@@ -4,6 +4,7 @@ import unittest
 
 from agency_workroom.company_specs import (
     business_validation_company_spec,
+    growth_brief_company_spec,
     release_hardening_company_spec,
 )
 from agency_workroom.models import (
@@ -83,6 +84,26 @@ class BusinessValidationPlannerTests(unittest.TestCase):
             "release_hardening",
             spec.metadata["reference_vertical"],
         )
+
+    def test_growth_brief_company_spec_has_single_market_brief_task(self) -> None:
+        spec = growth_brief_company_spec()
+
+        self.assertEqual("growth_brief", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Growth Brief", spec.display_name)
+        self.assertEqual(
+            ["market_brief"],
+            [task.category for task in spec.task_templates],
+        )
+        self.assertEqual(
+            {"growth"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {"growth_strategist"},
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertEqual("growth_brief", spec.metadata["reference_vertical"])
 
     def test_generic_company_spec_planner_creates_tasks_from_templates(self) -> None:
         request = WorkflowRequest(

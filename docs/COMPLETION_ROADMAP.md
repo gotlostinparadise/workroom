@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v16.
+Status: Canonical plan v17.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -205,6 +205,12 @@ These milestones are complete enough to be treated as foundation:
     Existing successful local-route eligibility checks now return explicit
     route-readiness values before Workroom builds successful recommendation
     payloads.
+
+32. Growth Brief Company v1.
+    Growth Brief is registered as the third bundled `CompanySpec`. It starts
+    through the generic `RunContext` path, exposes required context variables
+    for initiative, audience, and growth goal, and can complete one local
+    `market_brief` task by writing a deterministic growth brief artifact.
 
 ## Milestone Plan
 
@@ -628,6 +634,34 @@ Exit criteria:
 - No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 22. Growth Brief Company v1
+
+Status: Done.
+
+Goal: add a third bundled company capability that proves Workroom can spawn a
+non-release, non-business-validation company and execute one bounded local
+artifact route.
+
+Exit criteria:
+
+- `growth_brief` is registered as a bundled `CompanySpec` without changing the
+  default Business Validation startup path.
+- `list_company_specs` exposes Growth Brief and its required context variables:
+  `initiative`, `audience`, and `growth_goal`.
+- `start_company_goal` can start `company_spec_id="growth_brief"` through the
+  generic run context path.
+- `recommend_next_tool_call` recommends `create_growth_brief_artifact` for a
+  planned Growth Brief `market_brief` task with no growth brief artifact.
+- `run_next_local_step` executes the market brief route once and then leaves no
+  Growth Brief local task remaining.
+- `advance_company_goal` records supervisor and role-work evidence for the
+  market brief step.
+- The MCP server and manifest expose `create_growth_brief_artifact`.
+- Business Validation and Release Hardening local-step behavior remains
+  unchanged.
+- No Kernel changes, hidden loops, approval, deploys, pushes, posts, external
+  API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -644,7 +678,7 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-a source-moving slice that adds the next bounded company capability, such as a
-third company spec with one local artifact route. Only add more route-registry
-infrastructure first if live repo truth shows it is the safer prerequisite.
-Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+the next source-moving company capability slice, such as adding a second local
+Growth Brief task and route after the market brief. Only add more
+route-registry infrastructure first if live repo truth shows it is the safer
+prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
