@@ -308,6 +308,10 @@ def _release_smoke_payload(
         "ref": expected_ref,
         "path": str(path),
         "schema_version": str(payload.get("schema_version", "")),
+        "runbook_id": str(payload.get("runbook_id", "")),
+        "expected_runbook_id": runbook_id,
+        "runbook_id_matches_expected": str(payload.get("runbook_id", ""))
+        == runbook_id,
         "status": str(payload.get("smoke_status", "")),
         "ready": bool(payload.get("ready_for_release_review", False)),
         "valid": payload.get("schema_version") == "runbook-release-readiness-smoke.v1",
@@ -421,6 +425,16 @@ def _audit_findings(
                 "severity": "warning",
                 "code": "runbook_release_smoke_not_ready",
                 "message": "runbook release readiness smoke is not ready",
+            }
+        )
+    if bool(release_smoke.get("valid")) and not bool(
+        release_smoke.get("runbook_id_matches_expected")
+    ):
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "runbook_release_smoke_runbook_mismatch",
+                "message": "runbook release readiness smoke runbook ID does not match requested runbook",
             }
         )
     persisted_run_ids = _string_list(release_smoke.get("run_ids"))
@@ -592,6 +606,20 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     lines.append(
         "- "
         f"Schema: {_single_line(release_smoke.get('schema_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Runbook ID: {_single_line(release_smoke.get('runbook_id', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Expected runbook ID: "
+        f"{_single_line(release_smoke.get('expected_runbook_id', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Runbook ID matches expected: "
+        f"{_single_line(release_smoke.get('runbook_id_matches_expected', False))}"
     )
     lines.append(
         "- "

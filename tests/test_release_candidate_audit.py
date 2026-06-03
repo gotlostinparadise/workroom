@@ -64,6 +64,15 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(smoke["smoke_ref"], payload["runbook_release_smoke"]["ref"])
         self.assertTrue(payload["runbook_release_smoke"]["valid"])
         self.assertEqual(
+            "complex_codex_delivery",
+            payload["runbook_release_smoke"]["runbook_id"],
+        )
+        self.assertEqual(
+            "complex_codex_delivery",
+            payload["runbook_release_smoke"]["expected_runbook_id"],
+        )
+        self.assertTrue(payload["runbook_release_smoke"]["runbook_id_matches_expected"])
+        self.assertEqual(
             release_candidate_audit.EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
             payload["mcp_surface"]["manifest_schema_version"],
         )
@@ -150,6 +159,9 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("## Runbook Release Smoke", markdown)
         self.assertIn(f"Ref: {smoke['smoke_ref']}", markdown)
         self.assertIn("Schema: runbook-release-readiness-smoke.v1", markdown)
+        self.assertIn("Runbook ID: complex_codex_delivery", markdown)
+        self.assertIn("Expected runbook ID: complex_codex_delivery", markdown)
+        self.assertIn("Runbook ID matches expected: True", markdown)
         self.assertIn("Status: ready", markdown)
         self.assertIn("Ready: True", markdown)
         self.assertIn("Valid: True", markdown)
@@ -199,6 +211,42 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 run_ids=("run_design", "run_design"),
             )
 
+    def test_create_release_candidate_audit_flags_smoke_runbook_mismatch(self) -> None:
+        root = self.temp_root()
+        runbook_dir = root / "runbooks" / "complex_codex_delivery"
+        runbook_dir.mkdir(parents=True)
+        (runbook_dir / "runbook_release_readiness_smoke.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "runbook-release-readiness-smoke.v1",
+                    "runbook_id": "other_runbook",
+                    "run_ids": ["run_design"],
+                    "smoke_status": "ready",
+                    "ready_for_release_review": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        audit = create_release_candidate_audit_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+
+        payload = json.loads(Path(audit["audit_path"]).read_text(encoding="utf-8"))
+        markdown = Path(audit["markdown_path"]).read_text(encoding="utf-8")
+
+        self.assertEqual("review_required", payload["audit_status"])
+        self.assertFalse(payload["ready_for_release_candidate_review"])
+        self.assertFalse(payload["runbook_release_smoke"]["runbook_id_matches_expected"])
+        self.assertIn(
+            "runbook_release_smoke_runbook_mismatch",
+            {finding["code"] for finding in payload["audit_findings"]},
+        )
+        self.assertIn("Runbook ID: other_runbook", markdown)
+        self.assertIn("Expected runbook ID: complex_codex_delivery", markdown)
+        self.assertIn("Runbook ID matches expected: False", markdown)
+
     def test_package_surface_helpers_classify_dependency_scope(self) -> None:
         self.assertEqual(
             "absolute_file",
@@ -245,6 +293,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -277,6 +326,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -305,6 +355,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -334,6 +385,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -361,6 +413,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -395,6 +448,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             release_smoke={
                 "valid": True,
+                "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
             },
@@ -461,6 +515,9 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                         "runbook_release_readiness_smoke.json"
                     ),
                     "schema_version": "runbook-release-readiness-smoke.v1",
+                    "runbook_id": "complex_codex_delivery",
+                    "expected_runbook_id": "complex_codex_delivery",
+                    "runbook_id_matches_expected": True,
                     "status": "needs_attention",
                     "ready": False,
                     "valid": True,
@@ -486,6 +543,9 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             markdown,
         )
         self.assertIn("Schema: runbook-release-readiness-smoke.v1", markdown)
+        self.assertIn("Runbook ID: complex_codex_delivery", markdown)
+        self.assertIn("Expected runbook ID: complex_codex_delivery", markdown)
+        self.assertIn("Runbook ID matches expected: True", markdown)
         self.assertIn("Status: needs_attention", markdown)
         self.assertIn("Ready: False", markdown)
         self.assertIn("Valid: True", markdown)
