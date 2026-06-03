@@ -535,12 +535,12 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     lines.append(
         "- "
         f"Missing MCP tool exports: "
-        f"{len(_string_list(export_surface.get('missing_mcp_tool_exports')))}"
+        f"{_render_string_list(export_surface.get('missing_mcp_tool_exports'))}"
     )
     lines.append(
         "- "
         f"Missing session public function exports: "
-        f"{len(_string_list(export_surface.get('missing_session_public_function_exports')))}"
+        f"{_render_string_list(export_surface.get('missing_session_public_function_exports'))}"
     )
     lines.extend(["", "## Package Surface", ""])
     lines.append(

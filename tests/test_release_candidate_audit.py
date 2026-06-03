@@ -108,7 +108,8 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             gate_commands["installed_mcp_stdio_smoke"],
         )
         self.assertIn("Release Candidate Audit", markdown)
-        self.assertIn("Missing MCP tool exports: 0", markdown)
+        self.assertIn("Missing MCP tool exports: none", markdown)
+        self.assertIn("Missing session public function exports: none", markdown)
         self.assertIn("Manifest matches server: True", markdown)
         self.assertIn("Missing from manifest: none", markdown)
         self.assertIn("Missing from server: none", markdown)
@@ -371,6 +372,41 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Missing from server: obsolete_tool", markdown)
         self.assertIn(
             "Missing required release tools: create_release_candidate_audit",
+            markdown,
+        )
+
+    def test_release_candidate_audit_markdown_renders_export_drift_names(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "audit_status": "needs_attention",
+                "ready_for_release_candidate_review": False,
+                "mcp_surface": {
+                    "manifest_tool_count": 55,
+                    "server_tool_count": 55,
+                    "manifest_matches_server": True,
+                    "missing_from_manifest": [],
+                    "missing_from_server": [],
+                    "missing_required_tools": [],
+                },
+                "export_surface": {
+                    "missing_mcp_tool_exports": ["advance_company_goal"],
+                    "missing_session_public_function_exports": ["start_company_goal"],
+                },
+                "package_surface": {
+                    "project_name": "agency-workroom",
+                    "project_version": "0.1.0",
+                    "kernel_dependency_mode": "absolute_file",
+                    "distribution_scope": "local_editable_checkout",
+                },
+                "manual_verification_gates": [],
+                "audit_findings": [],
+            }
+        )
+
+        self.assertIn("Missing MCP tool exports: advance_company_goal", markdown)
+        self.assertIn(
+            "Missing session public function exports: start_company_goal",
             markdown,
         )
 

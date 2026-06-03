@@ -21,6 +21,7 @@ Scope:
 - Release-candidate audit explicit finding severity ordering.
 - Release-candidate audit explicit empty findings Markdown state.
 - Release-candidate audit MCP drift Markdown details.
+- Release-candidate audit export drift Markdown details.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -53,6 +54,8 @@ Release-candidate audit result:
   required release tool names.
 - Missing MCP tool exports: `[]`
 - Missing session public function exports: `[]`
+- Markdown export drift details render missing MCP-tool and session-function
+  export names.
 - Required startup tool checked: `submit_goal_intake_result`
 - Required audit entrypoint checked: `create_release_candidate_audit`
 - Missing required tool finding code: `missing_required_release_tool`
@@ -77,18 +80,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 532 tests in 8.948s
+Ran 533 tests in 9.058s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-mcp-drift-markdown-venv
-python -m venv /tmp/workroom-release-mcp-drift-markdown-venv
-/tmp/workroom-release-mcp-drift-markdown-venv/bin/python -m pip install -e .
-/tmp/workroom-release-mcp-drift-markdown-venv/bin/python -m unittest discover -s tests -v
-Ran 532 tests in 9.007s
+rm -rf /tmp/workroom-release-export-drift-markdown-venv
+python -m venv /tmp/workroom-release-export-drift-markdown-venv
+/tmp/workroom-release-export-drift-markdown-venv/bin/python -m pip install -e .
+/tmp/workroom-release-export-drift-markdown-venv/bin/python -m unittest discover -s tests -v
+Ran 533 tests in 9.114s
 OK
 ```
 

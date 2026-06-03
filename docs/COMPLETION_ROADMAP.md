@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v51.
+Status: Canonical plan v52.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -402,6 +402,10 @@ These milestones are complete enough to be treated as foundation:
 66. Release Audit MCP Drift Markdown v1.
     The human-facing release-candidate audit Markdown now renders MCP
     manifest/server drift names and missing required release tools.
+
+67. Release Audit Export Drift Markdown v1.
+    The human-facing release-candidate audit Markdown now renders missing
+    MCP-tool and session-function export names.
 
 ## Milestone Plan
 
@@ -1734,6 +1738,27 @@ Exit criteria:
   missing-from-server tool names, and missing required release tools.
 - Empty MCP drift lists render `none`.
 - Tests cover both healthy empty-list output and named MCP drift output.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, and
+  package-surface behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 57. Release Audit Export Drift Markdown v1
+
+Status: Done.
+
+Goal: make export-surface drift actionable from the human-facing
+release-candidate audit Markdown without requiring operators to open the JSON
+payload.
+
+Exit criteria:
+
+- Markdown export surface renders missing MCP tool export names.
+- Markdown export surface renders missing session public function export names.
+- Empty export drift lists render `none`.
+- Tests cover both healthy empty-list output and named export drift output.
 - JSON payload shape, audit status behavior, readiness behavior, finding
   severity ordering, manual gate commands, MCP registration, and
   package-surface behavior remain unchanged.
