@@ -355,6 +355,14 @@ def _audit_findings(
                 "message": "Kernel dependency scope is missing or unknown",
             }
         )
+    if str(package_surface.get("project_name", "")) != "agency-workroom":
+        findings.append(
+            {
+                "severity": "error",
+                "code": "package_identity_mismatch",
+                "message": "package identity is not agency-workroom",
+            }
+        )
     for tool_name in _string_list(export_surface.get("missing_mcp_tool_exports")):
         findings.append(
             {

@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v46.
+Status: Canonical plan v47.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -381,6 +381,10 @@ These milestones are complete enough to be treated as foundation:
     The release-candidate audit now blocks readiness when package metadata is
     unreadable or Kernel dependency scope is missing/unknown, so release review
     cannot proceed on ambiguous package evidence.
+
+62. Release Audit Package Identity Gate v1.
+    The release-candidate audit now blocks readiness when readable package
+    metadata does not identify the Workroom distribution as `agency-workroom`.
 
 ## Milestone Plan
 
@@ -1620,6 +1624,24 @@ Exit criteria:
 - Both findings are errors and block release-candidate readiness through the
   existing audit-status path.
 - Tests cover the unreadable/unknown package-scope path.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 52. Release Audit Package Identity Gate v1
+
+Status: Done.
+
+Goal: prevent a release-candidate audit from reporting readiness when readable
+package metadata belongs to a different distribution than Workroom.
+
+Exit criteria:
+
+- Package surface findings require `project_name` to be `agency-workroom`.
+- Wrong or blank package identity produces `package_identity_mismatch`.
+- The finding is an error and blocks release-candidate readiness through the
+  existing audit-status path.
+- Tests cover the wrong package identity path.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

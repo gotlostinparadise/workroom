@@ -179,6 +179,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "missing_session_public_function_exports": ["start_company_goal"],
             },
             package_surface={
+                "project_name": "agency-workroom",
                 "pyproject_readable": True,
                 "installed_metadata_readable": False,
                 "kernel_dependency_mode": "absolute_file",
@@ -210,6 +211,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "missing_session_public_function_exports": [],
             },
             package_surface={
+                "project_name": "agency-workroom",
                 "pyproject_readable": True,
                 "installed_metadata_readable": False,
                 "kernel_dependency_mode": "absolute_file",
@@ -236,6 +238,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "missing_session_public_function_exports": [],
             },
             package_surface={
+                "project_name": "",
                 "pyproject_readable": False,
                 "installed_metadata_readable": False,
                 "kernel_dependency_mode": "unknown",
@@ -251,10 +254,38 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             {
                 "kernel_dependency_scope_unknown",
                 "package_metadata_unreadable",
+                "package_identity_mismatch",
             },
             {finding["code"] for finding in findings},
         )
         self.assertTrue(all(finding["severity"] == "error" for finding in findings))
+
+    def test_audit_findings_flags_wrong_package_identity(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "project_name": "wrong-package",
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "absolute_file",
+            },
+            release_smoke={
+                "valid": True,
+                "ready": True,
+                "run_ids": ["run_design"],
+            },
+        )
+
+        self.assertEqual(["package_identity_mismatch"], [findings[0]["code"]])
+        self.assertEqual("error", findings[0]["severity"])
 
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")
