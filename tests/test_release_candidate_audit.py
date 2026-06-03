@@ -114,6 +114,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
             markdown,
         )
+        self.assertIn("## Findings\n\n- none", markdown)
 
     def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
         root = self.temp_root()

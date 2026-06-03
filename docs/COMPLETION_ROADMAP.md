@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v49.
+Status: Canonical plan v50.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -394,6 +394,10 @@ These milestones are complete enough to be treated as foundation:
 64. Release Audit Finding Severity Order v1.
     Release-candidate audit findings now use an explicit severity order:
     errors first, warnings second, informational findings third.
+
+65. Release Audit Empty Findings Markdown v1.
+    The human-facing release-candidate audit Markdown now renders an explicit
+    `none` finding row when the audit has no findings.
 
 ## Milestone Plan
 
@@ -1688,6 +1692,26 @@ Exit criteria:
   lead.
 - Existing finding codes, audit status behavior, readiness behavior, Markdown
   rendering, MCP registration, and package-surface behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 55. Release Audit Empty Findings Markdown v1
+
+Status: Done.
+
+Goal: make the successful release-candidate audit Markdown unambiguous by
+rendering an explicit empty finding state instead of leaving the findings
+section blank.
+
+Exit criteria:
+
+- A release-candidate audit with no findings renders `- none` under
+  `## Findings`.
+- Tests cover the successful ready-path Markdown output.
+- JSON payload shape, audit status behavior, readiness behavior, finding
+  severity ordering, manual gate commands, MCP registration, and
+  package-surface behavior remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

@@ -546,7 +546,10 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
             f"`{_single_line(gate.get('command', ''))}`"
         )
     lines.extend(["", "## Findings", ""])
-    for finding in _mapping_list(payload.get("audit_findings")):
+    findings = _mapping_list(payload.get("audit_findings"))
+    if not findings:
+        lines.append("- none")
+    for finding in findings:
         lines.append(
             "- "
             f"{_single_line(finding.get('severity', ''))} "
