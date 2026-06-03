@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from importlib import metadata as importlib_metadata
 import json
 from pathlib import Path
 import tomllib
@@ -162,9 +163,40 @@ def _package_surface() -> dict[str, object]:
     try:
         pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
+        return _installed_package_surface(pyproject_path)
+    project = _mapping(pyproject.get("project"))
+    dependencies = _string_list(project.get("dependencies"))
+    kernel_dependency = next(
+        (
+            dependency
+            for dependency in dependencies
+            if _dependency_name(dependency) == "kernel"
+        ),
+        "",
+    )
+    kernel_dependency_mode = _kernel_dependency_mode(kernel_dependency)
+    return {
+        "pyproject_path": str(pyproject_path),
+        "pyproject_readable": True,
+        "installed_metadata_readable": False,
+        "project_name": str(project.get("name", "")),
+        "project_version": str(project.get("version", "")),
+        "requires_python": str(project.get("requires-python", "")),
+        "kernel_dependency": kernel_dependency,
+        "kernel_dependency_mode": kernel_dependency_mode,
+        "distribution_scope": _distribution_scope(kernel_dependency_mode),
+    }
+
+
+def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
+    try:
+        package_metadata = importlib_metadata.metadata("agency-workroom")
+        dependencies = importlib_metadata.requires("agency-workroom") or []
+    except importlib_metadata.PackageNotFoundError:
         return {
             "pyproject_path": str(pyproject_path),
-            "readable": False,
+            "pyproject_readable": False,
+            "installed_metadata_readable": False,
             "project_name": "",
             "project_version": "",
             "requires_python": "",
@@ -172,38 +204,57 @@ def _package_surface() -> dict[str, object]:
             "kernel_dependency_mode": "unknown",
             "distribution_scope": "unknown",
         }
-    project = _mapping(pyproject.get("project"))
-    dependencies = _string_list(project.get("dependencies"))
     kernel_dependency = next(
-        (dependency for dependency in dependencies if dependency.startswith("kernel")),
+        (
+            dependency
+            for dependency in dependencies
+            if _dependency_name(dependency) == "kernel"
+        ),
         "",
     )
     kernel_dependency_mode = _kernel_dependency_mode(kernel_dependency)
-    distribution_scope = (
-        "local_editable_checkout"
-        if kernel_dependency_mode == "absolute_file"
-        else "portable_package_candidate"
-    )
     return {
         "pyproject_path": str(pyproject_path),
-        "readable": True,
-        "project_name": str(project.get("name", "")),
-        "project_version": str(project.get("version", "")),
-        "requires_python": str(project.get("requires-python", "")),
+        "pyproject_readable": False,
+        "installed_metadata_readable": True,
+        "project_name": str(package_metadata.get("Name", "")),
+        "project_version": str(package_metadata.get("Version", "")),
+        "requires_python": str(package_metadata.get("Requires-Python", "")),
         "kernel_dependency": kernel_dependency,
         "kernel_dependency_mode": kernel_dependency_mode,
-        "distribution_scope": distribution_scope,
+        "distribution_scope": _distribution_scope(kernel_dependency_mode),
     }
 
 
+def _dependency_name(dependency: str) -> str:
+    compact = dependency.strip().lower()
+    if "@" in compact:
+        compact = compact.split("@", 1)[0].strip()
+    for separator in (" ", "<", ">", "=", "!", "~", ";"):
+        if separator in compact:
+            compact = compact.split(separator, 1)[0].strip()
+    return compact
+
+
 def _kernel_dependency_mode(dependency: str) -> str:
-    if dependency.startswith("kernel @ file:///"):
+    compact = dependency.strip().replace(" ", "")
+    if compact.startswith("kernel@file:///"):
         return "absolute_file"
-    if dependency.startswith("kernel @ file:"):
+    if compact.startswith("kernel@file:"):
         return "file"
-    if dependency.startswith("kernel"):
+    if _dependency_name(dependency) == "kernel":
         return "declared_package"
     return "missing"
+
+
+def _distribution_scope(kernel_dependency_mode: str) -> str:
+    if kernel_dependency_mode == "absolute_file":
+        return "local_editable_checkout"
+    if kernel_dependency_mode == "file":
+        return "local_file_dependency"
+    if kernel_dependency_mode == "declared_package":
+        return "portable_package_candidate"
+    return "unknown"
 
 
 def _release_smoke_payload(

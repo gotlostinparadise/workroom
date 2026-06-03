@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v39.
+Status: Canonical plan v40.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -346,6 +346,12 @@ These milestones are complete enough to be treated as foundation:
     the Codex-facing intake submission step, and the release-candidate audit
     treats `submit_goal_intake_result` as required startup surface while
     recording package dependency scope for the local editable checkout release.
+
+55. Release Audit Package Metadata Fallback v1.
+    The release-candidate audit reads package scope from `pyproject.toml` in
+    source/editable checkouts and falls back to installed distribution metadata
+    in non-editable installs, preserving Kernel dependency mode and
+    distribution-scope evidence.
 
 ## Milestone Plan
 
@@ -1433,6 +1439,34 @@ Exit criteria:
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, installed MCP stdio startup, deploys, pushes, posts,
   external API calls, or new external effects are added.
+
+### 45. Release Audit Package Metadata Fallback v1
+
+Status: Done.
+
+Goal: close the package-installation release-review finding where
+`create_release_candidate_audit` could report unknown package scope after a
+regular non-editable wheel install because `pyproject.toml` is not present
+next to the installed package.
+
+Exit criteria:
+
+- Source/editable checkouts continue to read project metadata from
+  `pyproject.toml`.
+- Non-editable installs fall back to installed `agency-workroom` distribution
+  metadata.
+- The audit preserves `project_name`, version, Python requirement, Kernel
+  dependency mode, and distribution scope in both source and installed package
+  contexts when metadata is available.
+- Dependency parsing handles direct-reference formats with or without spaces
+  around `@`.
+- Tests cover dependency-mode and distribution-scope classification.
+- A wheel/non-editable install probe confirms package scope no longer returns
+  `unknown`.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution from the audit path, installed MCP stdio startup automation,
+  deploys, pushes, posts, external API calls, or new external effects are
+  added.
 
 ## Plan Change Rules
 

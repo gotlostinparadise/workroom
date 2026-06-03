@@ -68,6 +68,8 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual([], payload["mcp_surface"]["missing_from_server"])
         self.assertEqual([], payload["mcp_surface"]["missing_required_tools"])
         self.assertEqual("agency-workroom", payload["package_surface"]["project_name"])
+        self.assertTrue(payload["package_surface"]["pyproject_readable"])
+        self.assertFalse(payload["package_surface"]["installed_metadata_readable"])
         self.assertEqual(
             "absolute_file",
             payload["package_surface"]["kernel_dependency_mode"],
@@ -112,6 +114,33 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 workspace_path=root,
                 run_ids=("run_design", "run_design"),
             )
+
+    def test_package_surface_helpers_classify_dependency_scope(self) -> None:
+        self.assertEqual(
+            "absolute_file",
+            release_candidate_audit._kernel_dependency_mode(
+                "kernel @ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel"
+            ),
+        )
+        self.assertEqual(
+            "absolute_file",
+            release_candidate_audit._kernel_dependency_mode(
+                "kernel@ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel"
+            ),
+        )
+        self.assertEqual(
+            "declared_package",
+            release_candidate_audit._kernel_dependency_mode("kernel>=0.1"),
+        )
+        self.assertEqual(
+            "local_editable_checkout",
+            release_candidate_audit._distribution_scope("absolute_file"),
+        )
+        self.assertEqual(
+            "portable_package_candidate",
+            release_candidate_audit._distribution_scope("declared_package"),
+        )
+        self.assertEqual("unknown", release_candidate_audit._distribution_scope("missing"))
 
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")

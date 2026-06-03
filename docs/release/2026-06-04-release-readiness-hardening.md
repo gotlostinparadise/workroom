@@ -9,6 +9,7 @@ Scope:
 - Runbook fixture-chain generation in a temporary local workspace.
 - Release-candidate audit over persisted local fixtures.
 - Release-candidate audit startup-handshake and package-scope hardening.
+- Release-candidate audit package metadata fallback for non-editable installs.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -53,18 +54,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 522 tests in 8.989s
+Ran 523 tests in 8.908s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-polish-venv
-python -m venv /tmp/workroom-release-polish-venv
-/tmp/workroom-release-polish-venv/bin/python -m pip install -e .
-/tmp/workroom-release-polish-venv/bin/python -m unittest discover -s tests -v
-Ran 522 tests in 9.057s
+rm -rf /tmp/workroom-release-metadata-venv
+python -m venv /tmp/workroom-release-metadata-venv
+/tmp/workroom-release-metadata-venv/bin/python -m pip install -e .
+/tmp/workroom-release-metadata-venv/bin/python -m unittest discover -s tests -v
+Ran 523 tests in 9.099s
 OK
 ```
 
@@ -78,7 +79,20 @@ audit_required=['workspace_path', 'run_ids_json']
 has_submit_goal_intake_result=True
 required_release_tool_checked=True
 start_optional_context=True
-package_surface={'kernel_dependency_mode': 'absolute_file', 'distribution_scope': 'local_editable_checkout'}
+package_surface={'pyproject_readable': True, 'installed_metadata_readable': False, 'kernel_dependency_mode': 'absolute_file', 'distribution_scope': 'local_editable_checkout'}
+```
+
+Non-editable package metadata probe:
+
+```text
+rm -rf /tmp/workroom-wheel-scope-check-venv
+python -m venv /tmp/workroom-wheel-scope-check-venv
+/tmp/workroom-wheel-scope-check-venv/bin/python -m pip install .
+project_name=agency-workroom
+pyproject_readable=False
+installed_metadata_readable=True
+kernel_dependency_mode=absolute_file
+distribution_scope=local_editable_checkout
 ```
 
 Git status:
@@ -99,6 +113,9 @@ Kernel: ## master...origin/master
 - The package currently depends on Kernel through an absolute local file path.
   This is explicit release evidence for the local editable checkout workflow,
   not a portable package-distribution claim.
+- The release-candidate audit reads installed package metadata when
+  `pyproject.toml` is unavailable after non-editable installation, so the
+  package-scope evidence remains explicit outside source checkouts.
 
 ## Residual Risk
 
