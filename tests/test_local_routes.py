@@ -25,6 +25,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_landing_artifact",
                 "create_landing_qa_report",
                 "create_growth_brief_artifact",
+                "create_growth_experiment_plan_artifact",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
                 "create_release_notes_artifact",
@@ -60,6 +61,19 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "executor_name": "create_growth_brief_artifact",
             },
             route_payloads["create_growth_brief_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "create_growth_experiment_plan_artifact",
+                "delegated_role": "growth_strategist",
+                "result_kind": "growth_experiment_plan_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_growth_brief_artifact"],
+                "executor_name": "create_growth_experiment_plan_artifact",
+            },
+            route_payloads["create_growth_experiment_plan_artifact"],
         )
         self.assertEqual(
             {

@@ -75,9 +75,20 @@ class PackageImportTests(unittest.TestCase):
     def test_growth_brief_company_spec_is_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.growth_brief_company_spec))
         self.assertTrue(callable(agency_workroom.create_growth_brief_artifact))
+        self.assertTrue(
+            callable(agency_workroom.create_growth_experiment_plan_artifact)
+        )
         self.assertIn("growth_brief_company_spec", agency_workroom.__all__)
         self.assertIn("create_growth_brief_artifact", agency_workroom.__all__)
+        self.assertIn(
+            "create_growth_experiment_plan_artifact",
+            agency_workroom.__all__,
+        )
         self.assertIn("GROWTH_BRIEF_ARTIFACT_PREFIX", agency_workroom.__all__)
+        self.assertIn(
+            "GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX",
+            agency_workroom.__all__,
+        )
 
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))

@@ -60,6 +60,7 @@ The MCP tools are agent-facing:
 - `create_landing_artifact`
 - `create_landing_qa_report`
 - `create_growth_brief_artifact`
+- `create_growth_experiment_plan_artifact`
 - `create_release_checklist_artifact`
 - `create_release_quality_gate_report`
 - `create_release_notes_artifact`
@@ -122,12 +123,15 @@ same local startup path. This does not deploy, push, post, or call external
 APIs.
 
 Workroom also includes a third bundled company spec, `growth_brief`. It uses a
-local growth strategist role for a single `market_brief` task. Its required
-context variables are `initiative`, `audience`, and `growth_goal`.
-`recommend_next_tool_call` can recommend `create_growth_brief_artifact` for
-that task, and `run_next_local_step` or `advance_company_goal` can write a
-local `growth_brief.md` artifact under the run workspace. This route is local
-only: it does not post, query analytics, call external APIs, or run campaigns.
+local growth strategist role for a `market_brief` task followed by an
+`experiment_plan` task. Its required context variables are `initiative`,
+`audience`, and `growth_goal`. `recommend_next_tool_call` can recommend
+`create_growth_brief_artifact` for the market brief, then recommend
+`create_growth_experiment_plan_artifact` after the growth brief ref exists.
+`run_next_local_step` or `advance_company_goal` can write local
+`growth_brief.md` and `growth_experiment_plan.md` artifacts under the run
+workspace. These routes are local only: they do not post, query analytics, call
+external APIs, or run campaigns.
 
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
@@ -164,11 +168,11 @@ executing that tool.
 
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
-GitHub Pages deploy proposal preparation for Business Validation, a market
-brief artifact for Growth Brief, or release checklist, quality gate, release
-notes, and readiness decision preparation for Release Hardening. It does not
-loop, push to GitHub, post externally, or run unapproved tools such as raw
-result recording.
+GitHub Pages deploy proposal preparation for Business Validation, market brief
+and experiment plan artifacts for Growth Brief, or release checklist, quality
+gate, release notes, and readiness decision preparation for Release Hardening.
+It does not loop, push to GitHub, post externally, or run unapproved tools such
+as raw result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,

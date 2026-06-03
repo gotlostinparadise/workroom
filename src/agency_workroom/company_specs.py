@@ -259,6 +259,17 @@ def growth_brief_company_spec() -> CompanySpec:
                 priority="high",
                 metadata={"artifact_kind": "growth_brief"},
             ),
+            CompanyTaskTemplate(
+                role_id="growth_strategist",
+                category="experiment_plan",
+                title="Prepare local growth experiment plan",
+                summary_template=(
+                    "Prepare a local experiment plan for {initiative}, serving "
+                    "{audience}, with growth goal: {growth_goal}."
+                ),
+                priority="medium",
+                metadata={"artifact_kind": "growth_experiment_plan"},
+            ),
         ),
         metadata={"reference_vertical": "growth_brief"},
     )

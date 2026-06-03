@@ -8,7 +8,10 @@ import unittest
 from pathlib import Path
 
 from agency_workroom import growth_brief
-from agency_workroom.growth_brief import create_growth_brief_artifact_files
+from agency_workroom.growth_brief import (
+    create_growth_brief_artifact_files,
+    create_growth_experiment_plan_artifact_files,
+)
 from agency_workroom.models import TaskState, WorkroomModelError
 
 
@@ -24,6 +27,15 @@ class GrowthBriefArtifactTests(unittest.TestCase):
             role_id="growth_strategist",
             category="market_brief",
             title="Prepare growth brief",
+            status="planned",
+        )
+
+    def experiment_plan_task(self) -> TaskState:
+        return TaskState(
+            task_ref="workroom-item://experiment-plan",
+            role_id="growth_strategist",
+            category="experiment_plan",
+            title="Prepare local growth experiment plan",
             status="planned",
         )
 
@@ -123,6 +135,96 @@ class GrowthBriefArtifactTests(unittest.TestCase):
                     status="planned",
                 ),
                 plan=self.growth_plan(),
+            )
+
+    def test_create_growth_experiment_plan_artifact_files_writes_markdown_and_metadata(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        task = self.experiment_plan_task()
+        brief_ref = (
+            "workroom-artifact://runs/run_growth/growth_brief/"
+            "existingbrief/growth_brief.md"
+        )
+
+        artifact = create_growth_experiment_plan_artifact_files(
+            workspace_path=root / "workspace",
+            run_id="run_growth",
+            task=task,
+            plan=self.growth_plan(),
+            brief_ref=brief_ref,
+        )
+
+        artifact_path = Path(artifact["artifact_path"])
+        metadata_path = Path(artifact["metadata_path"])
+        self.assertTrue(artifact_path.exists())
+        self.assertTrue(metadata_path.exists())
+        self.assertEqual(
+            "workroom-artifact://runs/run_growth/growth_brief/"
+            f"{hashlib.sha256(task.task_ref.encode('utf-8')).hexdigest()[:16]}/"
+            "growth_experiment_plan.md",
+            artifact["artifact_ref"],
+        )
+        self.assertEqual(brief_ref, artifact["brief_ref"])
+        markdown_text = artifact_path.read_text(encoding="utf-8")
+        self.assertIn("# Growth Experiment Plan", markdown_text)
+        self.assertIn("Private beta expansion", markdown_text)
+        self.assertIn("technical founders", markdown_text)
+        self.assertIn("identify 3 local-only growth experiments", markdown_text)
+        self.assertIn(brief_ref, markdown_text)
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            "growth-experiment-plan-artifact.v1",
+            metadata["schema_version"],
+        )
+        self.assertEqual("run_growth", metadata["run_id"])
+        self.assertEqual(task.task_ref, metadata["task_ref"])
+        self.assertEqual(artifact["artifact_ref"], metadata["artifact_ref"])
+        self.assertEqual(brief_ref, metadata["brief_ref"])
+        self.assertEqual(
+            hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
+            metadata["artifact_sha256"],
+        )
+
+    def test_create_growth_experiment_plan_artifact_files_is_idempotent(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        kwargs = {
+            "workspace_path": root / "workspace",
+            "run_id": "run_growth",
+            "task": self.experiment_plan_task(),
+            "plan": self.growth_plan(),
+            "brief_ref": (
+                "workroom-artifact://runs/run_growth/growth_brief/"
+                "existingbrief/growth_brief.md"
+            ),
+        }
+
+        first = create_growth_experiment_plan_artifact_files(**kwargs)
+        second = create_growth_experiment_plan_artifact_files(**kwargs)
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            Path(first["artifact_path"]).read_text(encoding="utf-8"),
+            Path(second["artifact_path"]).read_text(encoding="utf-8"),
+        )
+
+    def test_create_growth_experiment_plan_artifact_files_rejects_non_experiment_task(
+        self,
+    ) -> None:
+        root = self.temp_root()
+
+        with self.assertRaises(WorkroomModelError):
+            create_growth_experiment_plan_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="run_growth",
+                task=self.market_brief_task(),
+                plan=self.growth_plan(),
+                brief_ref=(
+                    "workroom-artifact://runs/run_growth/growth_brief/"
+                    "existingbrief/growth_brief.md"
+                ),
             )
 
     def test_growth_brief_module_has_no_process_network_or_loop_primitives(

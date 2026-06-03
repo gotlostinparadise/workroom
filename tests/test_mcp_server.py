@@ -22,6 +22,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_landing_artifact",
                 "create_landing_qa_report",
                 "create_growth_brief_artifact",
+                "create_growth_experiment_plan_artifact",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
                 "create_release_notes_artifact",
@@ -95,6 +96,24 @@ class WorkroomMcpServerTests(unittest.TestCase):
         )
         self.assertIn("run_id", schema["properties"])
         self.assertIn("task_ref", schema["properties"])
+        self.assertIn("workspace_path", schema["properties"])
+
+    def test_growth_experiment_plan_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        growth_tool = next(
+            tool
+            for tool in tools
+            if tool.name == "create_growth_experiment_plan_artifact"
+        )
+        schema = growth_tool.inputSchema
+
+        self.assertEqual(
+            {"run_id", "task_ref", "brief_ref", "workspace_path"},
+            set(schema["required"]),
+        )
+        self.assertIn("run_id", schema["properties"])
+        self.assertIn("task_ref", schema["properties"])
+        self.assertIn("brief_ref", schema["properties"])
         self.assertIn("workspace_path", schema["properties"])
 
     def test_release_quality_gate_tool_has_required_fastmcp_arguments(self) -> None:

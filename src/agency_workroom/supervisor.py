@@ -68,6 +68,14 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
         and _result_ref_for_kind(run, "growth_brief_artifact") is None
     ):
         return "local_production"
+    experiment_plan_task = _optional_task_for_category(run, "experiment_plan")
+    if (
+        experiment_plan_task is not None
+        and experiment_plan_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "growth_brief_artifact") is not None
+        and _result_ref_for_kind(run, "growth_experiment_plan_artifact") is None
+    ):
+        return "local_production"
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
@@ -761,6 +769,10 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/decisions/" in ref and ref.endswith(".json")
     if kind == "growth_brief_artifact":
         return "/growth_brief/" in ref and ref.endswith("/growth_brief.md")
+    if kind == "growth_experiment_plan_artifact":
+        return "/growth_brief/" in ref and ref.endswith(
+            "/growth_experiment_plan.md"
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 

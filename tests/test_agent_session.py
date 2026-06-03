@@ -19,6 +19,7 @@ from agency_workroom.agent_session import (
     check_workroom_mcp_config,
     create_goal_run_report,
     create_growth_brief_artifact,
+    create_growth_experiment_plan_artifact,
     create_landing_artifact,
     create_landing_qa_report,
     create_release_checklist_artifact,
@@ -105,6 +106,7 @@ class AgentSessionTests(unittest.TestCase):
             "_landing_artifact_route_readiness",
             "_landing_qa_route_readiness",
             "_growth_brief_route_readiness",
+            "_growth_experiment_plan_route_readiness",
             "_github_pages_deploy_proposal_route_readiness",
             "_release_checklist_route_readiness",
             "_release_quality_gate_route_readiness",
@@ -502,11 +504,11 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("growth_brief", response["company_spec_id"])
         self.assertEqual("v1", response["company_spec_version"])
         self.assertEqual(
-            ["market_brief"],
+            ["market_brief", "experiment_plan"],
             [task["category"] for task in response["tasks"]],
         )
         self.assertEqual(
-            ["growth_strategist"],
+            ["growth_strategist", "growth_strategist"],
             [task["role_id"] for task in response["tasks"]],
         )
         self.assertEqual(
@@ -1203,6 +1205,75 @@ class AgentSessionTests(unittest.TestCase):
                 workspace_path=str(workspace_path),
             )
 
+    def test_create_growth_experiment_plan_artifact_requires_recorded_brief(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_growth_run(root)
+        experiment_task = self.task_by_category(started, "experiment_plan")
+
+        with self.assertRaises(WorkroomStateError):
+            create_growth_experiment_plan_artifact(
+                run_id=started["run_id"],
+                task_ref=experiment_task["task_ref"],
+                brief_ref=(
+                    "workroom-artifact://runs/"
+                    f"{started['run_id']}/growth_brief/missing/growth_brief.md"
+                ),
+                workspace_path=str(workspace_path),
+            )
+
+    def test_create_growth_experiment_plan_artifact_completes_experiment_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_growth_run(root)
+        market_task = self.task_by_category(started, "market_brief")
+        experiment_task = self.task_by_category(started, "experiment_plan")
+        brief = create_growth_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=market_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = create_growth_experiment_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=experiment_task["task_ref"],
+            brief_ref=brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_growth_experiment_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=experiment_task["task_ref"],
+            brief_ref=brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertIn(
+            first["artifact"]["artifact_ref"],
+            first["task"]["result_refs"],
+        )
+        self.assertIn("/growth_brief/", first["artifact"]["artifact_ref"])
+        self.assertTrue(
+            first["artifact"]["artifact_ref"].endswith(
+                "/growth_experiment_plan.md"
+            )
+        )
+        self.assertEqual(brief["artifact"]["artifact_ref"], first["artifact"]["brief_ref"])
+        self.assertTrue(Path(first["artifact"]["artifact_path"]).exists())
+        self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = self.task_by_category(state, "experiment_plan")
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
     def test_create_release_quality_gate_report_completes_quality_gates_task(
         self,
     ) -> None:
@@ -1765,6 +1836,42 @@ class AgentSessionTests(unittest.TestCase):
             {
                 "run_id": started["run_id"],
                 "task_ref": market_task["task_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_continues_growth_brief_with_experiment_plan(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_growth_run(root)
+        market_task = self.task_by_category(started, "market_brief")
+        experiment_task = self.task_by_category(started, "experiment_plan")
+        brief = create_growth_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=market_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(started["run_id"], recommendation["run_id"])
+        self.assertEqual(
+            "create_growth_experiment_plan_artifact",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": experiment_task["task_ref"],
+                "brief_ref": brief["artifact"]["artifact_ref"],
                 "workspace_path": str(workspace_path),
             },
             recommendation["arguments"],
@@ -2432,7 +2539,9 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", landing_task["status"])
         self.assertEqual("planned", testing_task["status"])
 
-    def test_run_next_local_step_executes_growth_brief_artifact_once(self) -> None:
+    def test_run_next_local_step_executes_growth_brief_then_experiment_plan(
+        self,
+    ) -> None:
         assert_external_kernel_dependency(self)
         root = self.temp_root()
         started, workspace_path = self.started_growth_run(root)
@@ -2445,11 +2554,16 @@ class AgentSessionTests(unittest.TestCase):
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
         )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
         state = get_company_state(
             run_id=started["run_id"],
             workspace_path=str(workspace_path),
         )
         market_task = self.task_by_category(state, "market_brief")
+        experiment_task = self.task_by_category(state, "experiment_plan")
 
         self.assertTrue(first["executed"])
         self.assertEqual("create_growth_brief_artifact", first["executed_tool"])
@@ -2460,9 +2574,21 @@ class AgentSessionTests(unittest.TestCase):
             first["result"]["artifact"]["artifact_ref"],
             market_task["result_refs"],
         )
-        self.assertFalse(second["executed"])
-        self.assertEqual("", second["executed_tool"])
-        self.assertFalse(second["blocked"])
+        self.assertTrue(second["executed"])
+        self.assertEqual(
+            "create_growth_experiment_plan_artifact",
+            second["executed_tool"],
+        )
+        self.assertIn("artifact", second["result"])
+        self.assertTrue(Path(second["result"]["artifact"]["artifact_path"]).exists())
+        self.assertEqual("completed", experiment_task["status"])
+        self.assertIn(
+            second["result"]["artifact"]["artifact_ref"],
+            experiment_task["result_refs"],
+        )
+        self.assertFalse(third["executed"])
+        self.assertEqual("", third["executed_tool"])
+        self.assertFalse(third["blocked"])
 
     def test_run_next_local_step_executes_one_step_at_a_time(self) -> None:
         assert_external_kernel_dependency(self)
@@ -2806,6 +2932,7 @@ class AgentSessionTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         market_task = self.task_by_category(state, "market_brief")
+        experiment_task = self.task_by_category(state, "experiment_plan")
 
         self.assertEqual("local_step_executed", turn["action_type"])
         self.assertEqual("local_step", turn["transition"]["outcome"])
@@ -2818,6 +2945,46 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("handoff", turn["transition"]["record_kind"])
         self.assertEqual("completed", market_task["status"])
         self.assertIn(turn["result_ref"], market_task["result_refs"])
+        self.assertIn("handoff", turn)
+        self.assertEqual("growth", turn["handoff"]["from_department"])
+        self.assertEqual("growth", turn["handoff"]["to_department"])
+        self.assertEqual("planned", experiment_task["status"])
+        self.assertTrue(Path(turn["handoff_path"]).exists())
+        self.assertTrue(Path(turn["role_work_request_path"]).exists())
+        self.assertTrue(Path(turn["role_work_result_path"]).exists())
+
+    def test_advance_company_goal_executes_growth_experiment_plan_local_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_growth_run(root)
+
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        experiment_task = self.task_by_category(state, "experiment_plan")
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "create_growth_experiment_plan_artifact",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("growth_strategist", turn["delegated_role"])
+        self.assertEqual("handoff", turn["transition"]["record_kind"])
+        self.assertEqual("completed", experiment_task["status"])
+        self.assertIn(turn["result_ref"], experiment_task["result_refs"])
         self.assertIn("handoff", turn)
         self.assertEqual("growth", turn["handoff"]["from_department"])
         self.assertEqual("coordination", turn["handoff"]["to_department"])

@@ -18,6 +18,7 @@ TOOL_NAMES = (
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_growth_brief_artifact",
+    "create_growth_experiment_plan_artifact",
     "create_release_checklist_artifact",
     "create_release_quality_gate_report",
     "create_release_notes_artifact",
@@ -189,6 +190,22 @@ def create_growth_brief_artifact(
     return agent_session.create_growth_brief_artifact(
         run_id=run_id,
         task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_growth_experiment_plan_artifact(
+    run_id: str,
+    task_ref: str,
+    brief_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local growth experiment plan after a Growth Brief artifact."""
+    return agent_session.create_growth_experiment_plan_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        brief_ref=brief_ref,
         workspace_path=workspace_path,
     )
 
@@ -405,6 +422,7 @@ __all__ = [
     "advance_company_goal",
     "create_goal_run_report",
     "create_growth_brief_artifact",
+    "create_growth_experiment_plan_artifact",
     "create_landing_artifact",
     "create_landing_qa_report",
     "create_release_checklist_artifact",

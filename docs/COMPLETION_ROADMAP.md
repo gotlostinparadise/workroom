@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v17.
+Status: Canonical plan v18.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -211,6 +211,12 @@ These milestones are complete enough to be treated as foundation:
     through the generic `RunContext` path, exposes required context variables
     for initiative, audience, and growth goal, and can complete one local
     `market_brief` task by writing a deterministic growth brief artifact.
+
+33. Growth Experiment Plan Routing v1.
+    Growth Brief now has a second local `experiment_plan` task after the market
+    brief. Workroom can recommend, dispatch, supervise, and expose the local
+    `create_growth_experiment_plan_artifact` route after the growth brief ref
+    exists.
 
 ## Milestone Plan
 
@@ -652,8 +658,8 @@ Exit criteria:
   generic run context path.
 - `recommend_next_tool_call` recommends `create_growth_brief_artifact` for a
   planned Growth Brief `market_brief` task with no growth brief artifact.
-- `run_next_local_step` executes the market brief route once and then leaves no
-  Growth Brief local task remaining.
+- `run_next_local_step` executes the market brief route once and records the
+  market brief artifact ref.
 - `advance_company_goal` records supervisor and role-work evidence for the
   market brief step.
 - The MCP server and manifest expose `create_growth_brief_artifact`.
@@ -661,6 +667,31 @@ Exit criteria:
   unchanged.
 - No Kernel changes, hidden loops, approval, deploys, pushes, posts, external
   API calls, or new external effects are added.
+
+### 23. Growth Experiment Plan Routing v1
+
+Status: Done.
+
+Goal: add a second Growth Brief task and local route that turns the market
+brief into a deterministic experiment plan for Codex review.
+
+Exit criteria:
+
+- Growth Brief plans `market_brief` followed by `experiment_plan`.
+- `recommend_next_tool_call` keeps recommending `create_growth_brief_artifact`
+  until the growth brief ref exists.
+- After the growth brief ref exists, `recommend_next_tool_call` recommends
+  `create_growth_experiment_plan_artifact` with `brief_ref`.
+- `run_next_local_step` executes the experiment plan route once and then leaves
+  no Growth Brief local task remaining.
+- `advance_company_goal` records supervisor and role-work evidence for the
+  experiment plan step.
+- The MCP server and manifest expose `create_growth_experiment_plan_artifact`
+  with required `brief_ref`.
+- Business Validation, Release Hardening, and Growth Brief market-brief
+  behavior remains unchanged.
+- No Kernel changes, hidden loops, approval, deploys, pushes, posts, analytics
+  calls, external API calls, or new external effects are added.
 
 ## Plan Change Rules
 
@@ -678,7 +709,8 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the next source-moving company capability slice, such as adding a second local
-Growth Brief task and route after the market brief. Only add more
-route-registry infrastructure first if live repo truth shows it is the safer
-prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+the next source-moving company capability slice, such as a local Growth Brief
+review decision after the experiment plan or another small company route that
+deepens multi-role execution. Only add more route-registry infrastructure first
+if live repo truth shows it is the safer prerequisite. Preserve the no-loop,
+no-external-effect, Kernel-boundary floor.

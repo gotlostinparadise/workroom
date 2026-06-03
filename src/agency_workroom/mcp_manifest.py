@@ -69,6 +69,12 @@ _TOOL_ARGUMENTS = {
         "workspace_path",
     ),
     "create_growth_brief_artifact": ("run_id", "task_ref", "workspace_path"),
+    "create_growth_experiment_plan_artifact": (
+        "run_id",
+        "task_ref",
+        "brief_ref",
+        "workspace_path",
+    ),
     "create_release_checklist_artifact": ("run_id", "task_ref", "workspace_path"),
     "create_release_quality_gate_report": (
         "run_id",
