@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v59.
+Status: Canonical plan v60.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -436,6 +436,10 @@ These milestones are complete enough to be treated as foundation:
 74. Release Audit Smoke Runbook Gate v1.
     The release-candidate audit now records and gates whether the persisted
     runbook release-readiness smoke belongs to the requested runbook.
+
+75. Release Audit Smoke Run IDs Gate v1.
+    The release-candidate audit now records and gates whether the persisted
+    runbook release-readiness smoke covers exactly the requested run IDs.
 
 ## Milestone Plan
 
@@ -1968,6 +1972,34 @@ Exit criteria:
   package-surface checks, release-smoke schema/readiness checks, run-ID checks,
   boundary assertions, manual gates, and artifact-context path redaction remain
   unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 65. Release Audit Smoke Run IDs Gate v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when a persisted runbook
+release-readiness smoke file does not prove the exact run IDs requested by the
+audit.
+
+Exit criteria:
+
+- The release-candidate audit payload records the release-smoke run IDs.
+- The release-candidate audit payload records the expected requested run IDs.
+- The release-candidate audit payload records whether persisted run IDs match
+  the requested run IDs exactly.
+- Missing, partial, reordered, or different release-smoke run IDs produce a
+  finding and block release-candidate readiness through existing finding-based
+  readiness behavior.
+- Markdown renders the persisted run IDs, expected run IDs, and match status.
+- Tests cover generated matching audit output and a valid ready release-smoke
+  file with missing run IDs.
+- Existing MCP manifest gates, required release tools, export-surface checks,
+  package-surface checks, release-smoke schema/readiness checks,
+  release-smoke runbook checks, boundary assertions, manual gates, and
+  artifact-context path redaction remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

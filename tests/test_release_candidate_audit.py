@@ -73,6 +73,11 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
         self.assertTrue(payload["runbook_release_smoke"]["runbook_id_matches_expected"])
         self.assertEqual(
+            list(run_ids),
+            payload["runbook_release_smoke"]["expected_run_ids"],
+        )
+        self.assertTrue(payload["runbook_release_smoke"]["run_ids_match_requested"])
+        self.assertEqual(
             release_candidate_audit.EXPECTED_MCP_MANIFEST_SCHEMA_VERSION,
             payload["mcp_surface"]["manifest_schema_version"],
         )
@@ -166,6 +171,11 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Ready: True", markdown)
         self.assertIn("Valid: True", markdown)
         self.assertIn("Run IDs: run_design, run_plan, run_quality, run_verify", markdown)
+        self.assertIn(
+            "Expected run IDs: run_design, run_plan, run_quality, run_verify",
+            markdown,
+        )
+        self.assertIn("Run IDs match requested: True", markdown)
         self.assertIn("Requires Python:", markdown)
         self.assertIn("Pyproject readable: True", markdown)
         self.assertIn("Installed metadata readable: False", markdown)
@@ -247,6 +257,46 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Expected runbook ID: complex_codex_delivery", markdown)
         self.assertIn("Runbook ID matches expected: False", markdown)
 
+    def test_create_release_candidate_audit_flags_missing_smoke_run_ids(self) -> None:
+        root = self.temp_root()
+        runbook_dir = root / "runbooks" / "complex_codex_delivery"
+        runbook_dir.mkdir(parents=True)
+        (runbook_dir / "runbook_release_readiness_smoke.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "runbook-release-readiness-smoke.v1",
+                    "runbook_id": "complex_codex_delivery",
+                    "smoke_status": "ready",
+                    "ready_for_release_review": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        audit = create_release_candidate_audit_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+
+        payload = json.loads(Path(audit["audit_path"]).read_text(encoding="utf-8"))
+        markdown = Path(audit["markdown_path"]).read_text(encoding="utf-8")
+
+        self.assertEqual("review_required", payload["audit_status"])
+        self.assertFalse(payload["ready_for_release_candidate_review"])
+        self.assertEqual([], payload["runbook_release_smoke"]["run_ids"])
+        self.assertEqual(
+            ["run_design"],
+            payload["runbook_release_smoke"]["expected_run_ids"],
+        )
+        self.assertFalse(payload["runbook_release_smoke"]["run_ids_match_requested"])
+        self.assertIn(
+            "run_ids_mismatch",
+            {finding["code"] for finding in payload["audit_findings"]},
+        )
+        self.assertIn("Run IDs: none", markdown)
+        self.assertIn("Expected run IDs: run_design", markdown)
+        self.assertIn("Run IDs match requested: False", markdown)
+
     def test_package_surface_helpers_classify_dependency_scope(self) -> None:
         self.assertEqual(
             "absolute_file",
@@ -296,6 +346,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -329,6 +380,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -358,6 +410,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -388,6 +441,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -416,6 +470,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -451,6 +506,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 "runbook_id_matches_expected": True,
                 "ready": True,
                 "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
             },
         )
 
@@ -522,6 +578,8 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                     "ready": False,
                     "valid": True,
                     "run_ids": ["run_plan"],
+                    "expected_run_ids": ["run_plan"],
+                    "run_ids_match_requested": True,
                 },
                 "export_surface": {},
                 "package_surface": {},
@@ -550,6 +608,8 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Ready: False", markdown)
         self.assertIn("Valid: True", markdown)
         self.assertIn("Run IDs: run_plan", markdown)
+        self.assertIn("Expected run IDs: run_plan", markdown)
+        self.assertIn("Run IDs match requested: True", markdown)
 
     def test_release_candidate_audit_markdown_renders_artifact_context_without_paths(self) -> None:
         markdown = release_candidate_audit._render_markdown(

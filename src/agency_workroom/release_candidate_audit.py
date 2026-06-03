@@ -101,6 +101,7 @@ def _audit_payload(
     export_surface = _export_surface()
     package_surface = _package_surface()
     release_smoke_payload = _release_smoke_payload(
+        run_ids=run_ids,
         runbook_id=runbook_id,
         path=release_smoke_path,
         payload=release_smoke,
@@ -296,6 +297,7 @@ def _distribution_scope(kernel_dependency_mode: str) -> str:
 
 def _release_smoke_payload(
     *,
+    run_ids: tuple[str, ...],
     runbook_id: str,
     path: Path,
     payload: Mapping[str, object],
@@ -304,6 +306,7 @@ def _release_smoke_payload(
         f"workroom-artifact://runbooks/{runbook_id}/"
         "runbook_release_readiness_smoke.json"
     )
+    persisted_run_ids = _string_list(payload.get("run_ids"))
     return {
         "ref": expected_ref,
         "path": str(path),
@@ -315,7 +318,9 @@ def _release_smoke_payload(
         "status": str(payload.get("smoke_status", "")),
         "ready": bool(payload.get("ready_for_release_review", False)),
         "valid": payload.get("schema_version") == "runbook-release-readiness-smoke.v1",
-        "run_ids": _string_list(payload.get("run_ids")),
+        "run_ids": persisted_run_ids,
+        "expected_run_ids": list(run_ids),
+        "run_ids_match_requested": persisted_run_ids == list(run_ids),
     }
 
 
@@ -437,8 +442,9 @@ def _audit_findings(
                 "message": "runbook release readiness smoke runbook ID does not match requested runbook",
             }
         )
-    persisted_run_ids = _string_list(release_smoke.get("run_ids"))
-    if persisted_run_ids and persisted_run_ids != list(run_ids):
+    if bool(release_smoke.get("valid")) and not bool(
+        release_smoke.get("run_ids_match_requested")
+    ):
         findings.append(
             {
                 "severity": "warning",
@@ -636,6 +642,16 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     lines.append(
         "- "
         f"Run IDs: {_render_string_list(release_smoke.get('run_ids'))}"
+    )
+    lines.append(
+        "- "
+        f"Expected run IDs: "
+        f"{_render_string_list(release_smoke.get('expected_run_ids'))}"
+    )
+    lines.append(
+        "- "
+        f"Run IDs match requested: "
+        f"{_single_line(release_smoke.get('run_ids_match_requested', False))}"
     )
     package_surface = _mapping(payload.get("package_surface"))
     export_surface = _mapping(payload.get("export_surface"))
