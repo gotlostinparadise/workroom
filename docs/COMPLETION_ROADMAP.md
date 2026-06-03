@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v33.
+Status: Canonical plan v34.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -307,6 +307,13 @@ These milestones are complete enough to be treated as foundation:
     runbook, expanding the operating packet into an ordered MCP call sequence
     and validating referenced tools against the current manifest without
     starting or advancing any company.
+
+49. Runbook Progress Report v1.
+    Workroom can write a local JSON/Markdown progress report for existing
+    runbook stage runs, mapping persisted workspace runs to the operating
+    packet sequence and reporting completed stages, missing stages, blockers,
+    available context transfers, and evidence-chain readiness without starting
+    or advancing any company.
 
 ## Milestone Plan
 
@@ -1221,6 +1228,36 @@ Exit criteria:
   approval, implementation execution, verification execution, deploys, pushes,
   posts, external API calls, or new external effects are added.
 
+### 39. Runbook Progress Report v1
+
+Status: Done.
+
+Goal: let Codex review actual runbook stage progress from persisted workspace
+runs before deciding whether to transfer context, build an evidence chain, or
+start another company stage.
+
+Exit criteria:
+
+- `create_runbook_progress_report` accepts `workspace_path`, `run_ids_json`,
+  and optional `runbook_id`.
+- The tool writes `runbook_progress_report.json` and Markdown files under
+  `runbooks/<runbook_id>/`.
+- The payload uses schema `runbook-progress-report.v1`.
+- The payload maps persisted runs to the bundled runbook stages and reports
+  completed, missing, blocked, and in-progress stages.
+- The payload reports available context transfers and evidence-chain readiness
+  without creating transfers or evidence-chain reports automatically.
+- The package, session layer, MCP server, and MCP manifest expose the tool with
+  required workspace path and run-ids JSON arguments.
+- Existing company specs, local route execution, supervisor turns, reports,
+  replay, audit, evaluation, evidence-chain reports, chain continuation,
+  runbook listing, context transfer, operating packet, and smoke example
+  behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, company startup, supervisor
+  advancement, project mutation outside local Workroom runbook progress files,
+  approval, implementation execution, verification execution, deploys, pushes,
+  posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1237,9 +1274,8 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer a
-runbook progress/status artifact that reads actual workspace runs against the
-operating packet sequence and reports completed stages, missing stages,
-available context transfers, evidence-chain readiness, and continuation
-recommendations without starting hidden loops or adding external effects. Only
+runbook closeout/readiness artifact that combines the progress report,
+cross-role reports, task-quality reports, and evidence-chain readiness into a
+single local release-review packet for a multi-company runbook execution. Only
 add more infrastructure first if live repo truth shows it is the safer
 prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.

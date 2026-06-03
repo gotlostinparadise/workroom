@@ -58,6 +58,7 @@ TOOL_NAMES = (
     "list_company_runbooks",
     "create_runbook_operating_packet",
     "create_runbook_smoke_example",
+    "create_runbook_progress_report",
 )
 
 
@@ -778,6 +779,20 @@ def create_runbook_smoke_example(
     )
 
 
+@mcp.tool()
+def create_runbook_progress_report(
+    workspace_path: str,
+    run_ids_json: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    """Write a local progress report for existing runs in a Workroom runbook."""
+    return agent_session.create_runbook_progress_report(
+        workspace_path=workspace_path,
+        run_ids_json=run_ids_json,
+        runbook_id=runbook_id,
+    )
+
+
 def main() -> None:
     mcp.run()
 
@@ -807,6 +822,7 @@ __all__ = [
     "recommend_chain_continuation",
     "create_runbook_context_transfer",
     "create_runbook_operating_packet",
+    "create_runbook_progress_report",
     "create_runbook_smoke_example",
     "create_goal_run_report",
     "create_growth_brief_artifact",

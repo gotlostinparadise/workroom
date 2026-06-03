@@ -15,6 +15,7 @@ from .company_runbooks import list_company_runbook_templates
 from .cross_role_brief import create_cross_role_run_brief_files
 from .cross_role_task_quality import create_cross_role_task_quality_report_files
 from .runbook_operating_packet import create_runbook_operating_packet_files
+from .runbook_progress_report import create_runbook_progress_report_files
 from .runbook_smoke_example import create_runbook_smoke_example_files
 from .runbook_context_transfer import create_runbook_context_transfer_files
 from .devops_operations import (
@@ -598,6 +599,21 @@ def create_runbook_smoke_example(
         workspace_path=clean_workspace_path,
         runbook_id=runbook_id,
         example_goal=example_goal,
+    )
+
+
+def create_runbook_progress_report(
+    *,
+    workspace_path: str,
+    run_ids_json: str,
+    runbook_id: str = "",
+) -> dict[str, object]:
+    clean_workspace_path = _required_text("workspace_path", workspace_path)
+    run_ids = _run_ids_from_json(run_ids_json)
+    return create_runbook_progress_report_files(
+        workspace_path=clean_workspace_path,
+        run_ids=run_ids,
+        runbook_id=runbook_id,
     )
 
 
@@ -6233,6 +6249,7 @@ __all__ = [
     "create_cross_role_task_quality_report",
     "create_runbook_context_transfer",
     "create_runbook_operating_packet",
+    "create_runbook_progress_report",
     "create_runbook_smoke_example",
     "create_goal_run_report",
     "create_growth_brief_artifact",

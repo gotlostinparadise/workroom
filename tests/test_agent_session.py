@@ -21,6 +21,7 @@ from agency_workroom.agent_session import (
     create_cross_role_run_brief,
     create_cross_role_task_quality_report,
     create_runbook_operating_packet,
+    create_runbook_progress_report,
     create_runbook_smoke_example,
     create_runbook_context_transfer,
     create_architecture_brief_artifact,
@@ -691,6 +692,45 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(Path(result["markdown_path"]).exists())
         self.assertTrue(Path(result["packet_path"]).exists())
         self.assertFalse((workspace_path / "runs").exists())
+
+    def test_create_runbook_progress_report_reads_existing_runs_only(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        run = CompanyGoalRun(
+            run_id="run_design",
+            user_id="usr_codex",
+            goal="Review a design",
+            company_spec_id="design_review",
+            company_spec_version="v1",
+            team={"roles": []},
+            plan={"summary": "Review a design", "tasks": []},
+            commits=(),
+            tasks=(
+                TaskState(
+                    task_ref="workroom-task://run_design/review",
+                    role_id="design_reviewer",
+                    category="design_review",
+                    title="Review design",
+                    status="completed",
+                    result_refs=(
+                        "workroom-artifact://runs/run_design/design/review.json",
+                    ),
+                ),
+            ),
+        )
+        save_company_goal_run(workspace_path, run)
+
+        result = create_runbook_progress_report(
+            workspace_path=str(workspace_path),
+            run_ids_json='["run_design"]',
+        )
+
+        payload = json.loads(Path(result["progress_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("runbook-progress-report.v1", result["schema_version"])
+        self.assertEqual(["run_design"], payload["run_ids"])
+        self.assertEqual(["design_review"], payload["completed_stage_ids"])
+        self.assertIn("implementation_planning", payload["missing_stage_ids"])
+        self.assertFalse((workspace_path / "runs" / "run_implementation").exists())
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:
         assert_external_kernel_dependency(self)

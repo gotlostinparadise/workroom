@@ -62,6 +62,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "list_company_runbooks",
                 "create_runbook_operating_packet",
                 "create_runbook_smoke_example",
+                "create_runbook_progress_report",
             ),
             mcp_server.TOOL_NAMES,
         )
@@ -469,6 +470,20 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertEqual("", schema["properties"]["example_goal"]["default"])
         self.assertNotIn("runbook_id", schema["required"])
         self.assertNotIn("example_goal", schema["required"])
+
+    def test_runbook_progress_report_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        progress_tool = next(
+            tool for tool in tools if tool.name == "create_runbook_progress_report"
+        )
+        schema = progress_tool.inputSchema
+
+        self.assertEqual({"workspace_path", "run_ids_json"}, set(schema["required"]))
+        self.assertIn("workspace_path", schema["properties"])
+        self.assertIn("run_ids_json", schema["properties"])
+        self.assertIn("runbook_id", schema["properties"])
+        self.assertEqual("", schema["properties"]["runbook_id"]["default"])
+        self.assertNotIn("runbook_id", schema["required"])
 
     def test_runbook_context_transfer_tool_has_required_fastmcp_arguments(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())
