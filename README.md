@@ -59,6 +59,8 @@ The MCP tools are agent-facing:
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
+- `create_delivery_scope_brief_artifact`
+- `create_delivery_execution_plan_artifact`
 - `create_growth_brief_artifact`
 - `create_growth_experiment_plan_artifact`
 - `prepare_growth_review_decision`
@@ -136,6 +138,19 @@ both growth evidence refs exist. `run_next_local_step` or
 under the run workspace. These routes are local only: they do not approve,
 launch, post, query analytics, call external APIs, or run campaigns.
 
+Workroom also includes a fourth bundled company spec, `delivery_planning`. It
+uses a local scoping analyst for a `scope_brief` task followed by a delivery
+planner for an `execution_plan` task. Its required context variables are
+`objective`, `constraints`, and `success_definition`.
+`recommend_next_tool_call` can recommend
+`create_delivery_scope_brief_artifact`, then recommend
+`create_delivery_execution_plan_artifact` after the scope brief ref exists.
+`run_next_local_step` or `advance_company_goal` can write local
+`delivery_scope_brief.md` and `delivery_execution_plan.md` artifacts under the
+run workspace. These routes are local only: they do not run shell commands,
+mutate projects, approve, deploy, push, post, call external APIs, or start
+background workers.
+
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
@@ -171,11 +186,12 @@ executing that tool.
 
 `run_next_local_step` executes one allowlisted local step from the current
 recommendation. It can advance landing artifact creation, landing QA, or local
-GitHub Pages deploy proposal preparation for Business Validation, market brief
-and experiment plan artifacts plus review decision preparation for Growth
-Brief, or release checklist, quality gate, release notes, and readiness
-decision preparation for Release Hardening. It does not loop, push to GitHub,
-post externally, or run unapproved tools such as raw result recording.
+GitHub Pages deploy proposal preparation for Business Validation, scope brief
+and execution plan artifacts for Delivery Planning, market brief and experiment
+plan artifacts plus review decision preparation for Growth Brief, or release
+checklist, quality gate, release notes, and readiness decision preparation for
+Release Hardening. It does not loop, push to GitHub, post externally, or run
+unapproved tools such as raw result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
@@ -255,14 +271,14 @@ structured hypothesis request and creates planned work items for hypothesis
 research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
-Business Validation is the default registered `CompanySpec`. Release Hardening
-and Growth Brief are additional registered specs that prove the runtime can
-start, inspect, recommend, and execute bounded local work for companies with
-different vocabulary. A company spec defines the departments, roles, task
-templates, and metadata that create a goal-specific company run. The current
-reference vertical keeps the existing validation behavior, but startup now
-routes through the generic company start contract so future company types can
-use the same runtime path.
+Business Validation is the default registered `CompanySpec`. Release
+Hardening, Growth Brief, and Delivery Planning are additional registered specs
+that prove the runtime can start, inspect, recommend, and execute bounded local
+work for companies with different vocabulary, roles, and task sequences. A
+company spec defines the departments, roles, task templates, and metadata that
+create a goal-specific company run. The current reference vertical keeps the
+existing validation behavior, but startup now routes through the generic
+company start contract so future company types can use the same runtime path.
 
 The generic runtime input is `RunContext`: a goal, summary, and template
 variables for the active company spec. `WorkflowRequest` remains the Business

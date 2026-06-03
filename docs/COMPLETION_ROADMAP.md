@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v19.
+Status: Canonical plan v20.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -223,6 +223,12 @@ These milestones are complete enough to be treated as foundation:
     experiment plan. Workroom can prepare a local growth review decision after
     both Growth evidence refs exist, without approving, launching, posting,
     querying analytics, or calling external APIs.
+
+35. Delivery Planning Company v1.
+    Delivery Planning is registered as the fourth bundled `CompanySpec`. It
+    starts through the generic `RunContext` path, uses two local roles across
+    scoping and planning departments, and can complete two local artifacts:
+    `delivery_scope_brief.md` followed by `delivery_execution_plan.md`.
 
 ## Milestone Plan
 
@@ -724,6 +730,37 @@ Exit criteria:
 - No Kernel changes, hidden loops, approval, launch, deploys, pushes, posts,
   analytics calls, external API calls, or new external effects are added.
 
+### 25. Delivery Planning Company v1
+
+Status: Done.
+
+Goal: add a fourth bundled company that turns an arbitrary complex Codex
+objective into local scoping and execution-plan evidence through two different
+roles.
+
+Exit criteria:
+
+- `delivery_planning` is registered as a bundled `CompanySpec` without changing
+  the default Business Validation startup path.
+- `list_company_specs` exposes Delivery Planning and its required context
+  variables: `objective`, `constraints`, and `success_definition`.
+- `start_company_goal` can start `company_spec_id="delivery_planning"` through
+  the generic run context path.
+- Delivery Planning plans `scope_brief` for `scope_analyst`, then
+  `execution_plan` for `delivery_planner`.
+- `recommend_next_tool_call` recommends
+  `create_delivery_scope_brief_artifact` for the planned scope task, then
+  `create_delivery_execution_plan_artifact` after the scope brief ref exists.
+- `run_next_local_step` executes both Delivery Planning routes one call at a
+  time, then leaves no Delivery Planning local task remaining.
+- `advance_company_goal` records supervisor and role-work evidence for both
+  Delivery Planning roles.
+- The MCP server and manifest expose both Delivery Planning local tools.
+- Business Validation, Release Hardening, and Growth Brief behavior remains
+  unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  deploys, pushes, posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -740,8 +777,9 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the next source-moving company capability slice, such as adding a new small
-company spec with two local roles/tasks or adding a bounded cross-role
-review/coordination path. Only add more route-registry infrastructure first if
-live repo truth shows it is the safer prerequisite. Preserve the no-loop,
-no-external-effect, Kernel-boundary floor.
+the next source-moving capability that makes Delivery Planning more useful for
+complex Codex work, such as a local planning review decision after the execution
+plan or a bounded cross-role handoff summary that links multiple role outputs.
+Only add more route-registry infrastructure first if live repo truth shows it
+is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

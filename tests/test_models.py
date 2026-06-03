@@ -718,6 +718,7 @@ class SupervisorTransitionModelTests(unittest.TestCase):
                 "approval_required",
                 "blocked",
                 "decision",
+                "planning",
                 "promotion_preparation",
                 "complete",
             ),

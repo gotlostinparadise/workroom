@@ -17,6 +17,8 @@ from agency_workroom.agent_session import (
     advance_company_goal,
     audit_company_goal_run,
     check_workroom_mcp_config,
+    create_delivery_execution_plan_artifact,
+    create_delivery_scope_brief_artifact,
     create_goal_run_report,
     create_growth_brief_artifact,
     create_growth_experiment_plan_artifact,
@@ -179,6 +181,24 @@ class AgentSessionTests(unittest.TestCase):
                     "initiative": "Private beta expansion",
                     "audience": "technical founders",
                     "growth_goal": "identify 3 local-only growth experiments",
+                }
+            ),
+        )
+        return started, workspace_path
+
+    def started_delivery_run(self, root: Path) -> tuple[dict[str, object], Path]:
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Plan a complex Workroom polish milestone",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="delivery_planning",
+            context_json=json.dumps(
+                {
+                    "objective": "polish Workroom for complex Codex tasks",
+                    "constraints": "local-only, no Kernel source changes",
+                    "success_definition": "Codex has a scoped execution plan",
                 }
             ),
         )
@@ -453,7 +473,12 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("workroom-company-spec-list.v1", result["schema_version"])
         self.assertEqual("business_validation", result["default_company_spec_id"])
         self.assertEqual(
-            ["business_validation", "growth_brief", "release_hardening"],
+            [
+                "business_validation",
+                "delivery_planning",
+                "growth_brief",
+                "release_hardening",
+            ],
             [spec["spec_id"] for spec in result["company_specs"]],
         )
         self.assertFalse(result["writes_files"])
@@ -480,6 +505,11 @@ class AgentSessionTests(unittest.TestCase):
             specs["growth_brief"]["required_context_variables"],
         )
         self.assertEqual([], specs["growth_brief"]["optional_context_variables"])
+        self.assertEqual(
+            ["constraints", "objective", "success_definition"],
+            specs["delivery_planning"]["required_context_variables"],
+        )
+        self.assertEqual([], specs["delivery_planning"]["optional_context_variables"])
 
     def test_start_company_goal_accepts_registered_growth_brief_spec(self) -> None:
         assert_external_kernel_dependency(self)
@@ -519,6 +549,47 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("Private beta expansion", ledger_text)
         self.assertNotIn("technical founders", ledger_text)
+
+    def test_start_company_goal_accepts_registered_delivery_planning_spec(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="Plan a complex Workroom polish milestone",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="delivery_planning",
+            context_json=json.dumps(
+                {
+                    "objective": "polish Workroom for complex Codex tasks",
+                    "constraints": "local-only, no Kernel source changes",
+                    "success_definition": "Codex has a scoped execution plan",
+                }
+            ),
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("delivery_planning", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual(
+            ["scope_brief", "execution_plan"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            ["scope_analyst", "delivery_planner"],
+            [task["role_id"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            "polish Workroom for complex Codex tasks",
+            response["plan"]["request"]["variables"]["objective"],
+        )
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("polish Workroom for complex Codex tasks", ledger_text)
+        self.assertNotIn("local-only, no Kernel source changes", ledger_text)
 
     def test_start_company_run_accepts_generic_company_spec(self) -> None:
         assert_external_kernel_dependency(self)
@@ -1348,6 +1419,110 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", persisted_task["status"])
         self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
 
+    def test_create_delivery_scope_brief_artifact_completes_scope_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+
+        first = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertIn(first["artifact"]["artifact_ref"], first["task"]["result_refs"])
+        self.assertTrue(
+            first["artifact"]["artifact_ref"].endswith("/delivery_scope_brief.md")
+        )
+        self.assertTrue(Path(first["artifact"]["artifact_path"]).exists())
+        self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = self.task_by_category(state, "scope_brief")
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
+    def test_create_delivery_execution_plan_artifact_requires_recorded_scope(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        plan_task = self.task_by_category(started, "execution_plan")
+
+        with self.assertRaises(WorkroomStateError):
+            create_delivery_execution_plan_artifact(
+                run_id=started["run_id"],
+                task_ref=plan_task["task_ref"],
+                scope_brief_ref=(
+                    "workroom-artifact://runs/"
+                    f"{started['run_id']}/delivery_planning/missing/"
+                    "delivery_scope_brief.md"
+                ),
+                workspace_path=str(workspace_path),
+            )
+
+    def test_create_delivery_execution_plan_artifact_completes_plan_task(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+        plan_task = self.task_by_category(started, "execution_plan")
+        scope_brief = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        first = create_delivery_execution_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = create_delivery_execution_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("completed", first["task"]["status"])
+        self.assertIn(first["artifact"]["artifact_ref"], first["task"]["result_refs"])
+        self.assertTrue(
+            first["artifact"]["artifact_ref"].endswith(
+                "/delivery_execution_plan.md"
+            )
+        )
+        self.assertEqual(
+            scope_brief["artifact"]["artifact_ref"],
+            first["artifact"]["scope_brief_ref"],
+        )
+        self.assertTrue(Path(first["artifact"]["artifact_path"]).exists())
+        self.assertEqual(first["artifact"], second["artifact"])
+        self.assertEqual(first["task"]["result_refs"], second["task"]["result_refs"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        persisted_task = self.task_by_category(state, "execution_plan")
+        self.assertEqual("completed", persisted_task["status"])
+        self.assertEqual(first["task"]["result_refs"], persisted_task["result_refs"])
+
     def test_create_release_quality_gate_report_completes_quality_gates_task(
         self,
     ) -> None:
@@ -1881,6 +2056,69 @@ class AgentSessionTests(unittest.TestCase):
             {
                 "run_id": started["run_id"],
                 "task_ref": landing_task["task_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_starts_delivery_planning_with_scope_brief(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "create_delivery_scope_brief_artifact",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": scope_task["task_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_continues_delivery_with_execution_plan(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+        plan_task = self.task_by_category(started, "execution_plan")
+        scope_brief = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "create_delivery_execution_plan_artifact",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": plan_task["task_ref"],
+                "scope_brief_ref": scope_brief["artifact"]["artifact_ref"],
                 "workspace_path": str(workspace_path),
             },
             recommendation["arguments"],
@@ -2657,6 +2895,49 @@ class AgentSessionTests(unittest.TestCase):
         self.assertEqual("completed", landing_task["status"])
         self.assertEqual("planned", testing_task["status"])
 
+    def test_run_next_local_step_executes_delivery_scope_then_execution_plan(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertTrue(first["executed"])
+        self.assertEqual("create_delivery_scope_brief_artifact", first["executed_tool"])
+        self.assertIn("artifact", first["result"])
+        self.assertTrue(Path(first["result"]["artifact"]["artifact_path"]).exists())
+        self.assertTrue(second["executed"])
+        self.assertEqual(
+            "create_delivery_execution_plan_artifact",
+            second["executed_tool"],
+        )
+        self.assertIn("artifact", second["result"])
+        self.assertTrue(Path(second["result"]["artifact"]["artifact_path"]).exists())
+        self.assertFalse(third["executed"])
+        self.assertEqual("", third["executed_tool"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual("completed", self.task_by_category(state, "scope_brief")["status"])
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "execution_plan")["status"],
+        )
+
     def test_run_next_local_step_executes_growth_brief_experiment_and_review(
         self,
     ) -> None:
@@ -3048,6 +3329,79 @@ class AgentSessionTests(unittest.TestCase):
         )
         self.assertEqual("completed", self.task_by_category(state, "landing_page")["status"])
         self.assertEqual("planned", self.task_by_category(state, "testing")["status"])
+
+    def test_advance_company_goal_executes_delivery_scope_local_step(self) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("scope_analyst", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "create_delivery_scope_brief_artifact",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("handoff", turn["transition"]["record_kind"])
+        self.assertTrue(turn["result_ref"].endswith("/delivery_scope_brief.md"))
+        self.assertEqual([turn["result_ref"]], turn["role_work_result"]["artifact_refs"])
+        self.assertEqual(
+            "create_delivery_scope_brief_artifact",
+            turn["role_work_result"]["outputs"]["executed_tool"],
+        )
+        self.assertEqual("completed", self.task_by_category(state, "scope_brief")["status"])
+        self.assertEqual("planned", self.task_by_category(state, "execution_plan")["status"])
+
+    def test_advance_company_goal_executes_delivery_execution_plan_local_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("delivery_planner", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "create_delivery_execution_plan_artifact",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("handoff", turn["transition"]["record_kind"])
+        self.assertTrue(turn["result_ref"].endswith("/delivery_execution_plan.md"))
+        self.assertEqual([turn["result_ref"]], turn["role_work_result"]["artifact_refs"])
+        self.assertEqual(
+            "create_delivery_execution_plan_artifact",
+            turn["role_work_result"]["outputs"]["executed_tool"],
+        )
+        self.assertEqual("completed", self.task_by_category(state, "scope_brief")["status"])
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "execution_plan")["status"],
+        )
 
     def test_advance_company_goal_executes_growth_brief_local_step(self) -> None:
         assert_external_kernel_dependency(self)

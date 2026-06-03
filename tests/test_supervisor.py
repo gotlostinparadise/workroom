@@ -252,6 +252,49 @@ class SupervisorCoreTests(unittest.TestCase):
 
         self.assertEqual("decision", detect_goal_phase(run))
 
+    def test_detect_goal_phase_for_delivery_execution_plan_task(self) -> None:
+        run = CompanyGoalRun(
+            run_id="run_abc",
+            user_id="usr_codex",
+            goal="Plan complex work",
+            team={
+                "roles": [
+                    {
+                        "role_id": "scope_analyst",
+                        "department_id": "scoping",
+                    },
+                    {
+                        "role_id": "delivery_planner",
+                        "department_id": "planning",
+                    },
+                ]
+            },
+            plan={"summary": "Plan", "tasks": []},
+            commits=[],
+            tasks=(
+                TaskState(
+                    task_ref="workroom-item://scope-brief",
+                    role_id="scope_analyst",
+                    category="scope_brief",
+                    title="Prepare delivery scope brief",
+                    status="completed",
+                    result_refs=(
+                        "workroom-artifact://runs/run_abc/delivery_planning/"
+                        "scope/delivery_scope_brief.md",
+                    ),
+                ),
+                TaskState(
+                    task_ref="workroom-item://execution-plan",
+                    role_id="delivery_planner",
+                    category="execution_plan",
+                    title="Prepare delivery execution plan",
+                    status="planned",
+                ),
+            ),
+        )
+
+        self.assertEqual("planning", detect_goal_phase(run))
+
     def test_build_supervisor_snapshot_counts_statuses(self) -> None:
         run = self.make_run(self.make_tasks())
 

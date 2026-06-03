@@ -14,6 +14,10 @@ from .devops_operations import (
     execute_github_pages_deploy_plan_files,
     prepare_github_pages_deploy_execution_plan_files,
 )
+from .delivery_planning import (
+    create_delivery_execution_plan_artifact_files,
+    create_delivery_scope_brief_artifact_files,
+)
 from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
@@ -99,6 +103,8 @@ from .workflow import run_company_workflow
 
 EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
+DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
+DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
 GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX = "workroom-artifact://"
 GROWTH_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 GROWTH_EXPERIMENT_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
@@ -608,6 +614,64 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
     )
     if release_readiness_recommendation is not None:
         return release_readiness_recommendation
+    scope_task = _optional_task_for_category(run, "scope_brief")
+    if scope_task is not None:
+        scope_ref = _result_ref_for_kind(run, "delivery_scope_brief_artifact")
+        plan_task = _optional_task_for_category(run, "execution_plan")
+        plan_ref = _result_ref_for_kind(run, "delivery_execution_plan_artifact")
+        if scope_task.status == "blocked":
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason="scope_brief task is blocked",
+                blocker_summary=scope_task.blocker_summary,
+            )
+        scope_readiness = _delivery_scope_brief_route_readiness(
+            scope_task=scope_task,
+            scope_ref=scope_ref,
+        )
+        if scope_readiness is not None:
+            return build_local_route_recommendation_from_readiness(
+                run_id=run.run_id,
+                workspace_path=workspace_path,
+                readiness=scope_readiness,
+            )
+        if scope_ref is None and scope_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="delivery scope brief artifact ref",
+                reason=(
+                    "scope_brief task is completed without a delivery scope "
+                    "brief artifact ref"
+                ),
+            )
+        if plan_task is not None:
+            if plan_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="execution_plan task is blocked",
+                    blocker_summary=plan_task.blocker_summary,
+                )
+            plan_readiness = _delivery_execution_plan_route_readiness(
+                plan_task=plan_task,
+                scope_ref=scope_ref,
+                plan_ref=plan_ref,
+            )
+            if plan_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=plan_readiness,
+                )
+            if plan_ref is None and plan_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="delivery execution plan artifact ref",
+                    reason=(
+                        "execution_plan task is completed without a delivery "
+                        "execution plan artifact ref"
+                    ),
+                )
+        return _no_local_recommendation(run.run_id)
     growth_task = _optional_task_for_category(run, "market_brief")
     if growth_task is not None:
         growth_ref = _result_ref_for_kind(run, "growth_brief_artifact")
@@ -1503,6 +1567,140 @@ def create_growth_experiment_plan_artifact(
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
 
 
+def create_delivery_scope_brief_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "scope_brief":
+        raise WorkroomStateError("task is not a scope_brief task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX)
+            and "/delivery_planning/" in ref
+            and ref.endswith("/delivery_scope_brief.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _delivery_scope_brief_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_delivery_scope_brief_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_delivery_execution_plan_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    scope_brief_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_scope_brief_ref = _required_text("scope_brief_ref", scope_brief_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "execution_plan":
+        raise WorkroomStateError("task is not an execution_plan task")
+    if not _artifact_ref_recorded_in_run(run, clean_scope_brief_ref):
+        raise WorkroomStateError("delivery scope brief artifact is not recorded in run state")
+    _delivery_scope_brief_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_scope_brief_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX)
+            and "/delivery_planning/" in ref
+            and ref.endswith("/delivery_execution_plan.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _delivery_execution_plan_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+            scope_brief_ref=clean_scope_brief_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_delivery_execution_plan_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+        scope_brief_ref=clean_scope_brief_ref,
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
 def create_release_quality_gate_report(
     *,
     run_id: str,
@@ -2322,7 +2520,58 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/growth_brief/" in ref
             and ref.endswith("/growth_experiment_plan.md")
         )
+    if kind == "delivery_scope_brief_artifact":
+        return (
+            ref.startswith(DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX)
+            and "/delivery_planning/" in ref
+            and ref.endswith("/delivery_scope_brief.md")
+        )
+    if kind == "delivery_execution_plan_artifact":
+        return (
+            ref.startswith(DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX)
+            and "/delivery_planning/" in ref
+            and ref.endswith("/delivery_execution_plan.md")
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
+
+
+def _delivery_scope_brief_route_readiness(
+    *,
+    scope_task: TaskState,
+    scope_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if scope_ref is not None:
+        return None
+    if scope_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_delivery_scope_brief_artifact",
+        task_ref=scope_task.task_ref,
+        reason="scope_brief task is ready and has no delivery scope brief",
+    )
+
+
+def _delivery_execution_plan_route_readiness(
+    *,
+    plan_task: TaskState,
+    scope_ref: str | None,
+    plan_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if scope_ref is None or plan_ref is not None:
+        return None
+    if plan_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_delivery_execution_plan_artifact",
+        task_ref=plan_task.task_ref,
+        reason=(
+            "delivery scope brief exists and execution_plan task has no "
+            "execution plan artifact"
+        ),
+        extra_arguments={
+            "scope_brief_ref": scope_ref,
+        },
+    )
 
 
 def _release_checklist_route_readiness(
@@ -2650,6 +2899,10 @@ def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
     return {
         "create_landing_artifact": create_landing_artifact,
         "create_landing_qa_report": create_landing_qa_report,
+        "create_delivery_scope_brief_artifact": create_delivery_scope_brief_artifact,
+        "create_delivery_execution_plan_artifact": (
+            create_delivery_execution_plan_artifact
+        ),
         "create_growth_brief_artifact": create_growth_brief_artifact,
         "create_growth_experiment_plan_artifact": (
             create_growth_experiment_plan_artifact
@@ -3261,6 +3514,89 @@ def _growth_brief_payload_for_existing_ref(
     return payload
 
 
+def _delivery_scope_brief_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/delivery_scope_brief.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("delivery scope brief artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "delivery_planning"
+        or parts[3] != "delivery_scope_brief.md"
+    ):
+        raise WorkroomStateError("delivery scope brief artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError(
+            "delivery scope brief artifact metadata is corrupt"
+        ) from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "delivery scope brief artifact metadata does not match ref"
+        )
+    return payload
+
+
+def _delivery_execution_plan_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+    scope_brief_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/delivery_execution_plan.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("delivery execution plan artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "delivery_planning"
+        or parts[3] != "delivery_execution_plan.md"
+    ):
+        raise WorkroomStateError("delivery execution plan artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "execution_plan_metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError(
+            "delivery execution plan artifact metadata is corrupt"
+        ) from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "delivery execution plan artifact metadata does not match ref"
+        )
+    if payload.get("scope_brief_ref") != scope_brief_ref:
+        raise WorkroomStateError(
+            "delivery execution plan artifact metadata does not match scope brief ref"
+        )
+    return payload
+
+
 def _growth_experiment_plan_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -3507,6 +3843,8 @@ def _github_pages_deploy_proposal_payload_for_existing_ref(
 __all__ = [
     "EXTERNAL_CAPABILITY_CATEGORIES",
     "DEVOPS_OPERATION_PREFIX",
+    "DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX",
+    "DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX",
     "GOAL_RUN_REPORT_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "GROWTH_BRIEF_ARTIFACT_PREFIX",
@@ -3520,6 +3858,8 @@ __all__ = [
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
+    "create_delivery_scope_brief_artifact",
+    "create_delivery_execution_plan_artifact",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

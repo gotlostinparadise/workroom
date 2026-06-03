@@ -4,6 +4,7 @@ import unittest
 
 from agency_workroom.company_specs import (
     business_validation_company_spec,
+    delivery_planning_company_spec,
     growth_brief_company_spec,
     release_hardening_company_spec,
 )
@@ -110,6 +111,35 @@ class BusinessValidationPlannerTests(unittest.TestCase):
             [task.role_id for task in spec.task_templates],
         )
         self.assertEqual("growth_brief", spec.metadata["reference_vertical"])
+
+    def test_delivery_planning_company_spec_has_scope_and_execution_roles(
+        self,
+    ) -> None:
+        spec = delivery_planning_company_spec()
+
+        self.assertEqual("delivery_planning", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Delivery Planning", spec.display_name)
+        self.assertEqual(
+            ["scope_brief", "execution_plan"],
+            [task.category for task in spec.task_templates],
+        )
+        self.assertEqual(
+            {"scoping", "planning"},
+            {department.department_id for department in spec.team.departments},
+        )
+        self.assertEqual(
+            {"scope_analyst", "delivery_planner"},
+            {role.role_id for role in spec.team.roles},
+        )
+        self.assertEqual(
+            ["scope_analyst", "delivery_planner"],
+            [task.role_id for task in spec.task_templates],
+        )
+        self.assertEqual(
+            "delivery_planning",
+            spec.metadata["reference_vertical"],
+        )
 
     def test_generic_company_spec_planner_creates_tasks_from_templates(self) -> None:
         request = WorkflowRequest(

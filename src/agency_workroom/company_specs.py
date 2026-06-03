@@ -286,8 +286,86 @@ def growth_brief_company_spec() -> CompanySpec:
     )
 
 
+def delivery_planning_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="delivery_planning_team",
+        departments=(
+            Department(
+                department_id="scoping",
+                display_name="Scoping Department",
+                purpose="Clarify objectives, constraints, risks, and unknowns",
+                authority_level="local_only",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="planning",
+                display_name="Planning Department",
+                purpose="Turn scoped work into an execution-ready local plan",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="scope_analyst",
+                display_name="Scope Analyst",
+                responsibilities=(
+                    "Prepare local scope briefs for complex Codex work"
+                ),
+                department_id="scoping",
+                authority_scope="local_only",
+            ),
+            TeamRole(
+                role_id="delivery_planner",
+                display_name="Delivery Planner",
+                responsibilities=(
+                    "Prepare execution plans from scoped local evidence"
+                ),
+                department_id="planning",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="delivery_planning",
+        version="v1",
+        display_name="Delivery Planning",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="scope_analyst",
+                category="scope_brief",
+                title="Prepare delivery scope brief",
+                summary_template=(
+                    "Scope the objective '{objective}' under constraints: "
+                    "{constraints}. Success means: {success_definition}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "delivery_scope_brief"},
+            ),
+            CompanyTaskTemplate(
+                role_id="delivery_planner",
+                category="execution_plan",
+                title="Prepare delivery execution plan",
+                summary_template=(
+                    "Prepare an execution plan for '{objective}' under "
+                    "constraints: {constraints}. Success means: "
+                    "{success_definition}."
+                ),
+                priority="high",
+                metadata={
+                    "artifact_kind": "delivery_execution_plan",
+                    "depends_on": "scope_brief",
+                },
+            ),
+        ),
+        metadata={"reference_vertical": "delivery_planning"},
+    )
+
+
 __all__ = [
     "business_validation_company_spec",
+    "delivery_planning_company_spec",
     "growth_brief_company_spec",
     "release_hardening_company_spec",
 ]

@@ -17,6 +17,8 @@ TOOL_NAMES = (
     "record_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_delivery_scope_brief_artifact",
+    "create_delivery_execution_plan_artifact",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",
     "prepare_growth_review_decision",
@@ -177,6 +179,36 @@ def create_landing_qa_report(
         run_id=run_id,
         task_ref=task_ref,
         artifact_ref=artifact_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_delivery_scope_brief_artifact(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local delivery scope brief artifact for a planning task."""
+    return agent_session.create_delivery_scope_brief_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_delivery_execution_plan_artifact(
+    run_id: str,
+    task_ref: str,
+    scope_brief_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local delivery execution plan from a scope brief artifact."""
+    return agent_session.create_delivery_execution_plan_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        scope_brief_ref=scope_brief_ref,
         workspace_path=workspace_path,
     )
 
@@ -439,6 +471,8 @@ if __name__ == "__main__":
 __all__ = [
     "TOOL_NAMES",
     "advance_company_goal",
+    "create_delivery_execution_plan_artifact",
+    "create_delivery_scope_brief_artifact",
     "create_goal_run_report",
     "create_growth_brief_artifact",
     "create_growth_experiment_plan_artifact",

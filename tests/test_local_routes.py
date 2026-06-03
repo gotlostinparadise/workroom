@@ -24,6 +24,8 @@ class LocalRouteRegistryTests(unittest.TestCase):
             (
                 "create_landing_artifact",
                 "create_landing_qa_report",
+                "create_delivery_scope_brief_artifact",
+                "create_delivery_execution_plan_artifact",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
                 "prepare_growth_review_decision",
@@ -50,6 +52,32 @@ class LocalRouteRegistryTests(unittest.TestCase):
             self.assertEqual("local_execution", payload["manifest_phase"])
             self.assertEqual("local_files", payload["external_effect_risk"])
 
+        self.assertEqual(
+            {
+                "tool_name": "create_delivery_scope_brief_artifact",
+                "delegated_role": "scope_analyst",
+                "result_kind": "delivery_scope_brief_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["recommend_next_tool_call"],
+                "executor_name": "create_delivery_scope_brief_artifact",
+            },
+            route_payloads["create_delivery_scope_brief_artifact"],
+        )
+        self.assertEqual(
+            {
+                "tool_name": "create_delivery_execution_plan_artifact",
+                "delegated_role": "delivery_planner",
+                "result_kind": "delivery_execution_plan_artifact",
+                "record_kind": "handoff",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_delivery_scope_brief_artifact"],
+                "executor_name": "create_delivery_execution_plan_artifact",
+            },
+            route_payloads["create_delivery_execution_plan_artifact"],
+        )
         self.assertEqual(
             {
                 "tool_name": "create_growth_brief_artifact",

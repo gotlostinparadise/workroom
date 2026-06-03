@@ -76,6 +76,22 @@ def detect_goal_phase(run: CompanyGoalRun) -> str:
         and _result_ref_for_kind(run, "growth_experiment_plan_artifact") is None
     ):
         return "local_production"
+    scope_brief_task = _optional_task_for_category(run, "scope_brief")
+    if (
+        scope_brief_task is not None
+        and scope_brief_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "delivery_scope_brief_artifact") is None
+    ):
+        return "local_production"
+    execution_plan_task = _optional_task_for_category(run, "execution_plan")
+    if (
+        execution_plan_task is not None
+        and execution_plan_task.status in {"planned", "in_progress"}
+        and _result_ref_for_kind(run, "delivery_scope_brief_artifact") is not None
+        and _result_ref_for_kind(run, "delivery_execution_plan_artifact") is None
+    ):
+        role_departments = _role_departments(run)
+        return role_departments.get(execution_plan_task.role_id, "planning")
     if not _has_task_categories(run, ("landing_page", "testing", "github_pages")):
         return "decision"
     if _result_ref_for_kind(run, "landing_artifact") is None:
@@ -775,6 +791,14 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/growth_brief/" in ref and ref.endswith(
             "/growth_experiment_plan.md"
         )
+    if kind == "delivery_scope_brief_artifact":
+        return "/delivery_planning/" in ref and ref.endswith(
+            "/delivery_scope_brief.md"
+        )
+    if kind == "delivery_execution_plan_artifact":
+        return "/delivery_planning/" in ref and ref.endswith(
+            "/delivery_execution_plan.md"
+        )
     raise WorkroomStateError(f"unknown result ref kind: {kind}")
 
 
@@ -913,6 +937,7 @@ def _current_department_for_phase(
         "qa": "qa",
         "deploy_preparation": "devops",
         "approval_required": "devops",
+        "planning": "planning",
         "promotion_preparation": "growth",
         "complete": "coordination",
     }

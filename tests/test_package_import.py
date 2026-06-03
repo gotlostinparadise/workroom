@@ -97,6 +97,27 @@ class PackageImportTests(unittest.TestCase):
             agency_workroom.__all__,
         )
 
+    def test_delivery_planning_company_spec_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.delivery_planning_company_spec))
+        self.assertTrue(callable(agency_workroom.create_delivery_scope_brief_artifact))
+        self.assertTrue(
+            callable(agency_workroom.create_delivery_execution_plan_artifact)
+        )
+        self.assertIn("delivery_planning_company_spec", agency_workroom.__all__)
+        self.assertIn(
+            "create_delivery_scope_brief_artifact",
+            agency_workroom.__all__,
+        )
+        self.assertIn(
+            "create_delivery_execution_plan_artifact",
+            agency_workroom.__all__,
+        )
+        self.assertIn("DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX", agency_workroom.__all__)
+        self.assertIn(
+            "DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX",
+            agency_workroom.__all__,
+        )
+
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))
         self.assertTrue(callable(agency_workroom.LocalRouteReadiness))
