@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from importlib import metadata as importlib_metadata
+import inspect
 import json
 from pathlib import Path
 import tomllib
@@ -95,6 +96,7 @@ def _audit_payload(
     release_smoke_path = runbook_dir / "runbook_release_readiness_smoke.json"
     release_smoke = _optional_json_file(release_smoke_path)
     mcp_surface = _mcp_surface()
+    export_surface = _export_surface()
     release_smoke_payload = _release_smoke_payload(
         runbook_id=runbook_id,
         path=release_smoke_path,
@@ -103,6 +105,7 @@ def _audit_payload(
     findings = _audit_findings(
         run_ids=run_ids,
         mcp_surface=mcp_surface,
+        export_surface=export_surface,
         release_smoke=release_smoke_payload,
     )
     return {
@@ -112,6 +115,7 @@ def _audit_payload(
         "audit_status": _audit_status(findings),
         "ready_for_release_candidate_review": not findings,
         "mcp_surface": mcp_surface,
+        "export_surface": export_surface,
         "package_surface": _package_surface(),
         "runbook_release_smoke": release_smoke_payload,
         "manual_verification_gates": _manual_verification_gates(),
@@ -155,6 +159,29 @@ def _mcp_surface() -> dict[str, object]:
             "command": str(_mapping(manifest.get("server")).get("command", "")),
             "args": _string_list(_mapping(manifest.get("server")).get("args")),
         },
+    }
+
+
+def _export_surface() -> dict[str, object]:
+    from . import agent_session, mcp_server
+
+    mcp_tool_names = tuple(mcp_server.TOOL_NAMES)
+    session_public_functions = tuple(
+        name
+        for name in dir(agent_session)
+        if not name.startswith("_")
+        and inspect.isfunction(getattr(agent_session, name))
+        and getattr(agent_session, name).__module__ == agent_session.__name__
+    )
+    return {
+        "mcp_tool_export_count": len(mcp_server.__all__),
+        "session_export_count": len(agent_session.__all__),
+        "missing_mcp_tool_exports": sorted(
+            set(mcp_tool_names) - set(mcp_server.__all__)
+        ),
+        "missing_session_public_function_exports": sorted(
+            set(session_public_functions) - set(agent_session.__all__)
+        ),
     }
 
 
@@ -282,6 +309,7 @@ def _audit_findings(
     *,
     run_ids: tuple[str, ...],
     mcp_surface: Mapping[str, object],
+    export_surface: Mapping[str, object],
     release_smoke: Mapping[str, object],
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
@@ -299,6 +327,27 @@ def _audit_findings(
                 "severity": "error",
                 "code": "missing_release_tool",
                 "message": f"required release tool is missing: {tool_name}",
+            }
+        )
+    for tool_name in _string_list(export_surface.get("missing_mcp_tool_exports")):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "missing_mcp_tool_export",
+                "message": f"registered MCP tool is missing from mcp_server.__all__: {tool_name}",
+            }
+        )
+    for function_name in _string_list(
+        export_surface.get("missing_session_public_function_exports")
+    ):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "missing_session_public_function_export",
+                "message": (
+                    "public session function is missing from "
+                    f"agent_session.__all__: {function_name}"
+                ),
             }
         )
     if not bool(release_smoke.get("valid")):
@@ -412,6 +461,18 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"server tools: {_single_line(mcp_surface.get('server_tool_count', 0))}"
     )
     package_surface = _mapping(payload.get("package_surface"))
+    export_surface = _mapping(payload.get("export_surface"))
+    lines.extend(["", "## Export Surface", ""])
+    lines.append(
+        "- "
+        f"Missing MCP tool exports: "
+        f"{len(_string_list(export_surface.get('missing_mcp_tool_exports')))}"
+    )
+    lines.append(
+        "- "
+        f"Missing session public function exports: "
+        f"{len(_string_list(export_surface.get('missing_session_public_function_exports')))}"
+    )
     lines.extend(["", "## Package Surface", ""])
     lines.append(
         "- "

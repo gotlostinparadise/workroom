@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v41.
+Status: Canonical plan v42.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -356,6 +356,11 @@ These milestones are complete enough to be treated as foundation:
 56. Public Export Surface Hardening v1.
     Public session and MCP wrapper functions are covered by export guards so
     installed Python module usage stays aligned with the MCP/server surface.
+
+57. Release Audit Export Surface Validation v1.
+    The release-candidate audit records MCP/session export-surface checks and
+    fails release-candidate readiness when registered MCP tools or public
+    session functions are missing from module `__all__`.
 
 ## Milestone Plan
 
@@ -1491,6 +1496,29 @@ Exit criteria:
   the exported module surface.
 - Existing MCP registration, manifest order, README tool list, and runtime
   behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 47. Release Audit Export Surface Validation v1
+
+Status: Done.
+
+Goal: close the release-audit coverage gap where export-surface drift could be
+caught by focused tests but not by the release-candidate audit artifact itself.
+
+Exit criteria:
+
+- `create_release_candidate_audit` records an `export_surface` section.
+- The export surface reports missing MCP tool exports from
+  `agency_workroom.mcp_server.__all__`.
+- The export surface reports missing public session function exports from
+  `agency_workroom.agent_session.__all__`.
+- Missing MCP or session exports produce error findings and block
+  release-candidate readiness.
+- Markdown output summarizes export-surface gaps.
+- Tests cover both the healthy export surface and failing export-surface
+  findings.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

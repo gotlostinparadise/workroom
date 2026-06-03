@@ -67,6 +67,11 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual([], payload["mcp_surface"]["missing_from_manifest"])
         self.assertEqual([], payload["mcp_surface"]["missing_from_server"])
         self.assertEqual([], payload["mcp_surface"]["missing_required_tools"])
+        self.assertEqual([], payload["export_surface"]["missing_mcp_tool_exports"])
+        self.assertEqual(
+            [],
+            payload["export_surface"]["missing_session_public_function_exports"],
+        )
         self.assertEqual("agency-workroom", payload["package_surface"]["project_name"])
         self.assertTrue(payload["package_surface"]["pyproject_readable"])
         self.assertFalse(payload["package_surface"]["installed_metadata_readable"])
@@ -87,6 +92,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],
         )
         self.assertIn("Release Candidate Audit", markdown)
+        self.assertIn("Missing MCP tool exports: 0", markdown)
         self.assertIn("Kernel dependency mode: absolute_file", markdown)
         self.assertIn("installed_mcp_stdio_smoke", markdown)
 
@@ -141,6 +147,32 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             release_candidate_audit._distribution_scope("declared_package"),
         )
         self.assertEqual("unknown", release_candidate_audit._distribution_scope("missing"))
+
+    def test_audit_findings_flags_missing_export_surface(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": ["advance_company_goal"],
+                "missing_session_public_function_exports": ["start_company_goal"],
+            },
+            release_smoke={
+                "valid": True,
+                "ready": True,
+                "run_ids": ["run_design"],
+            },
+        )
+
+        self.assertEqual(
+            {
+                "missing_mcp_tool_export",
+                "missing_session_public_function_export",
+            },
+            {finding["code"] for finding in findings},
+        )
 
     def test_release_candidate_audit_module_has_no_runtime_primitives(self) -> None:
         source = Path(release_candidate_audit.__file__).read_text(encoding="utf-8")

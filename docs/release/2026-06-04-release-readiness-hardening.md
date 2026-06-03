@@ -11,6 +11,7 @@ Scope:
 - Release-candidate audit startup-handshake and package-scope hardening.
 - Release-candidate audit package metadata fallback for non-editable installs.
 - Public session and MCP wrapper export surface hardening.
+- Release-candidate audit export surface validation.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -39,6 +40,8 @@ Release-candidate audit result:
 - Findings: `[]`
 - MCP server tool count: `55`
 - MCP manifest matches server: `true`
+- Missing MCP tool exports: `[]`
+- Missing session public function exports: `[]`
 - Required startup tool checked: `submit_goal_intake_result`
 - Kernel dependency mode: `absolute_file`
 - Distribution scope: `local_editable_checkout`
@@ -55,34 +58,34 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 525 tests in 9.049s
+Ran 526 tests in 8.967s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-exports-venv
-python -m venv /tmp/workroom-release-exports-venv
-/tmp/workroom-release-exports-venv/bin/python -m pip install -e .
-/tmp/workroom-release-exports-venv/bin/python -m unittest discover -s tests -v
-Ran 525 tests in 9.104s
+rm -rf /tmp/workroom-release-audit-export-venv
+python -m venv /tmp/workroom-release-audit-export-venv
+/tmp/workroom-release-audit-export-venv/bin/python -m pip install -e .
+/tmp/workroom-release-audit-export-venv/bin/python -m unittest discover -s tests -v
+Ran 526 tests in 8.996s
 OK
 ```
 
 Installed MCP smoke:
 
 ```text
-tool_count=55
-has_release_candidate_audit=True
-has_release_readiness_smoke=True
-audit_required=['workspace_path', 'run_ids_json']
-has_submit_goal_intake_result=True
-required_release_tool_checked=True
-start_optional_context=True
-package_surface={'pyproject_readable': True, 'installed_metadata_readable': False, 'kernel_dependency_mode': 'absolute_file', 'distribution_scope': 'local_editable_checkout'}
-mcp_tool_exports_missing=[]
-session_public_exports_missing=[]
+{
+  "export_surface": {
+    "mcp_tool_export_count": 58,
+    "missing_mcp_tool_exports": [],
+    "missing_session_public_function_exports": [],
+    "session_export_count": 79
+  },
+  "has_release_candidate_audit": true,
+  "tool_count": 55
+}
 ```
 
 Non-editable package metadata probe:
