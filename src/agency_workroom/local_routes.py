@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
+from .models import NextToolRecommendation
 from .session_store import WorkroomStateError
 
 
@@ -95,6 +96,35 @@ def is_local_route_tool(tool_name: str) -> bool:
     return tool_name in _LOCAL_ROUTES_BY_TOOL
 
 
+def build_local_route_recommendation(
+    *,
+    tool_name: str,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+    reason: str,
+    extra_arguments: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    route = get_local_route(tool_name)
+    arguments: dict[str, object] = {
+        "run_id": run_id,
+        "task_ref": task_ref,
+    }
+    if extra_arguments is not None:
+        arguments.update(dict(extra_arguments))
+    arguments["workspace_path"] = workspace_path
+
+    return NextToolRecommendation(
+        run_id=run_id,
+        recommended_tool=route.tool_name,
+        arguments=arguments,
+        reason=reason,
+        missing_prerequisites=(),
+        will_mutate_state=True,
+        blocked=False,
+    ).to_payload()
+
+
 def execute_local_route(
     tool_name: str,
     *,
@@ -112,6 +142,7 @@ __all__ = [
     "LOCAL_ROUTE_TOOL_NAMES",
     "LOCAL_ROUTES",
     "LocalRoute",
+    "build_local_route_recommendation",
     "execute_local_route",
     "get_local_route",
     "is_local_route_tool",

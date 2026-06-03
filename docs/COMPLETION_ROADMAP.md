@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v14.
+Status: Canonical plan v15.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -195,6 +195,11 @@ These milestones are complete enough to be treated as foundation:
 29. Local Route Dispatcher v1.
     Existing allowlisted local routes now dispatch through the route registry
     instead of a route-specific execution branch in `run_next_local_step`.
+
+30. Local Route Recommendation Helper v1.
+    Existing allowlisted local routes now build successful recommendation
+    payloads through a registry-backed helper after explicit route eligibility
+    predicates select the next route.
 
 ## Milestone Plan
 
@@ -571,6 +576,30 @@ Exit criteria:
 - No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 20. Local Route Recommendation Helper v1
+
+Status: Done.
+
+Goal: centralize successful local-route recommendation payload construction
+while preserving current route eligibility logic.
+
+Exit criteria:
+
+- A registry-backed helper validates the requested local route before building
+  a `NextToolRecommendation` payload.
+- Standard local-route recommendation invariants are centralized:
+  empty prerequisites, `will_mutate_state=True`, and `blocked=False`.
+- Payload arguments preserve `run_id`, `task_ref`, route-specific refs, and
+  `workspace_path`.
+- Unknown tools fail closed through the route registry.
+- `recommend_next_tool_call` and Release Hardening route helpers call the
+  recommendation helper for eligible local routes.
+- Intake, blocked, missing-prerequisite, no-local, passing-QA blocker,
+  predicate order, public tool names, response shapes, local execution, and
+  supervisor behavior remain unchanged.
+- No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -587,7 +616,7 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that extends the local route registry toward reusable
-recommendation helpers only where tests prove no behavior drift. Add another
+the smallest slice that moves route eligibility predicates into explicit
+route-readiness helpers only where tests prove no behavior drift. Add another
 company spec only after preserving the no-loop, no-external-effect,
 Kernel-boundary floor.

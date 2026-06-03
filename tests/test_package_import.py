@@ -74,8 +74,10 @@ class PackageImportTests(unittest.TestCase):
 
     def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.LocalRoute))
+        self.assertTrue(callable(agency_workroom.build_local_route_recommendation))
         self.assertTrue(callable(agency_workroom.get_local_route))
         self.assertTrue(callable(agency_workroom.is_local_route_tool))
+        self.assertIn("build_local_route_recommendation", agency_workroom.__all__)
         self.assertIn("LocalRoute", agency_workroom.__all__)
         self.assertIn("LOCAL_ROUTES", agency_workroom.__all__)
         self.assertIn("LOCAL_ROUTE_TOOL_NAMES", agency_workroom.__all__)

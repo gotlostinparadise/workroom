@@ -34,7 +34,11 @@ from .company_registry import (
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
-from .local_routes import LOCAL_ROUTE_TOOL_NAMES, execute_local_route
+from .local_routes import (
+    LOCAL_ROUTE_TOOL_NAMES,
+    build_local_route_recommendation,
+    execute_local_route,
+)
 from .mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -619,19 +623,13 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
         )
     if landing_artifact_ref is None:
         if landing_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="create_landing_artifact",
                 run_id=run.run_id,
-                recommended_tool="create_landing_artifact",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": landing_task.task_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=landing_task.task_ref,
+                workspace_path=workspace_path,
                 reason="landing_page task is ready and has no landing artifact",
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+            )
         if landing_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -648,20 +646,16 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
         )
     if qa_report_ref is None:
         if testing_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="create_landing_qa_report",
                 run_id=run.run_id,
-                recommended_tool="create_landing_qa_report",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": testing_task.task_ref,
-                    "artifact_ref": landing_artifact_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=testing_task.task_ref,
+                workspace_path=workspace_path,
                 reason="landing artifact exists and testing task has no QA report",
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+                extra_arguments={
+                    "artifact_ref": landing_artifact_ref,
+                },
+            )
         if testing_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -694,24 +688,20 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
         )
     if deploy_proposal_ref is None:
         if github_pages_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="prepare_github_pages_deploy_proposal",
                 run_id=run.run_id,
-                recommended_tool="prepare_github_pages_deploy_proposal",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": github_pages_task.task_ref,
-                    "landing_artifact_ref": landing_artifact_ref,
-                    "qa_report_ref": qa_report_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=github_pages_task.task_ref,
+                workspace_path=workspace_path,
                 reason=(
                     "landing artifact and passing QA report exist and "
                     "github_pages task has no deploy proposal"
                 ),
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+                extra_arguments={
+                    "landing_artifact_ref": landing_artifact_ref,
+                    "qa_report_ref": qa_report_ref,
+                },
+            )
         if github_pages_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -1888,19 +1878,13 @@ def _release_checklist_recommendation(
         )
     if checklist_ref is None:
         if release_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="create_release_checklist_artifact",
                 run_id=run.run_id,
-                recommended_tool="create_release_checklist_artifact",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": release_task.task_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=release_task.task_ref,
+                workspace_path=workspace_path,
                 reason="release_plan task is ready and has no release checklist",
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+            )
         if release_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -1933,23 +1917,19 @@ def _release_quality_gate_recommendation(
         return None
     if report_ref is None:
         if quality_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="create_release_quality_gate_report",
                 run_id=run.run_id,
-                recommended_tool="create_release_quality_gate_report",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": quality_task.task_ref,
-                    "checklist_ref": checklist_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=quality_task.task_ref,
+                workspace_path=workspace_path,
                 reason=(
                     "release checklist exists and quality_gates task has no "
                     "quality gate report"
                 ),
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+                extra_arguments={
+                    "checklist_ref": checklist_ref,
+                },
+            )
         if quality_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -1983,24 +1963,20 @@ def _release_notes_recommendation(
         return None
     if notes_ref is None:
         if notes_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="create_release_notes_artifact",
                 run_id=run.run_id,
-                recommended_tool="create_release_notes_artifact",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": notes_task.task_ref,
-                    "checklist_ref": checklist_ref,
-                    "quality_report_ref": quality_report_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=notes_task.task_ref,
+                workspace_path=workspace_path,
                 reason=(
                     "release checklist and quality report exist and "
                     "release_notes task has no release notes artifact"
                 ),
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+                extra_arguments={
+                    "checklist_ref": checklist_ref,
+                    "quality_report_ref": quality_report_ref,
+                },
+            )
         if notes_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,
@@ -2039,25 +2015,21 @@ def _release_readiness_recommendation(
         return None
     if readiness_ref is None:
         if coordination_task.status in _NEXT_ACTION_STATUSES:
-            return NextToolRecommendation(
+            return build_local_route_recommendation(
+                tool_name="prepare_release_readiness_decision",
                 run_id=run.run_id,
-                recommended_tool="prepare_release_readiness_decision",
-                arguments={
-                    "run_id": run.run_id,
-                    "task_ref": coordination_task.task_ref,
-                    "checklist_ref": checklist_ref,
-                    "quality_report_ref": quality_report_ref,
-                    "release_notes_ref": release_notes_ref,
-                    "workspace_path": workspace_path,
-                },
+                task_ref=coordination_task.task_ref,
+                workspace_path=workspace_path,
                 reason=(
                     "release checklist, quality report, and release notes exist "
                     "and coordination task has no readiness decision"
                 ),
-                missing_prerequisites=(),
-                will_mutate_state=True,
-                blocked=False,
-            ).to_payload()
+                extra_arguments={
+                    "checklist_ref": checklist_ref,
+                    "quality_report_ref": quality_report_ref,
+                    "release_notes_ref": release_notes_ref,
+                },
+            )
         if coordination_task.status == "completed":
             return _missing_prerequisite_recommendation(
                 run_id=run.run_id,

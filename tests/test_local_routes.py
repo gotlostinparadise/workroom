@@ -7,6 +7,7 @@ from agency_workroom import local_routes
 from agency_workroom.local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
+    build_local_route_recommendation,
     execute_local_route,
     get_local_route,
     is_local_route_tool,
@@ -69,6 +70,65 @@ class LocalRouteRegistryTests(unittest.TestCase):
         self.assertFalse(is_local_route_tool("submit_goal_intake_result"))
         with self.assertRaises(WorkroomStateError):
             get_local_route("submit_goal_intake_result")
+
+    def test_build_local_route_recommendation_uses_standard_payload_shape(
+        self,
+    ) -> None:
+        reason = "landing artifact exists and testing task has no QA report"
+
+        payload = build_local_route_recommendation(
+            tool_name="create_landing_qa_report",
+            run_id="run_recommend",
+            task_ref="workroom-item://testing",
+            workspace_path="/tmp/workspace",
+            reason=reason,
+            extra_arguments={
+                "artifact_ref": (
+                    "workroom-artifact://runs/run_recommend/landing_page/"
+                    "index.html"
+                )
+            },
+        )
+
+        self.assertEqual("run_recommend", payload["run_id"])
+        self.assertEqual("create_landing_qa_report", payload["recommended_tool"])
+        self.assertEqual(reason, payload["reason"])
+        self.assertEqual([], payload["missing_prerequisites"])
+        self.assertTrue(payload["will_mutate_state"])
+        self.assertFalse(payload["blocked"])
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "artifact_ref",
+                "workspace_path",
+            ],
+            list(payload["arguments"]),
+        )
+        self.assertEqual(
+            {
+                "run_id": "run_recommend",
+                "task_ref": "workroom-item://testing",
+                "artifact_ref": (
+                    "workroom-artifact://runs/run_recommend/landing_page/"
+                    "index.html"
+                ),
+                "workspace_path": "/tmp/workspace",
+            },
+            payload["arguments"],
+        )
+
+    def test_build_local_route_recommendation_fails_closed_for_unknown_tool(
+        self,
+    ) -> None:
+        with self.assertRaises(WorkroomStateError):
+            build_local_route_recommendation(
+                tool_name="submit_goal_intake_result",
+                run_id="run_recommend",
+                task_ref="workroom-item://intake",
+                workspace_path="/tmp/workspace",
+                reason="not a registered local route",
+            )
 
     def test_execute_local_route_calls_registered_executor_with_arguments(self) -> None:
         calls: list[dict[str, object]] = []

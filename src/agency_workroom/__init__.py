@@ -63,6 +63,7 @@ from .local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
     LocalRoute,
+    build_local_route_recommendation,
     get_local_route,
     is_local_route_tool,
 )
@@ -187,6 +188,7 @@ __all__ = [
     "audit_company_goal_run",
     "audit_company_goal_run_files",
     "build_company_brief",
+    "build_local_route_recommendation",
     "business_validation_company_spec",
     "check_workroom_mcp_config",
     "compact_company_brief",

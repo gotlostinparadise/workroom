@@ -72,6 +72,22 @@ class AgentSessionTests(unittest.TestCase):
             self.assertNotIn(f'if recommended_tool == "{tool_name}"', source)
             self.assertNotIn(f'elif recommended_tool == "{tool_name}"', source)
 
+    def test_local_route_recommendations_use_registry_helper(self) -> None:
+        source = "\n".join(
+            inspect.getsource(function)
+            for function in (
+                agent_session.recommend_next_tool_call,
+                agent_session._release_checklist_recommendation,
+                agent_session._release_quality_gate_recommendation,
+                agent_session._release_notes_recommendation,
+                agent_session._release_readiness_recommendation,
+            )
+        )
+
+        self.assertIn("build_local_route_recommendation", source)
+        for tool_name in LOCAL_ROUTE_TOOL_NAMES:
+            self.assertNotIn(f'recommended_tool="{tool_name}"', source)
+
     def temp_root(self) -> Path:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
