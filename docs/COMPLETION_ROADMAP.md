@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v12.
+Status: Canonical plan v13.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -186,6 +186,11 @@ These milestones are complete enough to be treated as foundation:
     Release Hardening can complete its `coordination` task after checklist,
     quality gate, and release notes evidence exist by preparing a local
     `release_readiness` decision record.
+
+28. Local Route Registry v1.
+    Existing allowlisted local routes now share a static metadata registry for
+    tool name, delegated role, result kind, operational record kind, manifest
+    phase, risk label, and recommended predecessor.
 
 ## Milestone Plan
 
@@ -516,6 +521,29 @@ Exit criteria:
 - No Kernel changes, hidden loops, approval, deploys, pushes, posts, external
   API calls, or new external effects are added.
 
+### 18. Local Route Registry v1
+
+Status: Done.
+
+Goal: reduce per-company local-route duplication by centralizing metadata for
+existing allowlisted local steps.
+
+Exit criteria:
+
+- A data-only local route registry lists all existing local route tools in
+  current execution order.
+- Each route records delegated role, result kind, handoff-or-decision record
+  kind, manifest phase, external-effect risk label, and recommended predecessor.
+- `agent_session.LOCAL_STEP_TOOL_NAMES` is registry-derived.
+- Supervisor local-step delegated role and record-kind selection uses registry
+  metadata.
+- MCP manifest phase, risk, and recommended-after values for local routes use
+  registry metadata.
+- Route-specific prerequisite checks, recommendation order, execution dispatch,
+  result refs, MCP tool names, and public response shapes remain unchanged.
+- No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -532,6 +560,7 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that reduces per-company route duplication through reusable
-local-route or decision-route metadata, or adds another company spec only after
-preserving the no-loop, no-external-effect, Kernel-boundary floor.
+the smallest slice that extends the local route registry from static metadata
+toward reusable recommendation or dispatch helpers only where tests prove no
+behavior drift. Add another company spec only after preserving the no-loop,
+no-external-effect, Kernel-boundary floor.

@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import agency_workroom.agent_session as agent_session
 from agency_workroom.company_registry import get_company_spec
+from agency_workroom.local_routes import LOCAL_ROUTE_TOOL_NAMES
 from agency_workroom.agent_session import (
     advance_company_goal,
     audit_company_goal_run,
@@ -59,6 +60,9 @@ from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
 class AgentSessionTests(unittest.TestCase):
+    def test_local_step_tool_names_are_registry_derived(self) -> None:
+        self.assertIs(LOCAL_ROUTE_TOOL_NAMES, agent_session.LOCAL_STEP_TOOL_NAMES)
+
     def temp_root(self) -> Path:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)

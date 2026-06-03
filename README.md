@@ -157,6 +157,12 @@ checklist, quality gate, release notes, and readiness decision preparation for
 Release Hardening. It does not loop, push to GitHub, post externally, or run
 unapproved tools such as raw result recording.
 
+Allowlisted local route metadata is centralized in an internal route registry.
+That registry defines each local route's tool name, delegated role, result kind,
+handoff-or-decision record kind, MCP manifest phase, risk label, and recommended
+predecessor. It is metadata only: route prerequisites and execution remain under
+the bounded session and supervisor tools.
+
 `advance_company_goal` is the first goal-specific supervisor tool. It performs
 one bounded supervisor turn for a run: observe state, choose the next safe local
 step, execute at most one local step, or return a structured approval/blocker

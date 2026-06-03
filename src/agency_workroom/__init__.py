@@ -59,6 +59,13 @@ from .company_briefing import (
     role_work_spec_for_task,
 )
 from .goal_intake import workflow_request_from_goal
+from .local_routes import (
+    LOCAL_ROUTE_TOOL_NAMES,
+    LOCAL_ROUTES,
+    LocalRoute,
+    get_local_route,
+    is_local_route_tool,
+)
 from .company_registry import (
     DEFAULT_COMPANY_SPEC_ID,
     default_company_spec,
@@ -146,7 +153,10 @@ __all__ = [
     "HandoffRecord",
     "LANDING_ARTIFACT_PREFIX",
     "LANDING_QA_REPORT_PREFIX",
+    "LOCAL_ROUTE_TOOL_NAMES",
+    "LOCAL_ROUTES",
     "LOCAL_STEP_TOOL_NAMES",
+    "LocalRoute",
     "NextAction",
     "NextToolRecommendation",
     "RoleWorkRequest",
@@ -195,7 +205,9 @@ __all__ = [
     "evaluate_company_goal_run_files",
     "get_company_spec",
     "get_company_state",
+    "get_local_route",
     "get_mcp_tool_manifest",
+    "is_local_route_tool",
     "list_company_spec_options",
     "list_company_specs",
     "list_next_actions",

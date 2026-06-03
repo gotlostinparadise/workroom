@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from .local_routes import LOCAL_ROUTE_TOOL_NAMES, get_local_route, is_local_route_tool
 
 _TOOL_ORDER = (
     "start_company_goal",
@@ -13,13 +14,7 @@ _TOOL_ORDER = (
     "run_next_local_step",
     "advance_company_goal",
     "record_work_result",
-    "create_landing_artifact",
-    "create_landing_qa_report",
-    "create_release_checklist_artifact",
-    "create_release_quality_gate_report",
-    "create_release_notes_artifact",
-    "prepare_release_readiness_decision",
-    "prepare_github_pages_deploy_proposal",
+    *LOCAL_ROUTE_TOOL_NAMES,
     "prepare_github_pages_deploy_execution_plan",
     "execute_github_pages_deploy",
     "summarize_run",
@@ -147,13 +142,6 @@ _RECOMMENDED_AFTER = {
     "run_next_local_step": ("recommend_next_tool_call",),
     "advance_company_goal": ("start_company_goal",),
     "record_work_result": ("get_company_state",),
-    "create_landing_artifact": ("recommend_next_tool_call",),
-    "create_landing_qa_report": ("create_landing_artifact",),
-    "create_release_checklist_artifact": ("recommend_next_tool_call",),
-    "create_release_quality_gate_report": ("create_release_checklist_artifact",),
-    "create_release_notes_artifact": ("create_release_quality_gate_report",),
-    "prepare_release_readiness_decision": ("create_release_notes_artifact",),
-    "prepare_github_pages_deploy_proposal": ("create_landing_qa_report",),
     "prepare_github_pages_deploy_execution_plan": (
         "prepare_github_pages_deploy_proposal",
     ),
@@ -258,6 +246,11 @@ def validate_workroom_mcp_config(
 
 def _tool_entry(name: str) -> dict[str, object]:
     mutates = name not in _READ_ONLY_TOOLS
+    recommended_after = (
+        get_local_route(name).recommended_after
+        if is_local_route_tool(name)
+        else _RECOMMENDED_AFTER.get(name, ())
+    )
     return {
         "name": name,
         "phase": _phase_for_tool(name),
@@ -265,7 +258,7 @@ def _tool_entry(name: str) -> dict[str, object]:
         "external_effect_risk": _risk_for_tool(name),
         "required_arguments": list(_TOOL_ARGUMENTS[name]),
         "optional_arguments": list(_OPTIONAL_TOOL_ARGUMENTS.get(name, ())),
-        "recommended_after": list(_RECOMMENDED_AFTER.get(name, ())),
+        "recommended_after": list(recommended_after),
         "routing_note": _routing_note_for_tool(name),
     }
 
@@ -281,17 +274,12 @@ def _phase_for_tool(name: str) -> str:
         return "startup"
     if name in {"get_company_state", "list_next_actions", "recommend_next_tool_call"}:
         return "planning"
+    if is_local_route_tool(name):
+        return get_local_route(name).manifest_phase
     if name in {
         "run_next_local_step",
         "advance_company_goal",
         "record_work_result",
-        "create_landing_artifact",
-        "create_landing_qa_report",
-        "create_release_checklist_artifact",
-        "create_release_quality_gate_report",
-        "create_release_notes_artifact",
-        "prepare_release_readiness_decision",
-        "prepare_github_pages_deploy_proposal",
     }:
         return "local_execution"
     if name in {
@@ -307,6 +295,8 @@ def _risk_for_tool(name: str) -> str:
         return "high_stakes"
     if name in _READ_ONLY_TOOLS:
         return "none"
+    if is_local_route_tool(name):
+        return get_local_route(name).external_effect_risk
     return "local_files"
 
 

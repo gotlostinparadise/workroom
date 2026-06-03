@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
 
 from agency_workroom.agent_session import advance_company_goal, start_company_run
 from agency_workroom.company_registry import get_company_spec
+from agency_workroom.local_routes import LOCAL_ROUTES, get_local_route
 from agency_workroom.models import CompanyGoalRun, RunContext, SupervisorTurn, TaskState
 from agency_workroom.session_store import load_company_goal_run
+import agency_workroom.supervisor as supervisor
 from agency_workroom.supervisor import (
     build_approval_required_turn,
     build_decision_record,
@@ -97,6 +100,27 @@ class SupervisorCoreTests(unittest.TestCase):
             "create_landing_qa_report",
             "prepare_github_pages_deploy_proposal",
         )
+
+    def test_supervisor_local_route_metadata_comes_from_registry(self) -> None:
+        delegated_source = inspect.getsource(supervisor._delegated_role_for_local_tool)
+        record_kind_source = inspect.getsource(supervisor._record_kind_for_local_tool)
+
+        self.assertIn("get_local_route", delegated_source)
+        self.assertIn("get_local_route", record_kind_source)
+        for route in LOCAL_ROUTES:
+            planned = plan_supervisor_transition(
+                run=self.make_run(self.make_tasks()),
+                phase_before="local_production",
+                recommendation={
+                    "recommended_tool": route.tool_name,
+                    "arguments": {"task_ref": "workroom-item://landing"},
+                    "reason": "test local route metadata",
+                },
+                local_step_tool_names=(route.tool_name,),
+            )
+            registered_route = get_local_route(route.tool_name)
+            self.assertEqual(registered_route.delegated_role, planned.delegated_role)
+            self.assertEqual(registered_route.record_kind, planned.record_kind)
 
     def test_detect_goal_phase_from_current_pipeline_state(self) -> None:
         landing_ref = "workroom-artifact://runs/run_abc/landing_page/aaa/index.html"

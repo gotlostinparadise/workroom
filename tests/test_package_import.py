@@ -72,6 +72,16 @@ class PackageImportTests(unittest.TestCase):
         self.assertIn("RELEASE_NOTES_ARTIFACT_PREFIX", agency_workroom.__all__)
         self.assertIn("RELEASE_READINESS_DECISION_PREFIX", agency_workroom.__all__)
 
+    def test_local_route_registry_helpers_are_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.LocalRoute))
+        self.assertTrue(callable(agency_workroom.get_local_route))
+        self.assertTrue(callable(agency_workroom.is_local_route_tool))
+        self.assertIn("LocalRoute", agency_workroom.__all__)
+        self.assertIn("LOCAL_ROUTES", agency_workroom.__all__)
+        self.assertIn("LOCAL_ROUTE_TOOL_NAMES", agency_workroom.__all__)
+        self.assertIn("get_local_route", agency_workroom.__all__)
+        self.assertIn("is_local_route_tool", agency_workroom.__all__)
+
     def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.create_goal_run_report))
         self.assertIn("create_goal_run_report", agency_workroom.__all__)

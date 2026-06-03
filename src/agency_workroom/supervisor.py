@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from .local_routes import get_local_route, is_local_route_tool
 from .models import (
     CapabilityProtocol,
     CompanyGoalRun,
@@ -713,26 +714,14 @@ def _task_ref_from_recommendation(recommendation: Mapping[str, object]) -> str:
 
 
 def _delegated_role_for_local_tool(tool_name: str) -> str:
-    if tool_name == "create_landing_artifact":
-        return "landing_builder"
-    if tool_name == "create_landing_qa_report":
-        return "qa_tester"
-    if tool_name == "create_release_checklist_artifact":
-        return "release_lead"
-    if tool_name == "create_release_quality_gate_report":
-        return "quality_reviewer"
-    if tool_name == "create_release_notes_artifact":
-        return "docs_writer"
-    if tool_name == "prepare_release_readiness_decision":
-        return "coordination_manager"
-    if tool_name == "prepare_github_pages_deploy_proposal":
-        return "devops_operator"
+    if is_local_route_tool(tool_name):
+        return get_local_route(tool_name).delegated_role
     return "goal_supervisor"
 
 
 def _record_kind_for_local_tool(tool_name: str) -> str:
-    if tool_name == "prepare_release_readiness_decision":
-        return "decision"
+    if is_local_route_tool(tool_name):
+        return get_local_route(tool_name).record_kind
     return "handoff"
 
 

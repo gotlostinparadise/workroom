@@ -34,6 +34,7 @@ from .company_registry import (
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
+from .local_routes import LOCAL_ROUTE_TOOL_NAMES
 from .mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -95,15 +96,7 @@ RELEASE_QUALITY_GATE_REPORT_PREFIX = "workroom-artifact://"
 RELEASE_NOTES_ARTIFACT_PREFIX = "workroom-artifact://"
 RELEASE_READINESS_DECISION_PREFIX = "workroom-artifact://"
 GOAL_RUN_REPORT_PREFIX = "workroom-artifact://"
-LOCAL_STEP_TOOL_NAMES = (
-    "create_landing_artifact",
-    "create_landing_qa_report",
-    "create_release_checklist_artifact",
-    "create_release_quality_gate_report",
-    "create_release_notes_artifact",
-    "prepare_release_readiness_decision",
-    "prepare_github_pages_deploy_proposal",
-)
+LOCAL_STEP_TOOL_NAMES = LOCAL_ROUTE_TOOL_NAMES
 _NEXT_ACTION_STATUSES = {"planned", "in_progress"}
 _GITHUB_PAGES_DEPLOY_BLOCKER = (
     "deploy proposal created; execution requires explicit approval and "

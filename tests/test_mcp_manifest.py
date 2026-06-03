@@ -6,6 +6,8 @@ import tempfile
 import unittest
 
 from agency_workroom import mcp_server
+from agency_workroom.local_routes import LOCAL_ROUTES, get_local_route
+import agency_workroom.mcp_manifest as mcp_manifest
 from agency_workroom.mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -83,6 +85,32 @@ class McpManifestTests(unittest.TestCase):
             ["start_company_goal"],
             tools["submit_goal_intake_result"]["recommended_after"],
         )
+
+    def test_tool_manifest_uses_local_route_registry_metadata(self) -> None:
+        source = "\n".join(
+            (
+                inspect.getsource(mcp_manifest._phase_for_tool),
+                inspect.getsource(mcp_manifest._risk_for_tool),
+                inspect.getsource(mcp_manifest._tool_entry),
+            )
+        )
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+
+        self.assertIn("is_local_route_tool", source)
+        self.assertIn("get_local_route", source)
+        for route in LOCAL_ROUTES:
+            registered_route = get_local_route(route.tool_name)
+            tool = tools[route.tool_name]
+            self.assertEqual(registered_route.manifest_phase, tool["phase"])
+            self.assertEqual(
+                registered_route.external_effect_risk,
+                tool["external_effect_risk"],
+            )
+            self.assertEqual(
+                list(registered_route.recommended_after),
+                tool["recommended_after"],
+            )
 
     def test_tool_manifest_exposes_company_selection_arguments(self) -> None:
         manifest = workroom_mcp_tool_manifest()
