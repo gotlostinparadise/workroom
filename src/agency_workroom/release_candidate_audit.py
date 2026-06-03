@@ -98,6 +98,7 @@ def _audit_payload(
     release_smoke = _optional_json_file(release_smoke_path)
     mcp_surface = _mcp_surface()
     export_surface = _export_surface()
+    package_surface = _package_surface()
     release_smoke_payload = _release_smoke_payload(
         runbook_id=runbook_id,
         path=release_smoke_path,
@@ -107,6 +108,7 @@ def _audit_payload(
         run_ids=run_ids,
         mcp_surface=mcp_surface,
         export_surface=export_surface,
+        package_surface=package_surface,
         release_smoke=release_smoke_payload,
     )
     return {
@@ -117,7 +119,7 @@ def _audit_payload(
         "ready_for_release_candidate_review": not findings,
         "mcp_surface": mcp_surface,
         "export_surface": export_surface,
-        "package_surface": _package_surface(),
+        "package_surface": package_surface,
         "runbook_release_smoke": release_smoke_payload,
         "manual_verification_gates": _manual_verification_gates(),
         "kernel_boundary": {
@@ -311,6 +313,7 @@ def _audit_findings(
     run_ids: tuple[str, ...],
     mcp_surface: Mapping[str, object],
     export_surface: Mapping[str, object],
+    package_surface: Mapping[str, object],
     release_smoke: Mapping[str, object],
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
@@ -328,6 +331,28 @@ def _audit_findings(
                 "severity": "error",
                 "code": "missing_required_release_tool",
                 "message": f"required release tool is missing: {tool_name}",
+            }
+        )
+    if not bool(package_surface.get("pyproject_readable")) and not bool(
+        package_surface.get("installed_metadata_readable")
+    ):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "package_metadata_unreadable",
+                "message": "package metadata is unavailable for release audit",
+            }
+        )
+    if str(package_surface.get("kernel_dependency_mode", "")) in {
+        "",
+        "missing",
+        "unknown",
+    }:
+        findings.append(
+            {
+                "severity": "error",
+                "code": "kernel_dependency_scope_unknown",
+                "message": "Kernel dependency scope is missing or unknown",
             }
         )
     for tool_name in _string_list(export_surface.get("missing_mcp_tool_exports")):

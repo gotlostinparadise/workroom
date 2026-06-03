@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v45.
+Status: Canonical plan v46.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -376,6 +376,11 @@ These milestones are complete enough to be treated as foundation:
     Missing required release tools now produce the documented
     `missing_required_release_tool` error finding, with focused test coverage
     for the required-tool failure path.
+
+61. Release Audit Package Scope Readiness Gate v1.
+    The release-candidate audit now blocks readiness when package metadata is
+    unreadable or Kernel dependency scope is missing/unknown, so release review
+    cannot proceed on ambiguous package evidence.
 
 ## Milestone Plan
 
@@ -1594,6 +1599,27 @@ Exit criteria:
 - The finding remains an `error` and blocks release-candidate readiness through
   the existing audit-status path.
 - Tests cover the missing-required-tool finding path.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 51. Release Audit Package Scope Readiness Gate v1
+
+Status: Done.
+
+Goal: prevent a release-candidate audit from reporting readiness when package
+metadata cannot prove the Workroom package identity and Kernel dependency
+scope.
+
+Exit criteria:
+
+- Unreadable `pyproject.toml` plus unreadable installed package metadata
+  produces `package_metadata_unreadable`.
+- Missing or unknown Kernel dependency mode produces
+  `kernel_dependency_scope_unknown`.
+- Both findings are errors and block release-candidate readiness through the
+  existing audit-status path.
+- Tests cover the unreadable/unknown package-scope path.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
