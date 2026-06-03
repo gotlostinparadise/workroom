@@ -258,6 +258,12 @@ class SupervisorCoreTests(unittest.TestCase):
             workspace_path=str(workspace_path),
         )
         second_reloaded = load_company_goal_run(workspace_path, started["run_id"])
+        docs_snapshot = build_supervisor_snapshot(second_reloaded)
+        advanced_third = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third_reloaded = load_company_goal_run(workspace_path, started["run_id"])
 
         self.assertEqual("local_production", snapshot["phase"])
         self.assertEqual("release", snapshot["current_department"])
@@ -300,6 +306,20 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual(
             ["completed", "completed", "planned", "planned"],
             [task.status for task in second_reloaded.tasks],
+        )
+        self.assertEqual("local_production", docs_snapshot["phase"])
+        self.assertEqual("docs", docs_snapshot["current_department"])
+        self.assertEqual("local_step", advanced_third["transition"]["outcome"])
+        self.assertEqual(
+            "create_release_notes_artifact",
+            advanced_third["transition"]["selected_tool"],
+        )
+        self.assertEqual("docs_writer", advanced_third["delegated_role"])
+        self.assertEqual("docs", advanced_third["handoff"]["from_department"])
+        self.assertEqual("coordination", advanced_third["handoff"]["to_department"])
+        self.assertEqual(
+            ["completed", "completed", "completed", "planned"],
+            [task.status for task in third_reloaded.tasks],
         )
 
     def test_plan_supervisor_transition_for_local_step(self) -> None:

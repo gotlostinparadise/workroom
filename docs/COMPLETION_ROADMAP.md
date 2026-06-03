@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v10.
+Status: Canonical plan v11.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -176,6 +176,11 @@ These milestones are complete enough to be treated as foundation:
     Release Hardening can advance its `quality_gates` task after the release
     checklist by creating a deterministic local quality gate report and
     recording QA-to-docs handoff evidence.
+
+26. Release Notes Routing v1.
+    Release Hardening can advance its `release_notes` task after the quality
+    gate report by creating deterministic local release notes and recording
+    docs-to-coordination handoff evidence.
 
 ## Milestone Plan
 
@@ -449,10 +454,33 @@ Exit criteria:
   for a planned Release Hardening `quality_gates` task with a recorded release
   checklist and no quality gate report.
 - The recommendation remains read-only.
-- `run_next_local_step` executes the quality gate report once and then stops.
+- `run_next_local_step` executes the quality gate report once and then makes
+  the next planned Release Hardening route eligible.
 - `advance_company_goal` records supervisor, role-work, and QA-to-docs handoff
   evidence for the quality gate step.
 - The MCP server and manifest expose `create_release_quality_gate_report`.
+- Business Validation local-step behavior remains unchanged.
+- No Kernel changes, hidden loops, external API calls, or new external effects
+  are added.
+
+### 16. Release Notes Routing v1
+
+Status: Done.
+
+Goal: route Release Hardening's `release_notes` task through deterministic
+local release notes after the quality gate report exists.
+
+Exit criteria:
+
+- `recommend_next_tool_call` recommends `create_release_notes_artifact` for a
+  planned Release Hardening `release_notes` task with recorded release
+  checklist and quality gate report refs.
+- The recommendation remains read-only.
+- `run_next_local_step` executes the release notes artifact once and then
+  stops.
+- `advance_company_goal` records supervisor, role-work, and docs-to-coordination
+  handoff evidence for the release notes step.
+- The MCP server and manifest expose `create_release_notes_artifact`.
 - Business Validation local-step behavior remains unchanged.
 - No Kernel changes, hidden loops, external API calls, or new external effects
   are added.
@@ -473,7 +501,6 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that adds the Release Hardening release-notes route,
-readiness decision contract, or another review artifact path for non-default
-company specs without adding hidden loops, unapproved external effects, or
-Kernel product behavior.
+the smallest slice that adds the Release Hardening readiness decision contract
+or another review artifact path for non-default company specs without adding
+hidden loops, unapproved external effects, or Kernel product behavior.

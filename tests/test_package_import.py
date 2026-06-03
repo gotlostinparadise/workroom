@@ -60,11 +60,14 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(callable(agency_workroom.release_hardening_company_spec))
         self.assertTrue(callable(agency_workroom.create_release_checklist_artifact))
         self.assertTrue(callable(agency_workroom.create_release_quality_gate_report))
+        self.assertTrue(callable(agency_workroom.create_release_notes_artifact))
         self.assertIn("release_hardening_company_spec", agency_workroom.__all__)
         self.assertIn("create_release_checklist_artifact", agency_workroom.__all__)
         self.assertIn("create_release_quality_gate_report", agency_workroom.__all__)
+        self.assertIn("create_release_notes_artifact", agency_workroom.__all__)
         self.assertIn("RELEASE_CHECKLIST_ARTIFACT_PREFIX", agency_workroom.__all__)
         self.assertIn("RELEASE_QUALITY_GATE_REPORT_PREFIX", agency_workroom.__all__)
+        self.assertIn("RELEASE_NOTES_ARTIFACT_PREFIX", agency_workroom.__all__)
 
     def test_goal_run_report_helpers_are_exported_from_package(self) -> None:
         self.assertTrue(callable(agency_workroom.create_goal_run_report))

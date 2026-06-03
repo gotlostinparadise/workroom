@@ -17,6 +17,7 @@ _TOOL_ORDER = (
     "create_landing_qa_report",
     "create_release_checklist_artifact",
     "create_release_quality_gate_report",
+    "create_release_notes_artifact",
     "prepare_github_pages_deploy_proposal",
     "prepare_github_pages_deploy_execution_plan",
     "execute_github_pages_deploy",
@@ -78,6 +79,13 @@ _TOOL_ARGUMENTS = {
         "checklist_ref",
         "workspace_path",
     ),
+    "create_release_notes_artifact": (
+        "run_id",
+        "task_ref",
+        "checklist_ref",
+        "quality_report_ref",
+        "workspace_path",
+    ),
     "prepare_github_pages_deploy_proposal": (
         "run_id",
         "task_ref",
@@ -134,6 +142,7 @@ _RECOMMENDED_AFTER = {
     "create_landing_qa_report": ("create_landing_artifact",),
     "create_release_checklist_artifact": ("recommend_next_tool_call",),
     "create_release_quality_gate_report": ("create_release_checklist_artifact",),
+    "create_release_notes_artifact": ("create_release_quality_gate_report",),
     "prepare_github_pages_deploy_proposal": ("create_landing_qa_report",),
     "prepare_github_pages_deploy_execution_plan": (
         "prepare_github_pages_deploy_proposal",
@@ -270,6 +279,7 @@ def _phase_for_tool(name: str) -> str:
         "create_landing_qa_report",
         "create_release_checklist_artifact",
         "create_release_quality_gate_report",
+        "create_release_notes_artifact",
         "prepare_github_pages_deploy_proposal",
     }:
         return "local_execution"

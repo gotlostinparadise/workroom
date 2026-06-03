@@ -23,6 +23,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "create_landing_qa_report",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
+                "create_release_notes_artifact",
                 "prepare_github_pages_deploy_proposal",
                 "prepare_github_pages_deploy_execution_plan",
                 "execute_github_pages_deploy",
@@ -93,6 +94,29 @@ class WorkroomMcpServerTests(unittest.TestCase):
         self.assertIn("run_id", schema["properties"])
         self.assertIn("task_ref", schema["properties"])
         self.assertIn("checklist_ref", schema["properties"])
+        self.assertIn("workspace_path", schema["properties"])
+
+    def test_release_notes_tool_has_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        notes_tool = next(
+            tool for tool in tools if tool.name == "create_release_notes_artifact"
+        )
+        schema = notes_tool.inputSchema
+
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "checklist_ref",
+                "quality_report_ref",
+                "workspace_path",
+            },
+            set(schema["required"]),
+        )
+        self.assertIn("run_id", schema["properties"])
+        self.assertIn("task_ref", schema["properties"])
+        self.assertIn("checklist_ref", schema["properties"])
+        self.assertIn("quality_report_ref", schema["properties"])
         self.assertIn("workspace_path", schema["properties"])
 
     def test_list_company_specs_tool_delegates_to_session_discovery(self) -> None:
