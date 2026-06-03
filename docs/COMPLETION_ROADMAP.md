@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v13.
+Status: Canonical plan v14.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -191,6 +191,10 @@ These milestones are complete enough to be treated as foundation:
     Existing allowlisted local routes now share a static metadata registry for
     tool name, delegated role, result kind, operational record kind, manifest
     phase, risk label, and recommended predecessor.
+
+29. Local Route Dispatcher v1.
+    Existing allowlisted local routes now dispatch through the route registry
+    instead of a route-specific execution branch in `run_next_local_step`.
 
 ## Milestone Plan
 
@@ -544,6 +548,29 @@ Exit criteria:
 - No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
   external API calls, or new external effects are added.
 
+### 19. Local Route Dispatcher v1
+
+Status: Done.
+
+Goal: replace route-specific local-step execution branches with a
+registry-backed dispatcher while preserving current behavior.
+
+Exit criteria:
+
+- `LocalRoute` records carry an executor name, defaulting to the public tool
+  name.
+- A generic dispatcher validates a registered local route and invokes a
+  caller-provided executor mapping.
+- Unknown tools and missing executors fail closed.
+- `run_next_local_step` uses the dispatcher instead of route-specific
+  `if`/`elif` execution branches.
+- The session executor mapping covers every current `LOCAL_ROUTE_TOOL_NAMES`
+  entry.
+- Recommendation predicates, prerequisite checks, execution order, public MCP
+  tool names, response shapes, and supervisor behavior remain unchanged.
+- No Kernel changes, hidden loops, new routes, approval, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -560,7 +587,7 @@ Do not change this roadmap merely because a different task is more interesting.
 ## Current Next Action
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
-the smallest slice that extends the local route registry from static metadata
-toward reusable recommendation or dispatch helpers only where tests prove no
-behavior drift. Add another company spec only after preserving the no-loop,
-no-external-effect, Kernel-boundary floor.
+the smallest slice that extends the local route registry toward reusable
+recommendation helpers only where tests prove no behavior drift. Add another
+company spec only after preserving the no-loop, no-external-effect,
+Kernel-boundary floor.

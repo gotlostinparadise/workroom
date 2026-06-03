@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from .session_store import WorkroomStateError
@@ -14,6 +15,11 @@ class LocalRoute:
     manifest_phase: str = "local_execution"
     external_effect_risk: str = "local_files"
     recommended_after: tuple[str, ...] = ()
+    executor_name: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.executor_name:
+            object.__setattr__(self, "executor_name", self.tool_name)
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -24,6 +30,7 @@ class LocalRoute:
             "manifest_phase": self.manifest_phase,
             "external_effect_risk": self.external_effect_risk,
             "recommended_after": list(self.recommended_after),
+            "executor_name": self.executor_name,
         }
 
 
@@ -88,10 +95,24 @@ def is_local_route_tool(tool_name: str) -> bool:
     return tool_name in _LOCAL_ROUTES_BY_TOOL
 
 
+def execute_local_route(
+    tool_name: str,
+    *,
+    arguments: Mapping[str, object],
+    executors: Mapping[str, Callable[..., dict[str, object]]],
+) -> dict[str, object]:
+    route = get_local_route(tool_name)
+    executor = executors.get(route.executor_name)
+    if executor is None:
+        raise WorkroomStateError(f"missing local route executor: {route.executor_name}")
+    return executor(**dict(arguments))
+
+
 __all__ = [
     "LOCAL_ROUTE_TOOL_NAMES",
     "LOCAL_ROUTES",
     "LocalRoute",
+    "execute_local_route",
     "get_local_route",
     "is_local_route_tool",
 ]

@@ -7,6 +7,7 @@ from agency_workroom import local_routes
 from agency_workroom.local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
+    execute_local_route,
     get_local_route,
     is_local_route_tool,
 )
@@ -51,6 +52,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "manifest_phase": "local_execution",
                 "external_effect_risk": "local_files",
                 "recommended_after": ["create_release_notes_artifact"],
+                "executor_name": "prepare_release_readiness_decision",
             },
             route_payloads["prepare_release_readiness_decision"],
         )
@@ -67,6 +69,44 @@ class LocalRouteRegistryTests(unittest.TestCase):
         self.assertFalse(is_local_route_tool("submit_goal_intake_result"))
         with self.assertRaises(WorkroomStateError):
             get_local_route("submit_goal_intake_result")
+
+    def test_execute_local_route_calls_registered_executor_with_arguments(self) -> None:
+        calls: list[dict[str, object]] = []
+
+        def fake_executor(*, run_id: str, task_ref: str) -> dict[str, object]:
+            calls.append({"run_id": run_id, "task_ref": task_ref})
+            return {"ok": True, "task_ref": task_ref}
+
+        result = execute_local_route(
+            "create_landing_artifact",
+            arguments={
+                "run_id": "run_dispatch",
+                "task_ref": "workroom-item://landing",
+            },
+            executors={"create_landing_artifact": fake_executor},
+        )
+
+        self.assertEqual({"ok": True, "task_ref": "workroom-item://landing"}, result)
+        self.assertEqual(
+            [{"run_id": "run_dispatch", "task_ref": "workroom-item://landing"}],
+            calls,
+        )
+
+    def test_execute_local_route_fails_closed_for_unknown_or_missing_executor(
+        self,
+    ) -> None:
+        with self.assertRaises(WorkroomStateError):
+            execute_local_route(
+                "submit_goal_intake_result",
+                arguments={},
+                executors={},
+            )
+        with self.assertRaises(WorkroomStateError):
+            execute_local_route(
+                "create_landing_artifact",
+                arguments={},
+                executors={},
+            )
 
     def test_local_routes_module_has_no_process_network_or_loop_primitives(self) -> None:
         source = inspect.getsource(local_routes)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 import hashlib
 import json
 import math
@@ -34,7 +34,7 @@ from .company_registry import (
 from .kernel_gateway import WorkroomKernelGateway
 from .landing_artifact import create_landing_artifact_files
 from .landing_qa import LandingQaError, create_landing_qa_report_file
-from .local_routes import LOCAL_ROUTE_TOOL_NAMES
+from .local_routes import LOCAL_ROUTE_TOOL_NAMES, execute_local_route
 from .mcp_manifest import (
     validate_workroom_mcp_config,
     workroom_mcp_tool_manifest,
@@ -761,22 +761,11 @@ def run_next_local_step(*, run_id: str, workspace_path: str) -> dict[str, object
             ),
         }
     arguments = _recommendation_arguments(recommendation)
-    if recommended_tool == "create_landing_artifact":
-        result = create_landing_artifact(**arguments)
-    elif recommended_tool == "create_landing_qa_report":
-        result = create_landing_qa_report(**arguments)
-    elif recommended_tool == "create_release_checklist_artifact":
-        result = create_release_checklist_artifact(**arguments)
-    elif recommended_tool == "create_release_quality_gate_report":
-        result = create_release_quality_gate_report(**arguments)
-    elif recommended_tool == "create_release_notes_artifact":
-        result = create_release_notes_artifact(**arguments)
-    elif recommended_tool == "prepare_release_readiness_decision":
-        result = prepare_release_readiness_decision(**arguments)
-    elif recommended_tool == "prepare_github_pages_deploy_proposal":
-        result = prepare_github_pages_deploy_proposal(**arguments)
-    else:
-        raise AssertionError("unreachable local step tool")
+    result = execute_local_route(
+        recommended_tool,
+        arguments=arguments,
+        executors=_local_route_executors(),
+    )
     return {
         "run_id": clean_run_id,
         "executed": True,
@@ -2126,6 +2115,18 @@ def _no_local_recommendation(run_id: str) -> dict[str, object]:
         will_mutate_state=False,
         blocked=False,
     ).to_payload()
+
+
+def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
+    return {
+        "create_landing_artifact": create_landing_artifact,
+        "create_landing_qa_report": create_landing_qa_report,
+        "create_release_checklist_artifact": create_release_checklist_artifact,
+        "create_release_quality_gate_report": create_release_quality_gate_report,
+        "create_release_notes_artifact": create_release_notes_artifact,
+        "prepare_release_readiness_decision": prepare_release_readiness_decision,
+        "prepare_github_pages_deploy_proposal": prepare_github_pages_deploy_proposal,
+    }
 
 
 def _recommendation_arguments(recommendation: dict[str, object]) -> dict[str, object]:

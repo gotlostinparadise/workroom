@@ -63,6 +63,15 @@ class AgentSessionTests(unittest.TestCase):
     def test_local_step_tool_names_are_registry_derived(self) -> None:
         self.assertIs(LOCAL_ROUTE_TOOL_NAMES, agent_session.LOCAL_STEP_TOOL_NAMES)
 
+    def test_local_route_dispatch_is_registry_backed(self) -> None:
+        source = inspect.getsource(agent_session.run_next_local_step)
+
+        self.assertIn("execute_local_route", source)
+        for tool_name in LOCAL_ROUTE_TOOL_NAMES:
+            self.assertIn(tool_name, agent_session._local_route_executors())
+            self.assertNotIn(f'if recommended_tool == "{tool_name}"', source)
+            self.assertNotIn(f'elif recommended_tool == "{tool_name}"', source)
+
     def temp_root(self) -> Path:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)

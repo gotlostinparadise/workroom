@@ -160,8 +160,9 @@ unapproved tools such as raw result recording.
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
 handoff-or-decision record kind, MCP manifest phase, risk label, and recommended
-predecessor. It is metadata only: route prerequisites and execution remain under
-the bounded session and supervisor tools.
+predecessor. It also drives local helper dispatch for already-allowlisted
+routes. Route prerequisites and selection remain under the bounded session and
+supervisor tools.
 
 `advance_company_goal` is the first goal-specific supervisor tool. It performs
 one bounded supervisor turn for a run: observe state, choose the next safe local
