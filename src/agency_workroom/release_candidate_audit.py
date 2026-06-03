@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 import json
 from pathlib import Path
+import tomllib
 
 from .company_runbooks import DEFAULT_RUNBOOK_ID
 from .mcp_manifest import workroom_mcp_tool_manifest
@@ -11,6 +12,7 @@ REQUIRED_RELEASE_TOOLS = (
     "get_mcp_tool_manifest",
     "check_workroom_mcp_config",
     "list_company_specs",
+    "submit_goal_intake_result",
     "list_company_runbooks",
     "create_runbook_operating_packet",
     "create_runbook_smoke_example",
@@ -109,6 +111,7 @@ def _audit_payload(
         "audit_status": _audit_status(findings),
         "ready_for_release_candidate_review": not findings,
         "mcp_surface": mcp_surface,
+        "package_surface": _package_surface(),
         "runbook_release_smoke": release_smoke_payload,
         "manual_verification_gates": _manual_verification_gates(),
         "kernel_boundary": {
@@ -152,6 +155,55 @@ def _mcp_surface() -> dict[str, object]:
             "args": _string_list(_mapping(manifest.get("server")).get("args")),
         },
     }
+
+
+def _package_surface() -> dict[str, object]:
+    pyproject_path = Path(__file__).parents[2] / "pyproject.toml"
+    try:
+        pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return {
+            "pyproject_path": str(pyproject_path),
+            "readable": False,
+            "project_name": "",
+            "project_version": "",
+            "requires_python": "",
+            "kernel_dependency": "",
+            "kernel_dependency_mode": "unknown",
+            "distribution_scope": "unknown",
+        }
+    project = _mapping(pyproject.get("project"))
+    dependencies = _string_list(project.get("dependencies"))
+    kernel_dependency = next(
+        (dependency for dependency in dependencies if dependency.startswith("kernel")),
+        "",
+    )
+    kernel_dependency_mode = _kernel_dependency_mode(kernel_dependency)
+    distribution_scope = (
+        "local_editable_checkout"
+        if kernel_dependency_mode == "absolute_file"
+        else "portable_package_candidate"
+    )
+    return {
+        "pyproject_path": str(pyproject_path),
+        "readable": True,
+        "project_name": str(project.get("name", "")),
+        "project_version": str(project.get("version", "")),
+        "requires_python": str(project.get("requires-python", "")),
+        "kernel_dependency": kernel_dependency,
+        "kernel_dependency_mode": kernel_dependency_mode,
+        "distribution_scope": distribution_scope,
+    }
+
+
+def _kernel_dependency_mode(dependency: str) -> str:
+    if dependency.startswith("kernel @ file:///"):
+        return "absolute_file"
+    if dependency.startswith("kernel @ file:"):
+        return "file"
+    if dependency.startswith("kernel"):
+        return "declared_package"
+    return "missing"
 
 
 def _release_smoke_payload(
@@ -307,6 +359,23 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         "- "
         f"Manifest tools: {_single_line(mcp_surface.get('manifest_tool_count', 0))}; "
         f"server tools: {_single_line(mcp_surface.get('server_tool_count', 0))}"
+    )
+    package_surface = _mapping(payload.get("package_surface"))
+    lines.extend(["", "## Package Surface", ""])
+    lines.append(
+        "- "
+        f"Project: {_single_line(package_surface.get('project_name', ''))} "
+        f"{_single_line(package_surface.get('project_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Kernel dependency mode: "
+        f"{_single_line(package_surface.get('kernel_dependency_mode', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Distribution scope: "
+        f"{_single_line(package_surface.get('distribution_scope', ''))}"
     )
     lines.extend(["", "## Manual Gates", ""])
     for gate in _mapping_list(payload.get("manual_verification_gates")):

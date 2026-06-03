@@ -51,6 +51,7 @@ python -m agency_workroom.mcp_server
 The MCP tools are agent-facing:
 
 - `start_company_goal`
+- `submit_goal_intake_result`
 - `get_company_state`
 - `list_next_actions`
 - `recommend_next_tool_call`
@@ -132,10 +133,12 @@ Recommended first calls:
 5. `create_runbook_operating_packet`
 6. `create_runbook_smoke_example`
 7. `start_company_goal`
-8. `create_runbook_progress_report` after one or more runbook stage runs exist
-9. `create_runbook_closeout_packet` after runbook stage runs and review reports exist
-10. `create_runbook_release_readiness_smoke` after the runbook fixture chain exists
-11. `create_release_candidate_audit` before release-candidate review
+8. `submit_goal_intake_result` when `start_company_goal` returns
+   `status: "intake_required"` and `next_tool: "submit_goal_intake_result"`
+9. `create_runbook_progress_report` after one or more runbook stage runs exist
+10. `create_runbook_closeout_packet` after runbook stage runs and review reports exist
+11. `create_runbook_release_readiness_smoke` after the runbook fixture chain exists
+12. `create_release_candidate_audit` before release-candidate review
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or

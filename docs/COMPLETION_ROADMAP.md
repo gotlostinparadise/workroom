@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v38.
+Status: Canonical plan v39.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -340,6 +340,12 @@ These milestones are complete enough to be treated as foundation:
     current runbook fixture-chain audit, source suite, fresh editable install
     suite, installed MCP smoke, and Workroom/Kernel clean status for the local
     release-candidate surface.
+
+54. Release Audit Operator Path Hardening v1.
+    The README public MCP tool list and recommended first-call sequence include
+    the Codex-facing intake submission step, and the release-candidate audit
+    treats `submit_goal_intake_result` as required startup surface while
+    recording package dependency scope for the local editable checkout release.
 
 ## Milestone Plan
 
@@ -1404,6 +1410,30 @@ Exit criteria:
   deploys, pushes, posts, external API calls, or new external effects are
   added.
 
+### 44. Release Audit Operator Path Hardening v1
+
+Status: Done.
+
+Goal: close the first concrete independent release-review finding: release
+evidence could claim the MCP surface was ready while the README and audit did
+not explicitly protect the Codex-facing startup intake step or package
+dependency scope.
+
+Exit criteria:
+
+- The README public MCP tool list includes `submit_goal_intake_result`.
+- The README recommended first-call path tells operators to call
+  `submit_goal_intake_result` when `start_company_goal` returns
+  `status: "intake_required"`.
+- `create_release_candidate_audit` treats `submit_goal_intake_result` as a
+  required release/startup tool.
+- The release-candidate audit payload records package surface evidence,
+  including Kernel dependency mode and distribution scope.
+- Tests cover the startup tool requirement and package-scope evidence.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, installed MCP stdio startup, deploys, pushes, posts,
+  external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -1419,10 +1449,10 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Select the next bounded Workroom milestone from live repository truth. Prefer a
-full independent release review before adding more workflow behavior: review
-architecture boundaries, public MCP naming and operator ergonomics, README and
-roadmap consistency, package installation behavior, and the dated release
-hardening evidence. Fix only concrete findings that block release readiness.
-Only add more infrastructure first if live repo truth shows it is the safer
-prerequisite. Preserve the no-loop, no-external-effect, Kernel-boundary floor.
+Continue the independent release review before adding more workflow behavior:
+review architecture boundaries, remaining public MCP naming and operator
+ergonomics, README and roadmap consistency, package installation behavior, and
+the dated release hardening evidence. Fix only concrete findings that block
+release readiness. Only add more infrastructure first if live repo truth shows
+it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Kernel-boundary floor.

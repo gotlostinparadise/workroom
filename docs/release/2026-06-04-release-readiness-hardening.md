@@ -8,6 +8,7 @@ Scope:
 - README operator path for runbook reporting and release-candidate audit.
 - Runbook fixture-chain generation in a temporary local workspace.
 - Release-candidate audit over persisted local fixtures.
+- Release-candidate audit startup-handshake and package-scope hardening.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -17,6 +18,7 @@ Scope:
 Temporary workspace:
 
 - `/tmp/workroom-release-hardening-td__j6hb`
+- `/tmp/workroom-release-polish-_6dz9436`
 
 Generated local-only runbook artifacts:
 
@@ -35,6 +37,9 @@ Release-candidate audit result:
 - Findings: `[]`
 - MCP server tool count: `55`
 - MCP manifest matches server: `true`
+- Required startup tool checked: `submit_goal_intake_result`
+- Kernel dependency mode: `absolute_file`
+- Distribution scope: `local_editable_checkout`
 - Manual gates recorded:
   - `source_suite`
   - `fresh_editable_install_suite`
@@ -48,18 +53,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 522 tests in 8.917s
+Ran 522 tests in 8.989s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-hardening-venv
-python -m venv /tmp/workroom-release-hardening-venv
-/tmp/workroom-release-hardening-venv/bin/python -m pip install -e .
-/tmp/workroom-release-hardening-venv/bin/python -m unittest discover -s tests -v
-Ran 522 tests in 8.994s
+rm -rf /tmp/workroom-release-polish-venv
+python -m venv /tmp/workroom-release-polish-venv
+/tmp/workroom-release-polish-venv/bin/python -m pip install -e .
+/tmp/workroom-release-polish-venv/bin/python -m unittest discover -s tests -v
+Ran 522 tests in 9.057s
 OK
 ```
 
@@ -69,7 +74,11 @@ Installed MCP smoke:
 tool_count=55
 has_release_candidate_audit=True
 has_release_readiness_smoke=True
-audit_required=['run_ids_json', 'workspace_path']
+audit_required=['workspace_path', 'run_ids_json']
+has_submit_goal_intake_result=True
+required_release_tool_checked=True
+start_optional_context=True
+package_surface={'kernel_dependency_mode': 'absolute_file', 'distribution_scope': 'local_editable_checkout'}
 ```
 
 Git status:
@@ -87,6 +96,9 @@ Kernel: ## master...origin/master
 - The release-candidate audit is local-file-only and records manual gates; it
   does not run tests, start MCP stdio, inspect git state, start companies, or
   advance runs by itself.
+- The package currently depends on Kernel through an absolute local file path.
+  This is explicit release evidence for the local editable checkout workflow,
+  not a portable package-distribution claim.
 
 ## Residual Risk
 

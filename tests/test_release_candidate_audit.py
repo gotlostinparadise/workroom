@@ -67,11 +67,25 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual([], payload["mcp_surface"]["missing_from_manifest"])
         self.assertEqual([], payload["mcp_surface"]["missing_from_server"])
         self.assertEqual([], payload["mcp_surface"]["missing_required_tools"])
+        self.assertEqual("agency-workroom", payload["package_surface"]["project_name"])
+        self.assertEqual(
+            "absolute_file",
+            payload["package_surface"]["kernel_dependency_mode"],
+        )
+        self.assertEqual(
+            "local_editable_checkout",
+            payload["package_surface"]["distribution_scope"],
+        )
+        self.assertIn(
+            "submit_goal_intake_result",
+            release_candidate_audit.REQUIRED_RELEASE_TOOLS,
+        )
         self.assertEqual(
             ["source_suite", "fresh_editable_install_suite", "installed_mcp_stdio_smoke"],
             [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],
         )
         self.assertIn("Release Candidate Audit", markdown)
+        self.assertIn("Kernel dependency mode: absolute_file", markdown)
         self.assertIn("installed_mcp_stdio_smoke", markdown)
 
     def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
