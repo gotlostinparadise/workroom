@@ -109,6 +109,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
         self.assertIn("Release Candidate Audit", markdown)
         self.assertIn("Missing MCP tool exports: 0", markdown)
+        self.assertIn("Manifest matches server: True", markdown)
+        self.assertIn("Missing from manifest: none", markdown)
+        self.assertIn("Missing from server: none", markdown)
+        self.assertIn("Missing required release tools: none", markdown)
         self.assertIn("Kernel dependency mode: absolute_file", markdown)
         self.assertIn(
             "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
@@ -330,6 +334,43 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
         self.assertIn(
             "- warning run_ids_mismatch: release-smoke run IDs do not match requested run IDs",
+            markdown,
+        )
+
+    def test_release_candidate_audit_markdown_renders_mcp_drift_names(self) -> None:
+        markdown = release_candidate_audit._render_markdown(
+            {
+                "runbook_id": "complex_codex_delivery",
+                "audit_status": "needs_attention",
+                "ready_for_release_candidate_review": False,
+                "mcp_surface": {
+                    "manifest_tool_count": 55,
+                    "server_tool_count": 54,
+                    "manifest_matches_server": False,
+                    "missing_from_manifest": ["submit_goal_intake_result"],
+                    "missing_from_server": ["obsolete_tool"],
+                    "missing_required_tools": ["create_release_candidate_audit"],
+                },
+                "export_surface": {
+                    "missing_mcp_tool_exports": [],
+                    "missing_session_public_function_exports": [],
+                },
+                "package_surface": {
+                    "project_name": "agency-workroom",
+                    "project_version": "0.1.0",
+                    "kernel_dependency_mode": "absolute_file",
+                    "distribution_scope": "local_editable_checkout",
+                },
+                "manual_verification_gates": [],
+                "audit_findings": [],
+            }
+        )
+
+        self.assertIn("Manifest matches server: False", markdown)
+        self.assertIn("Missing from manifest: submit_goal_intake_result", markdown)
+        self.assertIn("Missing from server: obsolete_tool", markdown)
+        self.assertIn(
+            "Missing required release tools: create_release_candidate_audit",
             markdown,
         )
 

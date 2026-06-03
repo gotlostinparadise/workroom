@@ -509,6 +509,26 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"Manifest tools: {_single_line(mcp_surface.get('manifest_tool_count', 0))}; "
         f"server tools: {_single_line(mcp_surface.get('server_tool_count', 0))}"
     )
+    lines.append(
+        "- "
+        f"Manifest matches server: "
+        f"{_single_line(mcp_surface.get('manifest_matches_server', False))}"
+    )
+    lines.append(
+        "- "
+        f"Missing from manifest: "
+        f"{_render_string_list(mcp_surface.get('missing_from_manifest'))}"
+    )
+    lines.append(
+        "- "
+        f"Missing from server: "
+        f"{_render_string_list(mcp_surface.get('missing_from_server'))}"
+    )
+    lines.append(
+        "- "
+        f"Missing required release tools: "
+        f"{_render_string_list(mcp_surface.get('missing_required_tools'))}"
+    )
     package_surface = _mapping(payload.get("package_surface"))
     export_surface = _mapping(payload.get("export_surface"))
     lines.extend(["", "## Export Surface", ""])
@@ -583,6 +603,13 @@ def _string_list(value: object) -> list[str]:
 
 def _single_line(value: object) -> str:
     return " ".join(str(value).split())
+
+
+def _render_string_list(value: object) -> str:
+    items = _string_list(value)
+    if not items:
+        return "none"
+    return ", ".join(_single_line(item) for item in items)
 
 
 __all__ = [
