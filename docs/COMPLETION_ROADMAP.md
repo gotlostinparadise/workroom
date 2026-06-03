@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v24.
+Status: Canonical plan v25.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -252,6 +252,12 @@ These milestones are complete enough to be treated as foundation:
     `CompanySpec`. It can create local verification matrix and verification
     plan artifacts followed by a prepared local review decision, without
     running shell commands, approving verification, or mutating project files.
+
+40. Design Review Company v1.
+    Design Review is registered as the seventh bundled `CompanySpec`. It can
+    create local design critique and risk report artifacts followed by a
+    prepared local review decision, without approving implementation planning,
+    implementing the design, or mutating project files.
 
 ## Milestone Plan
 
@@ -902,6 +908,40 @@ Exit criteria:
   verification execution, deploys, pushes, posts, external API calls, or new
   external effects are added.
 
+### 30. Design Review Company v1
+
+Status: Done.
+
+Goal: let Codex spawn a small local company that reviews a proposed design,
+assesses design risk, and prepares a review decision before implementation
+planning begins.
+
+Exit criteria:
+
+- `design_review` is registered as a bundled `CompanySpec` without changing
+  the default Business Validation startup path.
+- `list_company_specs` exposes Design Review and its required context
+  variables: `objective`, `proposed_design`, `constraints`, and
+  `success_criteria`.
+- `start_company_goal` can start `company_spec_id="design_review"` through the
+  generic run context path.
+- Design Review plans `design_critique` for `design_auditor`,
+  `risk_assessment` for `risk_reviewer`, and `review_decision` for
+  `design_reviewer`.
+- `recommend_next_tool_call`, `run_next_local_step`, and
+  `advance_company_goal` progress through
+  `create_design_critique_artifact`,
+  `create_design_risk_report_artifact`, and
+  `prepare_design_review_decision`.
+- The MCP server and manifest expose all three local tools with stable
+  required arguments.
+- Existing Business Validation, Release Hardening, Growth Brief, Delivery
+  Planning, Implementation Planning, Verification Orchestration, route
+  registry, run inspection, and reporting behavior remains unchanged.
+- No Kernel changes, hidden loops, shell execution, project mutation, approval,
+  implementation planning approval, implementation execution, deploys, pushes,
+  posts, external API calls, or new external effects are added.
+
 ## Plan Change Rules
 
 Change this roadmap when:
@@ -919,8 +959,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 Select the next bounded Workroom milestone from live repository truth. Prefer
 the next source-moving capability that makes Workroom more generally useful for
-complex Codex work, such as a bounded design review company, implementation-plan
-quality review capability, or another local-only company that improves
-cross-role task quality. Only add more infrastructure first if live repo truth
-shows it is the safer prerequisite. Preserve the no-loop, no-external-effect,
-Kernel-boundary floor.
+complex Codex work, such as implementation-plan quality review, richer
+cross-role task quality review, or another local-only company that improves
+the chain from design to implementation to verification. Only add more
+infrastructure first if live repo truth shows it is the safer prerequisite.
+Preserve the no-loop, no-external-effect, Kernel-boundary floor.

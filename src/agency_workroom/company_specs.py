@@ -375,6 +375,106 @@ def delivery_planning_company_spec() -> CompanySpec:
     )
 
 
+def design_review_company_spec() -> CompanySpec:
+    team = TeamBlueprint(
+        name="design_review_team",
+        departments=(
+            Department(
+                department_id="analysis",
+                display_name="Design Analysis Department",
+                purpose="Review objective fit, constraints, and assumptions",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="risk",
+                display_name="Design Risk Department",
+                purpose="Assess design risks, mitigations, and stop rules",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+            Department(
+                department_id="review",
+                display_name="Review Department",
+                purpose="Prepare local review decisions before implementation planning",
+                authority_level="coordination",
+                capability_gate_required=False,
+            ),
+        ),
+        roles=(
+            TeamRole(
+                role_id="design_auditor",
+                display_name="Design Auditor",
+                responsibilities="Prepare design critique briefs for Codex work",
+                department_id="analysis",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="risk_reviewer",
+                display_name="Risk Reviewer",
+                responsibilities="Prepare design risk reports and mitigations",
+                department_id="risk",
+                authority_scope="coordination",
+            ),
+            TeamRole(
+                role_id="design_reviewer",
+                display_name="Design Reviewer",
+                responsibilities="Prepare local review decisions for proposed designs",
+                department_id="review",
+                authority_scope="coordination",
+            ),
+        ),
+    )
+    return CompanySpec(
+        spec_id="design_review",
+        version="v1",
+        display_name="Design Review",
+        team=team,
+        task_templates=(
+            CompanyTaskTemplate(
+                role_id="design_auditor",
+                category="design_critique",
+                title="Prepare design critique",
+                summary_template=(
+                    "Review proposed design '{proposed_design}' for objective "
+                    "'{objective}' under constraints: {constraints}. Success "
+                    "criteria: {success_criteria}."
+                ),
+                priority="high",
+                metadata={"artifact_kind": "design_critique"},
+            ),
+            CompanyTaskTemplate(
+                role_id="risk_reviewer",
+                category="risk_assessment",
+                title="Prepare design risk report",
+                summary_template=(
+                    "Assess risks in proposed design '{proposed_design}' for "
+                    "objective '{objective}' under constraints: {constraints}. "
+                    "Success criteria: {success_criteria}."
+                ),
+                priority="high",
+                metadata={
+                    "artifact_kind": "design_risk_report",
+                    "depends_on": "design_critique",
+                },
+            ),
+            CompanyTaskTemplate(
+                role_id="design_reviewer",
+                category="review_decision",
+                title="Prepare local design review decision",
+                summary_template=(
+                    "Prepare a local review decision for proposed design "
+                    "'{proposed_design}' and objective '{objective}'. Success "
+                    "criteria: {success_criteria}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "design_review"},
+            ),
+        ),
+        metadata={"reference_vertical": "design_review"},
+    )
+
+
 def implementation_planning_company_spec() -> CompanySpec:
     team = TeamBlueprint(
         name="implementation_planning_team",
@@ -588,6 +688,7 @@ def verification_orchestration_company_spec() -> CompanySpec:
 
 __all__ = [
     "business_validation_company_spec",
+    "design_review_company_spec",
     "delivery_planning_company_spec",
     "growth_brief_company_spec",
     "implementation_planning_company_spec",

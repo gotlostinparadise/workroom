@@ -59,6 +59,9 @@ The MCP tools are agent-facing:
 - `record_work_result`
 - `create_landing_artifact`
 - `create_landing_qa_report`
+- `create_design_critique_artifact`
+- `create_design_risk_report_artifact`
+- `prepare_design_review_decision`
 - `create_delivery_scope_brief_artifact`
 - `create_delivery_execution_plan_artifact`
 - `prepare_delivery_review_decision`
@@ -193,6 +196,21 @@ review decision record under the run workspace. These routes are local only:
 they do not run shell commands, mutate projects, approve verification, execute
 the plan, deploy, push, post, call external APIs, or start background workers.
 
+Workroom also includes a seventh bundled company spec, `design_review`. It uses
+a design auditor for a `design_critique` task, a risk reviewer for a
+`risk_assessment` task, and a design reviewer for a `review_decision` task. Its
+required context variables are `objective`, `proposed_design`, `constraints`,
+and `success_criteria`. `recommend_next_tool_call` can recommend
+`create_design_critique_artifact`, then
+`create_design_risk_report_artifact` after the critique ref exists, then
+`prepare_design_review_decision` after both design evidence refs exist.
+`run_next_local_step` or `advance_company_goal` can write local
+`design_critique.md` and `design_risk_report.md` artifacts plus a prepared
+review decision record under the run workspace. These routes are local only:
+they do not run shell commands, mutate projects, approve implementation
+planning, implement the design, deploy, push, post, call external APIs, or
+start background workers.
+
 Release Hardening participates in the same recommendation and local-step MCP
 path as the default company. After startup, `recommend_next_tool_call` can
 recommend `create_release_checklist_artifact` for the `release_plan` task, then
@@ -230,14 +248,15 @@ executing that tool.
 recommendation. It can advance landing artifact creation, landing QA, or local
 GitHub Pages deploy proposal preparation for Business Validation, scope brief
 and execution plan artifacts plus review decision preparation for Delivery
-Planning, market brief and experiment plan artifacts plus review decision
-preparation for Growth Brief, architecture and implementation-plan artifacts
-plus review decision preparation for Implementation Planning, verification
-matrix and verification-plan artifacts plus review decision preparation for
-Verification Orchestration, or release checklist, quality gate, release notes,
-and readiness decision preparation for Release Hardening. It does not loop,
-push to GitHub, post externally, or run unapproved tools such as raw result
-recording.
+Planning, design critique and risk report artifacts plus review decision
+preparation for Design Review, market brief and experiment plan artifacts plus
+review decision preparation for Growth Brief, architecture and
+implementation-plan artifacts plus review decision preparation for
+Implementation Planning, verification matrix and verification-plan artifacts
+plus review decision preparation for Verification Orchestration, or release
+checklist, quality gate, release notes, and readiness decision preparation for
+Release Hardening. It does not loop, push to GitHub, post externally, or run
+unapproved tools such as raw result recording.
 
 Allowlisted local route metadata is centralized in an internal route registry.
 That registry defines each local route's tool name, delegated role, result kind,
@@ -325,11 +344,11 @@ research, strategy, landing-page work, GitHub Pages deployment planning, QA,
 Threads operations, promotion, and team coordination.
 
 Business Validation is the default registered `CompanySpec`. Release
-Hardening, Growth Brief, Delivery Planning, Implementation Planning, and
-Verification Orchestration are additional registered specs that prove the
-runtime can start, inspect, recommend, and execute bounded local work for
-companies with different vocabulary, roles, and task sequences. A company spec
-defines the departments, roles, task templates, and metadata that create a
+Hardening, Growth Brief, Delivery Planning, Design Review, Implementation
+Planning, and Verification Orchestration are additional registered specs that
+prove the runtime can start, inspect, recommend, and execute bounded local work
+for companies with different vocabulary, roles, and task sequences. A company
+spec defines the departments, roles, task templates, and metadata that create a
 goal-specific company run. The current reference vertical keeps the
 existing validation behavior, but startup now routes through the generic
 company start contract so future company types can use the same runtime path.

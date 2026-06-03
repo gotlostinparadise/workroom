@@ -1,6 +1,8 @@
 """External Workroom workflow package."""
 
 from . import (
+    design_review,
+    design_review_decision,
     implementation_planning,
     implementation_review,
     verification_orchestration,
@@ -11,6 +13,8 @@ from .agent_session import (
     DEVOPS_OPERATION_PREFIX,
     DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX,
     DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX,
+    DESIGN_CRITIQUE_ARTIFACT_PREFIX,
+    DESIGN_RISK_REPORT_ARTIFACT_PREFIX,
     GOAL_RUN_REPORT_PREFIX,
     GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX,
     GROWTH_BRIEF_ARTIFACT_PREFIX,
@@ -31,6 +35,8 @@ from .agent_session import (
     check_workroom_mcp_config,
     create_architecture_brief_artifact,
     create_cross_role_run_brief,
+    create_design_critique_artifact,
+    create_design_risk_report_artifact,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
@@ -50,6 +56,7 @@ from .agent_session import (
     get_mcp_tool_manifest,
     list_company_spec_options,
     list_next_actions,
+    prepare_design_review_decision,
     prepare_delivery_review_decision,
     prepare_github_pages_deploy_execution_plan,
     prepare_github_pages_deploy_proposal,
@@ -79,6 +86,7 @@ from .mcp_manifest import (
 from .kernel_gateway import WorkroomGatewayError, WorkroomKernelGateway
 from .company_specs import (
     business_validation_company_spec,
+    design_review_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
     implementation_planning_company_spec,
@@ -92,6 +100,11 @@ from .company_briefing import (
 )
 from .goal_intake import workflow_request_from_goal
 from .delivery_review import build_delivery_review_decision_record
+from .design_review import (
+    create_design_critique_artifact_files,
+    create_design_risk_report_artifact_files,
+)
+from .design_review_decision import build_design_review_decision_record
 from .growth_review import build_growth_review_decision_record
 from .implementation_review import build_implementation_plan_review_decision_record
 from .verification_orchestration import (
@@ -185,6 +198,8 @@ __all__ = [
     "DEVOPS_OPERATION_PREFIX",
     "DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX",
     "DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX",
+    "DESIGN_CRITIQUE_ARTIFACT_PREFIX",
+    "DESIGN_RISK_REPORT_ARTIFACT_PREFIX",
     "DecisionRecord",
     "Department",
     "DevOpsExecutionEvidence",
@@ -241,6 +256,7 @@ __all__ = [
     "audit_company_goal_run_files",
     "build_company_brief",
     "build_delivery_review_decision_record",
+    "build_design_review_decision_record",
     "build_growth_review_decision_record",
     "build_implementation_plan_review_decision_record",
     "build_verification_review_decision_record",
@@ -250,11 +266,16 @@ __all__ = [
     "business_validation_company_spec",
     "check_workroom_mcp_config",
     "compact_company_brief",
+    "design_review_company_spec",
     "create_architecture_brief_artifact",
     "create_cross_role_run_brief",
     "create_cross_role_run_brief_files",
+    "create_design_critique_artifact",
+    "create_design_risk_report_artifact",
     "create_delivery_execution_plan_artifact",
     "create_delivery_scope_brief_artifact",
+    "create_design_critique_artifact_files",
+    "create_design_risk_report_artifact_files",
     "create_goal_run_report",
     "delivery_planning_company_spec",
     "create_growth_brief_artifact",
@@ -293,6 +314,7 @@ __all__ = [
     "plan_business_validation_workflow",
     "plan_supervisor_transition",
     "plan_workflow_from_company_spec",
+    "prepare_design_review_decision",
     "prepare_delivery_review_decision",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",

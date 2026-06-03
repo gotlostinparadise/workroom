@@ -69,6 +69,24 @@ _TOOL_ARGUMENTS = {
         "artifact_ref",
         "workspace_path",
     ),
+    "create_design_critique_artifact": (
+        "run_id",
+        "task_ref",
+        "workspace_path",
+    ),
+    "create_design_risk_report_artifact": (
+        "run_id",
+        "task_ref",
+        "design_critique_ref",
+        "workspace_path",
+    ),
+    "prepare_design_review_decision": (
+        "run_id",
+        "task_ref",
+        "design_critique_ref",
+        "design_risk_report_ref",
+        "workspace_path",
+    ),
     "create_delivery_scope_brief_artifact": (
         "run_id",
         "task_ref",

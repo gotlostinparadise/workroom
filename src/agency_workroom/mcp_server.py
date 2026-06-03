@@ -17,6 +17,9 @@ TOOL_NAMES = (
     "record_work_result",
     "create_landing_artifact",
     "create_landing_qa_report",
+    "create_design_critique_artifact",
+    "create_design_risk_report_artifact",
+    "prepare_design_review_decision",
     "create_delivery_scope_brief_artifact",
     "create_delivery_execution_plan_artifact",
     "prepare_delivery_review_decision",
@@ -187,6 +190,54 @@ def create_landing_qa_report(
         run_id=run_id,
         task_ref=task_ref,
         artifact_ref=artifact_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_design_critique_artifact(
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local design critique artifact for a Design Review task."""
+    return agent_session.create_design_critique_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def create_design_risk_report_artifact(
+    run_id: str,
+    task_ref: str,
+    design_critique_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Create a local design risk report from a critique artifact."""
+    return agent_session.create_design_risk_report_artifact(
+        run_id=run_id,
+        task_ref=task_ref,
+        design_critique_ref=design_critique_ref,
+        workspace_path=workspace_path,
+    )
+
+
+@mcp.tool()
+def prepare_design_review_decision(
+    run_id: str,
+    task_ref: str,
+    design_critique_ref: str,
+    design_risk_report_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    """Prepare a local review decision for a proposed design."""
+    return agent_session.prepare_design_review_decision(
+        run_id=run_id,
+        task_ref=task_ref,
+        design_critique_ref=design_critique_ref,
+        design_risk_report_ref=design_risk_report_ref,
         workspace_path=workspace_path,
     )
 
@@ -602,6 +653,9 @@ if __name__ == "__main__":
 __all__ = [
     "TOOL_NAMES",
     "advance_company_goal",
+    "create_design_critique_artifact",
+    "create_design_risk_report_artifact",
+    "prepare_design_review_decision",
     "create_delivery_execution_plan_artifact",
     "create_delivery_scope_brief_artifact",
     "prepare_delivery_review_decision",

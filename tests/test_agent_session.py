@@ -19,6 +19,8 @@ from agency_workroom.agent_session import (
     check_workroom_mcp_config,
     create_cross_role_run_brief,
     create_architecture_brief_artifact,
+    create_design_critique_artifact,
+    create_design_risk_report_artifact,
     create_delivery_execution_plan_artifact,
     create_delivery_scope_brief_artifact,
     create_goal_run_report,
@@ -37,6 +39,7 @@ from agency_workroom.agent_session import (
     get_mcp_tool_manifest,
     list_next_actions,
     prepare_delivery_review_decision,
+    prepare_design_review_decision,
     prepare_github_pages_deploy_proposal,
     prepare_github_pages_deploy_execution_plan,
     prepare_growth_review_decision,
@@ -207,6 +210,25 @@ class AgentSessionTests(unittest.TestCase):
                     "objective": "polish Workroom for complex Codex tasks",
                     "constraints": "local-only, no Kernel source changes",
                     "success_definition": "Codex has a scoped execution plan",
+                }
+            ),
+        )
+        return started, workspace_path
+
+    def started_design_review_run(self, root: Path) -> tuple[dict[str, object], Path]:
+        workspace_path = root / "workspace"
+        started = start_company_goal(
+            goal="Review a complex Workroom design before implementation",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="design_review",
+            context_json=json.dumps(
+                {
+                    "objective": "review a local company capability design",
+                    "proposed_design": "add a bounded company with review gates",
+                    "constraints": "local-only, no Kernel source changes",
+                    "success_criteria": "Codex has a reviewed design decision",
                 }
             ),
         )
@@ -521,6 +543,7 @@ class AgentSessionTests(unittest.TestCase):
             [
                 "business_validation",
                 "delivery_planning",
+                "design_review",
                 "growth_brief",
                 "implementation_planning",
                 "release_hardening",
@@ -557,6 +580,11 @@ class AgentSessionTests(unittest.TestCase):
             specs["delivery_planning"]["required_context_variables"],
         )
         self.assertEqual([], specs["delivery_planning"]["optional_context_variables"])
+        self.assertEqual(
+            ["constraints", "objective", "proposed_design", "success_criteria"],
+            specs["design_review"]["required_context_variables"],
+        )
+        self.assertEqual([], specs["design_review"]["optional_context_variables"])
         self.assertEqual(
             ["acceptance_criteria", "constraints", "objective"],
             specs["implementation_planning"]["required_context_variables"],
@@ -658,6 +686,48 @@ class AgentSessionTests(unittest.TestCase):
         ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("polish Workroom for complex Codex tasks", ledger_text)
         self.assertNotIn("local-only, no Kernel source changes", ledger_text)
+
+    def test_start_company_goal_accepts_registered_design_review_spec(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        response = start_company_goal(
+            goal="Review a complex Workroom design before implementation",
+            user_id="usr_codex",
+            ledger_path=str(root / "kernel.jsonl"),
+            workspace_path=str(workspace_path),
+            company_spec_id="design_review",
+            context_json=json.dumps(
+                {
+                    "objective": "review a local company capability design",
+                    "proposed_design": "add a bounded company with review gates",
+                    "constraints": "local-only, no Kernel source changes",
+                    "success_criteria": "Codex has a reviewed design decision",
+                }
+            ),
+        )
+
+        self.assertEqual("started", response["status"])
+        self.assertEqual("design_review", response["company_spec_id"])
+        self.assertEqual("v1", response["company_spec_version"])
+        self.assertEqual(
+            ["design_critique", "risk_assessment", "review_decision"],
+            [task["category"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            ["design_auditor", "risk_reviewer", "design_reviewer"],
+            [task["role_id"] for task in response["tasks"]],
+        )
+        self.assertEqual(
+            "review a local company capability design",
+            response["plan"]["request"]["variables"]["objective"],
+        )
+        ledger_text = (root / "kernel.jsonl").read_text(encoding="utf-8")
+        self.assertNotIn("review a local company capability design", ledger_text)
+        self.assertNotIn("add a bounded company with review gates", ledger_text)
 
     def test_start_company_goal_accepts_registered_implementation_planning_spec(
         self,
@@ -2398,6 +2468,59 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(recommendation["will_mutate_state"])
         self.assertFalse(recommendation["blocked"])
 
+    def test_recommend_next_tool_call_progresses_design_review(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_design_review_run(root)
+        critique_task = self.task_by_category(started, "design_critique")
+        risk_task = self.task_by_category(started, "risk_assessment")
+        review_task = self.task_by_category(started, "review_decision")
+
+        first = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        critique = create_design_critique_artifact(
+            run_id=started["run_id"],
+            task_ref=critique_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        second = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        risk = create_design_risk_report_artifact(
+            run_id=started["run_id"],
+            task_ref=risk_task["task_ref"],
+            design_critique_ref=critique["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+        third = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_design_critique_artifact", first["recommended_tool"])
+        self.assertEqual(critique_task["task_ref"], first["arguments"]["task_ref"])
+        self.assertEqual("create_design_risk_report_artifact", second["recommended_tool"])
+        self.assertEqual(risk_task["task_ref"], second["arguments"]["task_ref"])
+        self.assertEqual(
+            critique["artifact"]["artifact_ref"],
+            second["arguments"]["design_critique_ref"],
+        )
+        self.assertEqual("prepare_design_review_decision", third["recommended_tool"])
+        self.assertEqual(review_task["task_ref"], third["arguments"]["task_ref"])
+        self.assertEqual(
+            critique["artifact"]["artifact_ref"],
+            third["arguments"]["design_critique_ref"],
+        )
+        self.assertEqual(
+            risk["artifact"]["artifact_ref"],
+            third["arguments"]["design_risk_report_ref"],
+        )
+
     def test_recommend_next_tool_call_progresses_implementation_planning(
         self,
     ) -> None:
@@ -3337,6 +3460,58 @@ class AgentSessionTests(unittest.TestCase):
             self.task_by_category(state, "review_decision")["status"],
         )
 
+    def test_run_next_local_step_executes_design_review_artifacts_and_decision(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_design_review_run(root)
+
+        first = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        second = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        third = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        fourth = run_next_local_step(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("create_design_critique_artifact", first["executed_tool"])
+        self.assertTrue(first["result"]["artifact"]["artifact_ref"].endswith(
+            "/design_critique.md"
+        ))
+        self.assertEqual("create_design_risk_report_artifact", second["executed_tool"])
+        self.assertTrue(second["result"]["artifact"]["artifact_ref"].endswith(
+            "/design_risk_report.md"
+        ))
+        self.assertEqual("prepare_design_review_decision", third["executed_tool"])
+        self.assertEqual("design_review", third["result"]["decision"]["decision_type"])
+        self.assertFalse(fourth["executed"])
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "design_critique")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "risk_assessment")["status"],
+        )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
     def test_run_next_local_step_executes_implementation_plan_and_review(
         self,
     ) -> None:
@@ -3955,6 +4130,46 @@ class AgentSessionTests(unittest.TestCase):
             "completed",
             self.task_by_category(state, "execution_plan")["status"],
         )
+        self.assertEqual(
+            "completed",
+            self.task_by_category(state, "review_decision")["status"],
+        )
+
+    def test_advance_company_goal_executes_design_review_decision_step(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_design_review_run(root)
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        turn = advance_company_goal(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+        state = get_company_state(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("local_step_executed", turn["action_type"])
+        self.assertEqual("run_next_local_step", turn["selected_tool"])
+        self.assertEqual("design_reviewer", turn["delegated_role"])
+        self.assertEqual("local_step", turn["transition"]["outcome"])
+        self.assertEqual(
+            "prepare_design_review_decision",
+            turn["transition"]["selected_tool"],
+        )
+        self.assertEqual("decision", turn["transition"]["record_kind"])
+        self.assertIn("decision", turn)
+        self.assertEqual("design_review", turn["decision"]["decision_type"])
         self.assertEqual(
             "completed",
             self.task_by_category(state, "review_decision")["status"],

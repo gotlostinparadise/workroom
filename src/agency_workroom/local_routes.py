@@ -49,6 +49,25 @@ LOCAL_ROUTES = (
         recommended_after=("create_landing_artifact",),
     ),
     LocalRoute(
+        tool_name="create_design_critique_artifact",
+        delegated_role="design_auditor",
+        result_kind="design_critique_artifact",
+        recommended_after=("recommend_next_tool_call",),
+    ),
+    LocalRoute(
+        tool_name="create_design_risk_report_artifact",
+        delegated_role="risk_reviewer",
+        result_kind="design_risk_report_artifact",
+        recommended_after=("create_design_critique_artifact",),
+    ),
+    LocalRoute(
+        tool_name="prepare_design_review_decision",
+        delegated_role="design_reviewer",
+        result_kind="design_review_decision",
+        record_kind="decision",
+        recommended_after=("create_design_risk_report_artifact",),
+    ),
+    LocalRoute(
         tool_name="create_delivery_scope_brief_artifact",
         delegated_role="scope_analyst",
         result_kind="delivery_scope_brief_artifact",

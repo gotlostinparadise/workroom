@@ -127,6 +127,16 @@ class PackageImportTests(unittest.TestCase):
             agency_workroom.__all__,
         )
 
+    def test_design_review_company_spec_is_exported_from_package(self) -> None:
+        self.assertTrue(callable(agency_workroom.design_review_company_spec))
+        self.assertTrue(callable(agency_workroom.create_design_critique_artifact_files))
+        self.assertTrue(callable(agency_workroom.create_design_risk_report_artifact_files))
+        self.assertTrue(callable(agency_workroom.build_design_review_decision_record))
+        self.assertIn("design_review_company_spec", agency_workroom.__all__)
+        self.assertIn("create_design_critique_artifact_files", agency_workroom.__all__)
+        self.assertIn("create_design_risk_report_artifact_files", agency_workroom.__all__)
+        self.assertIn("build_design_review_decision_record", agency_workroom.__all__)
+
     def test_implementation_planning_company_spec_is_exported_from_package(
         self,
     ) -> None:

@@ -26,6 +26,7 @@ class CompanyRegistryTests(unittest.TestCase):
             [
                 "business_validation",
                 "delivery_planning",
+                "design_review",
                 "growth_brief",
                 "implementation_planning",
                 "release_hardening",
@@ -34,7 +35,7 @@ class CompanyRegistryTests(unittest.TestCase):
             [spec["spec_id"] for spec in specs],
         )
         self.assertEqual(
-            ["v1", "v1", "v1", "v1", "v1", "v1"],
+            ["v1", "v1", "v1", "v1", "v1", "v1", "v1"],
             [spec["version"] for spec in specs],
         )
 
@@ -61,6 +62,14 @@ class CompanyRegistryTests(unittest.TestCase):
         self.assertEqual("delivery_planning", spec.spec_id)
         self.assertEqual("v1", spec.version)
         self.assertEqual("Delivery Planning", spec.display_name)
+
+    def test_design_review_spec_is_registered_without_changing_default(self) -> None:
+        spec = get_company_spec("design_review")
+
+        self.assertEqual("business_validation", DEFAULT_COMPANY_SPEC_ID)
+        self.assertEqual("design_review", spec.spec_id)
+        self.assertEqual("v1", spec.version)
+        self.assertEqual("Design Review", spec.display_name)
 
     def test_implementation_planning_spec_is_registered_without_changing_default(
         self,

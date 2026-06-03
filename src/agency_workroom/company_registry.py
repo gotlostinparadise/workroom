@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from .company_specs import (
     business_validation_company_spec,
+    design_review_company_spec,
     delivery_planning_company_spec,
     growth_brief_company_spec,
     implementation_planning_company_spec,
@@ -16,6 +17,7 @@ DEFAULT_COMPANY_SPEC_ID = "business_validation"
 
 _COMPANY_SPEC_FACTORIES: dict[str, Callable[[], CompanySpec]] = {
     DEFAULT_COMPANY_SPEC_ID: business_validation_company_spec,
+    "design_review": design_review_company_spec,
     "delivery_planning": delivery_planning_company_spec,
     "growth_brief": growth_brief_company_spec,
     "implementation_planning": implementation_planning_company_spec,

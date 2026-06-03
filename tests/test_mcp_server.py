@@ -21,6 +21,9 @@ class WorkroomMcpServerTests(unittest.TestCase):
                 "record_work_result",
                 "create_landing_artifact",
                 "create_landing_qa_report",
+                "create_design_critique_artifact",
+                "create_design_risk_report_artifact",
+                "prepare_design_review_decision",
                 "create_delivery_scope_brief_artifact",
                 "create_delivery_execution_plan_artifact",
                 "prepare_delivery_review_decision",
@@ -223,6 +226,42 @@ class WorkroomMcpServerTests(unittest.TestCase):
             set(review_tool.inputSchema["required"]),
         )
 
+    def test_design_review_tools_have_required_fastmcp_arguments(self) -> None:
+        tools = asyncio.run(mcp_server.mcp.list_tools())
+        critique_tool = next(
+            tool for tool in tools if tool.name == "create_design_critique_artifact"
+        )
+        risk_tool = next(
+            tool for tool in tools if tool.name == "create_design_risk_report_artifact"
+        )
+        review_tool = next(
+            tool for tool in tools if tool.name == "prepare_design_review_decision"
+        )
+
+        self.assertEqual(
+            {"run_id", "task_ref", "workspace_path"},
+            set(critique_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "design_critique_ref",
+                "workspace_path",
+            },
+            set(risk_tool.inputSchema["required"]),
+        )
+        self.assertEqual(
+            {
+                "run_id",
+                "task_ref",
+                "design_critique_ref",
+                "design_risk_report_ref",
+                "workspace_path",
+            },
+            set(review_tool.inputSchema["required"]),
+        )
+
     def test_verification_orchestration_tools_have_required_fastmcp_arguments(
         self,
     ) -> None:
@@ -370,6 +409,7 @@ class WorkroomMcpServerTests(unittest.TestCase):
             [
                 "business_validation",
                 "delivery_planning",
+                "design_review",
                 "growth_brief",
                 "implementation_planning",
                 "release_hardening",

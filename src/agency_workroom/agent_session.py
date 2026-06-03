@@ -20,6 +20,11 @@ from .delivery_planning import (
     create_delivery_scope_brief_artifact_files,
 )
 from .delivery_review import build_delivery_review_decision_record
+from .design_review import (
+    create_design_critique_artifact_files,
+    create_design_risk_report_artifact_files,
+)
+from .design_review_decision import build_design_review_decision_record
 from .github_pages_deploy import (
     GitHubPagesDeployError,
     prepare_github_pages_deploy_proposal_files,
@@ -119,6 +124,8 @@ EXTERNAL_CAPABILITY_CATEGORIES = {"github_pages", "threads"}
 DEVOPS_OPERATION_PREFIX = "workroom-artifact://"
 DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
+DESIGN_CRITIQUE_ARTIFACT_PREFIX = "workroom-artifact://"
+DESIGN_RISK_REPORT_ARTIFACT_PREFIX = "workroom-artifact://"
 IMPLEMENTATION_ARCHITECTURE_BRIEF_ARTIFACT_PREFIX = "workroom-artifact://"
 IMPLEMENTATION_PLAN_ARTIFACT_PREFIX = "workroom-artifact://"
 VERIFICATION_MATRIX_ARTIFACT_PREFIX = "workroom-artifact://"
@@ -632,6 +639,94 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
     )
     if release_readiness_recommendation is not None:
         return release_readiness_recommendation
+    critique_task = _optional_task_for_category(run, "design_critique")
+    if critique_task is not None:
+        critique_ref = _result_ref_for_kind(run, "design_critique_artifact")
+        risk_task = _optional_task_for_category(run, "risk_assessment")
+        risk_ref = _result_ref_for_kind(run, "design_risk_report_artifact")
+        review_task = _optional_task_for_category(run, "review_decision")
+        review_ref = _result_ref_for_kind(run, "design_review_decision")
+        if critique_task.status == "blocked":
+            return _blocked_recommendation(
+                run_id=run.run_id,
+                reason="design_critique task is blocked",
+                blocker_summary=critique_task.blocker_summary,
+            )
+        critique_readiness = _design_critique_route_readiness(
+            critique_task=critique_task,
+            critique_ref=critique_ref,
+        )
+        if critique_readiness is not None:
+            return build_local_route_recommendation_from_readiness(
+                run_id=run.run_id,
+                workspace_path=workspace_path,
+                readiness=critique_readiness,
+            )
+        if critique_ref is None and critique_task.status == "completed":
+            return _missing_prerequisite_recommendation(
+                run_id=run.run_id,
+                missing_prerequisite="design critique artifact ref",
+                reason=(
+                    "design_critique task is completed without a design "
+                    "critique artifact ref"
+                ),
+            )
+        if risk_task is not None:
+            if risk_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="risk_assessment task is blocked",
+                    blocker_summary=risk_task.blocker_summary,
+                )
+            risk_readiness = _design_risk_report_route_readiness(
+                risk_task=risk_task,
+                critique_ref=critique_ref,
+                risk_ref=risk_ref,
+            )
+            if risk_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=risk_readiness,
+                )
+            if risk_ref is None and risk_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="design risk report artifact ref",
+                    reason=(
+                        "risk_assessment task is completed without a design "
+                        "risk report artifact ref"
+                    ),
+                )
+        if review_task is not None:
+            if review_task.status == "blocked":
+                return _blocked_recommendation(
+                    run_id=run.run_id,
+                    reason="review_decision task is blocked",
+                    blocker_summary=review_task.blocker_summary,
+                )
+            review_readiness = _design_review_decision_route_readiness(
+                review_task=review_task,
+                critique_ref=critique_ref,
+                risk_ref=risk_ref,
+                review_ref=review_ref,
+            )
+            if review_readiness is not None:
+                return build_local_route_recommendation_from_readiness(
+                    run_id=run.run_id,
+                    workspace_path=workspace_path,
+                    readiness=review_readiness,
+                )
+            if review_ref is None and review_task.status == "completed":
+                return _missing_prerequisite_recommendation(
+                    run_id=run.run_id,
+                    missing_prerequisite="design review decision ref",
+                    reason=(
+                        "review_decision task is completed without a design "
+                        "review decision ref"
+                    ),
+                )
+        return _no_local_recommendation(run.run_id)
     scope_task = _optional_task_for_category(run, "scope_brief")
     if scope_task is not None:
         scope_ref = _result_ref_for_kind(run, "delivery_scope_brief_artifact")
@@ -1661,6 +1756,231 @@ def create_release_checklist_artifact(
     )
     save_company_goal_run(workspace_path, updated_run)
     return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_design_critique_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "design_critique":
+        raise WorkroomStateError("task is not a design_critique task")
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(DESIGN_CRITIQUE_ARTIFACT_PREFIX)
+            and "/design_review/" in ref
+            and ref.endswith("/design_critique.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _design_critique_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_design_critique_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def create_design_risk_report_artifact(
+    *,
+    run_id: str,
+    task_ref: str,
+    design_critique_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_design_critique_ref = _required_text(
+        "design_critique_ref",
+        design_critique_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "risk_assessment":
+        raise WorkroomStateError("task is not a risk_assessment task")
+    if not _artifact_ref_recorded_in_run(run, clean_design_critique_ref):
+        raise WorkroomStateError("design critique artifact is not recorded in run state")
+    _design_critique_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_design_critique_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(DESIGN_RISK_REPORT_ARTIFACT_PREFIX)
+            and "/design_review/" in ref
+            and ref.endswith("/design_risk_report.md")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        artifact = _design_risk_report_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            artifact_ref=existing_ref,
+            design_critique_ref=clean_design_critique_ref,
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "artifact": artifact,
+        }
+    artifact = create_design_risk_report_artifact_files(
+        workspace_path=workspace_path,
+        run_id=run.run_id,
+        task=current_task,
+        plan=dict(run.plan),
+        design_critique_ref=clean_design_critique_ref,
+    )
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(artifact["artifact_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "artifact": artifact}
+
+
+def prepare_design_review_decision(
+    *,
+    run_id: str,
+    task_ref: str,
+    design_critique_ref: str,
+    design_risk_report_ref: str,
+    workspace_path: str,
+) -> dict[str, object]:
+    run = load_company_goal_run(workspace_path, run_id)
+    clean_task_ref = _required_text("task_ref", task_ref)
+    clean_design_critique_ref = _required_text(
+        "design_critique_ref",
+        design_critique_ref,
+    )
+    clean_design_risk_report_ref = _required_text(
+        "design_risk_report_ref",
+        design_risk_report_ref,
+    )
+    task_index = _task_index_for(run, clean_task_ref)
+    current_task = run.tasks[task_index]
+    if current_task.category != "review_decision":
+        raise WorkroomStateError("task is not a review_decision task")
+    if not _artifact_ref_recorded_in_run(run, clean_design_critique_ref):
+        raise WorkroomStateError("design critique artifact is not recorded in run state")
+    if not _artifact_ref_recorded_in_run(run, clean_design_risk_report_ref):
+        raise WorkroomStateError("design risk report artifact is not recorded in run state")
+    _design_critique_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_design_critique_ref,
+    )
+    _design_risk_report_payload_for_existing_ref(
+        workspace_path=workspace_path,
+        artifact_ref=clean_design_risk_report_ref,
+        design_critique_ref=clean_design_critique_ref,
+    )
+    existing_ref = next(
+        (
+            ref
+            for ref in current_task.result_refs
+            if ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        ),
+        None,
+    )
+    if existing_ref is not None:
+        decision = _decision_payload_for_existing_ref(
+            workspace_path=workspace_path,
+            decision_ref=existing_ref,
+            decision_type="design_review",
+            source_refs=(clean_design_critique_ref, clean_design_risk_report_ref),
+        )
+        return {
+            "run_id": run.run_id,
+            "task": current_task.to_payload(),
+            "decision": decision,
+        }
+    decision_record = build_design_review_decision_record(
+        run=run,
+        task=current_task,
+        design_critique_ref=clean_design_critique_ref,
+        design_risk_report_ref=clean_design_risk_report_ref,
+    )
+    decision = write_decision_record(workspace_path, decision_record)
+    updated_task = _complete_task_with_result(
+        current_task,
+        str(decision["decision_ref"]),
+    )
+    updated_tasks = (
+        *run.tasks[:task_index],
+        updated_task,
+        *run.tasks[task_index + 1 :],
+    )
+    updated_run = CompanyGoalRun(
+        run_id=run.run_id,
+        user_id=run.user_id,
+        goal=run.goal,
+        company_spec_id=run.company_spec_id,
+        company_spec_version=run.company_spec_version,
+        team=run.team,
+        plan=run.plan,
+        commits=run.commits,
+        tasks=updated_tasks,
+    )
+    save_company_goal_run(workspace_path, updated_run)
+    return {"run_id": run.run_id, "task": updated_task.to_payload(), "decision": decision}
 
 
 def create_growth_brief_artifact(
@@ -3324,6 +3644,12 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             and "/decisions/" in ref
             and ref.endswith(".json")
         )
+    if kind == "design_review_decision":
+        return (
+            ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
+            and "/decisions/" in ref
+            and ref.endswith(".json")
+        )
     if kind == "implementation_plan_review_decision":
         return (
             ref.startswith(RELEASE_READINESS_DECISION_PREFIX)
@@ -3359,6 +3685,18 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
             ref.startswith(DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX)
             and "/delivery_planning/" in ref
             and ref.endswith("/delivery_execution_plan.md")
+        )
+    if kind == "design_critique_artifact":
+        return (
+            ref.startswith(DESIGN_CRITIQUE_ARTIFACT_PREFIX)
+            and "/design_review/" in ref
+            and ref.endswith("/design_critique.md")
+        )
+    if kind == "design_risk_report_artifact":
+        return (
+            ref.startswith(DESIGN_RISK_REPORT_ARTIFACT_PREFIX)
+            and "/design_review/" in ref
+            and ref.endswith("/design_risk_report.md")
         )
     if kind == "architecture_brief_artifact":
         return (
@@ -3400,6 +3738,70 @@ def _delivery_scope_brief_route_readiness(
         tool_name="create_delivery_scope_brief_artifact",
         task_ref=scope_task.task_ref,
         reason="scope_brief task is ready and has no delivery scope brief",
+    )
+
+
+def _design_critique_route_readiness(
+    *,
+    critique_task: TaskState,
+    critique_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if critique_ref is not None:
+        return None
+    if critique_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_design_critique_artifact",
+        task_ref=critique_task.task_ref,
+        reason="design_critique task is ready and has no design critique artifact",
+    )
+
+
+def _design_risk_report_route_readiness(
+    *,
+    risk_task: TaskState,
+    critique_ref: str | None,
+    risk_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if critique_ref is None or risk_ref is not None:
+        return None
+    if risk_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="create_design_risk_report_artifact",
+        task_ref=risk_task.task_ref,
+        reason=(
+            "design critique exists and risk_assessment task has no design "
+            "risk report artifact"
+        ),
+        extra_arguments={
+            "design_critique_ref": critique_ref,
+        },
+    )
+
+
+def _design_review_decision_route_readiness(
+    *,
+    review_task: TaskState,
+    critique_ref: str | None,
+    risk_ref: str | None,
+    review_ref: str | None,
+) -> LocalRouteReadiness | None:
+    if critique_ref is None or risk_ref is None or review_ref is not None:
+        return None
+    if review_task.status not in _NEXT_ACTION_STATUSES:
+        return None
+    return build_local_route_readiness(
+        tool_name="prepare_design_review_decision",
+        task_ref=review_task.task_ref,
+        reason=(
+            "design critique and risk report exist and review_decision task "
+            "has no design review decision"
+        ),
+        extra_arguments={
+            "design_critique_ref": critique_ref,
+            "design_risk_report_ref": risk_ref,
+        },
     )
 
 
@@ -3910,6 +4312,9 @@ def _local_route_executors() -> dict[str, Callable[..., dict[str, object]]]:
     return {
         "create_landing_artifact": create_landing_artifact,
         "create_landing_qa_report": create_landing_qa_report,
+        "create_design_critique_artifact": create_design_critique_artifact,
+        "create_design_risk_report_artifact": create_design_risk_report_artifact,
+        "prepare_design_review_decision": prepare_design_review_decision,
         "create_delivery_scope_brief_artifact": create_delivery_scope_brief_artifact,
         "create_delivery_execution_plan_artifact": (
             create_delivery_execution_plan_artifact
@@ -4573,6 +4978,83 @@ def _delivery_scope_brief_payload_for_existing_ref(
     return payload
 
 
+def _design_critique_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/design_critique.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("design critique artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "design_review"
+        or parts[3] != "design_critique.md"
+    ):
+        raise WorkroomStateError("design critique artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("design critique artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError("design critique artifact metadata does not match ref")
+    return payload
+
+
+def _design_risk_report_payload_for_existing_ref(
+    *,
+    workspace_path: str,
+    artifact_ref: str,
+    design_critique_ref: str,
+) -> dict[str, object]:
+    prefix = "workroom-artifact://runs/"
+    suffix = "/design_risk_report.md"
+    if not artifact_ref.startswith(prefix) or not artifact_ref.endswith(suffix):
+        raise WorkroomStateError("design risk report artifact ref is invalid")
+    parts = artifact_ref[len(prefix) :].split("/")
+    if (
+        len(parts) != 4
+        or parts[1] != "design_review"
+        or parts[3] != "design_risk_report.md"
+    ):
+        raise WorkroomStateError("design risk report artifact ref is invalid")
+    ref_run_id, category, task_hash, _filename = parts
+    metadata_path = (
+        Path(workspace_path)
+        / "runs"
+        / ref_run_id
+        / "artifacts"
+        / category
+        / task_hash
+        / "design_risk_report_metadata.json"
+    )
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise WorkroomStateError("design risk report artifact metadata is corrupt") from exc
+    if payload.get("artifact_ref") != artifact_ref:
+        raise WorkroomStateError(
+            "design risk report artifact metadata does not match ref"
+        )
+    if payload.get("design_critique_ref") != design_critique_ref:
+        raise WorkroomStateError(
+            "design risk report artifact metadata does not match design critique ref"
+        )
+    return payload
+
+
 def _delivery_execution_plan_payload_for_existing_ref(
     *,
     workspace_path: str,
@@ -5023,6 +5505,8 @@ __all__ = [
     "DEVOPS_OPERATION_PREFIX",
     "DELIVERY_SCOPE_BRIEF_ARTIFACT_PREFIX",
     "DELIVERY_EXECUTION_PLAN_ARTIFACT_PREFIX",
+    "DESIGN_CRITIQUE_ARTIFACT_PREFIX",
+    "DESIGN_RISK_REPORT_ARTIFACT_PREFIX",
     "GOAL_RUN_REPORT_PREFIX",
     "GITHUB_PAGES_DEPLOY_PROPOSAL_PREFIX",
     "GROWTH_BRIEF_ARTIFACT_PREFIX",
@@ -5040,6 +5524,8 @@ __all__ = [
     "LOCAL_STEP_TOOL_NAMES",
     "advance_company_goal",
     "audit_company_goal_run",
+    "create_design_critique_artifact",
+    "create_design_risk_report_artifact",
     "create_delivery_scope_brief_artifact",
     "create_delivery_execution_plan_artifact",
     "create_cross_role_run_brief",
@@ -5060,6 +5546,7 @@ __all__ = [
     "get_mcp_tool_manifest",
     "list_company_spec_options",
     "list_next_actions",
+    "prepare_design_review_decision",
     "prepare_delivery_review_decision",
     "prepare_github_pages_deploy_execution_plan",
     "prepare_github_pages_deploy_proposal",
