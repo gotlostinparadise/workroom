@@ -75,6 +75,13 @@ _TOOL_ARGUMENTS = {
         "brief_ref",
         "workspace_path",
     ),
+    "prepare_growth_review_decision": (
+        "run_id",
+        "task_ref",
+        "brief_ref",
+        "experiment_plan_ref",
+        "workspace_path",
+    ),
     "create_release_checklist_artifact": ("run_id", "task_ref", "workspace_path"),
     "create_release_quality_gate_report": (
         "run_id",

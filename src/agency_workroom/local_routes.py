@@ -61,6 +61,13 @@ LOCAL_ROUTES = (
         recommended_after=("create_growth_brief_artifact",),
     ),
     LocalRoute(
+        tool_name="prepare_growth_review_decision",
+        delegated_role="growth_strategist",
+        result_kind="growth_review_decision",
+        record_kind="decision",
+        recommended_after=("create_growth_experiment_plan_artifact",),
+    ),
+    LocalRoute(
         tool_name="create_release_checklist_artifact",
         delegated_role="release_lead",
         result_kind="release_checklist",

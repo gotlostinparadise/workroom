@@ -767,6 +767,8 @@ def _matches_result_kind(ref: str, kind: str) -> bool:
         return "/release_hardening/" in ref and ref.endswith("/release_notes.md")
     if kind == "release_readiness_decision":
         return "/decisions/" in ref and ref.endswith(".json")
+    if kind == "growth_review_decision":
+        return "/decisions/" in ref and ref.endswith(".json")
     if kind == "growth_brief_artifact":
         return "/growth_brief/" in ref and ref.endswith("/growth_brief.md")
     if kind == "growth_experiment_plan_artifact":

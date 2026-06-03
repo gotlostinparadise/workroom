@@ -85,7 +85,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
             spec.metadata["reference_vertical"],
         )
 
-    def test_growth_brief_company_spec_has_market_brief_then_experiment_plan(
+    def test_growth_brief_company_spec_has_market_brief_experiment_and_review(
         self,
     ) -> None:
         spec = growth_brief_company_spec()
@@ -94,7 +94,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
         self.assertEqual("v1", spec.version)
         self.assertEqual("Growth Brief", spec.display_name)
         self.assertEqual(
-            ["market_brief", "experiment_plan"],
+            ["market_brief", "experiment_plan", "review_decision"],
             [task.category for task in spec.task_templates],
         )
         self.assertEqual(
@@ -106,7 +106,7 @@ class BusinessValidationPlannerTests(unittest.TestCase):
             {role.role_id for role in spec.team.roles},
         )
         self.assertEqual(
-            ["growth_strategist", "growth_strategist"],
+            ["growth_strategist", "growth_strategist", "growth_strategist"],
             [task.role_id for task in spec.task_templates],
         )
         self.assertEqual("growth_brief", spec.metadata["reference_vertical"])

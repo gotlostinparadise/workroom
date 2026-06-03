@@ -78,10 +78,17 @@ class PackageImportTests(unittest.TestCase):
         self.assertTrue(
             callable(agency_workroom.create_growth_experiment_plan_artifact)
         )
+        self.assertTrue(callable(agency_workroom.prepare_growth_review_decision))
+        self.assertTrue(callable(agency_workroom.build_growth_review_decision_record))
         self.assertIn("growth_brief_company_spec", agency_workroom.__all__)
         self.assertIn("create_growth_brief_artifact", agency_workroom.__all__)
         self.assertIn(
             "create_growth_experiment_plan_artifact",
+            agency_workroom.__all__,
+        )
+        self.assertIn("prepare_growth_review_decision", agency_workroom.__all__)
+        self.assertIn(
+            "build_growth_review_decision_record",
             agency_workroom.__all__,
         )
         self.assertIn("GROWTH_BRIEF_ARTIFACT_PREFIX", agency_workroom.__all__)

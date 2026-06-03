@@ -215,6 +215,43 @@ class SupervisorCoreTests(unittest.TestCase):
 
         self.assertEqual("local_production", detect_goal_phase(run))
 
+    def test_detect_goal_phase_for_growth_brief_review_decision_task(self) -> None:
+        run = self.make_run(
+            (
+                TaskState(
+                    task_ref="workroom-item://market-brief",
+                    role_id="growth_strategist",
+                    category="market_brief",
+                    title="Prepare growth brief",
+                    status="completed",
+                    result_refs=(
+                        "workroom-artifact://runs/run_abc/growth_brief/"
+                        "market/growth_brief.md",
+                    ),
+                ),
+                TaskState(
+                    task_ref="workroom-item://experiment-plan",
+                    role_id="growth_strategist",
+                    category="experiment_plan",
+                    title="Prepare local growth experiment plan",
+                    status="completed",
+                    result_refs=(
+                        "workroom-artifact://runs/run_abc/growth_brief/"
+                        "experiment/growth_experiment_plan.md",
+                    ),
+                ),
+                TaskState(
+                    task_ref="workroom-item://review-decision",
+                    role_id="growth_strategist",
+                    category="review_decision",
+                    title="Prepare local growth review decision",
+                    status="planned",
+                ),
+            )
+        )
+
+        self.assertEqual("decision", detect_goal_phase(run))
+
     def test_build_supervisor_snapshot_counts_statuses(self) -> None:
         run = self.make_run(self.make_tasks())
 

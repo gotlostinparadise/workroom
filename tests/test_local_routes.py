@@ -26,6 +26,7 @@ class LocalRouteRegistryTests(unittest.TestCase):
                 "create_landing_qa_report",
                 "create_growth_brief_artifact",
                 "create_growth_experiment_plan_artifact",
+                "prepare_growth_review_decision",
                 "create_release_checklist_artifact",
                 "create_release_quality_gate_report",
                 "create_release_notes_artifact",
@@ -77,6 +78,19 @@ class LocalRouteRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             {
+                "tool_name": "prepare_growth_review_decision",
+                "delegated_role": "growth_strategist",
+                "result_kind": "growth_review_decision",
+                "record_kind": "decision",
+                "manifest_phase": "local_execution",
+                "external_effect_risk": "local_files",
+                "recommended_after": ["create_growth_experiment_plan_artifact"],
+                "executor_name": "prepare_growth_review_decision",
+            },
+            route_payloads["prepare_growth_review_decision"],
+        )
+        self.assertEqual(
+            {
                 "tool_name": "prepare_release_readiness_decision",
                 "delegated_role": "coordination_manager",
                 "result_kind": "release_readiness_decision",
@@ -89,7 +103,10 @@ class LocalRouteRegistryTests(unittest.TestCase):
             route_payloads["prepare_release_readiness_decision"],
         )
         for tool_name, payload in route_payloads.items():
-            if tool_name == "prepare_release_readiness_decision":
+            if tool_name in {
+                "prepare_growth_review_decision",
+                "prepare_release_readiness_decision",
+            }:
                 continue
             self.assertEqual("handoff", payload["record_kind"])
 

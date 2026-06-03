@@ -53,6 +53,7 @@ class McpManifestTests(unittest.TestCase):
             "create_landing_qa_report",
             "create_growth_brief_artifact",
             "create_growth_experiment_plan_artifact",
+            "prepare_growth_review_decision",
             "create_release_checklist_artifact",
             "create_release_quality_gate_report",
             "create_release_notes_artifact",
@@ -253,6 +254,30 @@ class McpManifestTests(unittest.TestCase):
         self.assertEqual(
             ["create_release_notes_artifact"],
             readiness_tool["recommended_after"],
+        )
+
+    def test_tool_manifest_exposes_growth_review_decision_local_tool(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+        review_tool = tools["prepare_growth_review_decision"]
+
+        self.assertEqual("local_execution", review_tool["phase"])
+        self.assertTrue(review_tool["mutates_workroom_state"])
+        self.assertEqual("local_files", review_tool["external_effect_risk"])
+        self.assertEqual(
+            [
+                "run_id",
+                "task_ref",
+                "brief_ref",
+                "experiment_plan_ref",
+                "workspace_path",
+            ],
+            review_tool["required_arguments"],
+        )
+        self.assertEqual([], review_tool["optional_arguments"])
+        self.assertEqual(
+            ["create_growth_experiment_plan_artifact"],
+            review_tool["recommended_after"],
         )
 
     def test_validate_workroom_mcp_config_rejects_blank_relative_and_equal_paths(self) -> None:

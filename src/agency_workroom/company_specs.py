@@ -270,6 +270,17 @@ def growth_brief_company_spec() -> CompanySpec:
                 priority="medium",
                 metadata={"artifact_kind": "growth_experiment_plan"},
             ),
+            CompanyTaskTemplate(
+                role_id="growth_strategist",
+                category="review_decision",
+                title="Prepare local growth review decision",
+                summary_template=(
+                    "Prepare a local review decision for {initiative}, serving "
+                    "{audience}, with growth goal: {growth_goal}."
+                ),
+                priority="medium",
+                metadata={"decision_type": "growth_experiment_review"},
+            ),
         ),
         metadata={"reference_vertical": "growth_brief"},
     )
