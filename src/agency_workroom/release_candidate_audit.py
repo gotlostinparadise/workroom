@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import tomllib
 
+from ._version import __version__
 from .company_runbooks import DEFAULT_RUNBOOK_ID, normalize_runbook_id
 from .mcp_manifest import workroom_mcp_tool_manifest
 from .session_store import safe_run_id
@@ -219,6 +220,7 @@ def _package_surface() -> dict[str, object]:
         "installed_metadata_readable": False,
         "project_name": str(project.get("name", "")),
         "project_version": str(project.get("version", "")),
+        "expected_project_version": __version__,
         "requires_python": str(project.get("requires-python", "")),
         "project_urls": _project_urls(project.get("urls")),
         "required_project_urls": list(REQUIRED_PACKAGE_URLS),
@@ -239,6 +241,7 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
             "installed_metadata_readable": False,
             "project_name": "",
             "project_version": "",
+            "expected_project_version": __version__,
             "requires_python": "",
             "project_urls": {},
             "required_project_urls": list(REQUIRED_PACKAGE_URLS),
@@ -261,6 +264,7 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
         "installed_metadata_readable": True,
         "project_name": str(package_metadata.get("Name", "")),
         "project_version": str(package_metadata.get("Version", "")),
+        "expected_project_version": __version__,
         "requires_python": str(package_metadata.get("Requires-Python", "")),
         "project_urls": _installed_project_urls(package_metadata),
         "required_project_urls": list(REQUIRED_PACKAGE_URLS),
@@ -434,6 +438,16 @@ def _audit_findings(
                 "severity": "error",
                 "code": "package_identity_mismatch",
                 "message": "package identity is not agency-workroom",
+            }
+        )
+    if str(package_surface.get("project_version", "")) != str(
+        package_surface.get("expected_project_version", "")
+    ):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "package_version_mismatch",
+                "message": "package version does not match agency_workroom.__version__",
             }
         )
     project_urls = _mapping(package_surface.get("project_urls"))
@@ -857,6 +871,11 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         "- "
         f"Project: {_single_line(package_surface.get('project_name', ''))} "
         f"{_single_line(package_surface.get('project_version', ''))}"
+    )
+    lines.append(
+        "- "
+        f"Expected version: "
+        f"{_single_line(package_surface.get('expected_project_version', ''))}"
     )
     lines.append(
         "- "

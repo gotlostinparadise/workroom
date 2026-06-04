@@ -514,6 +514,11 @@ These milestones are complete enough to be treated as foundation:
     while release-candidate audit JSON, Markdown, and findings gate missing
     required project URL metadata.
 
+93. Package Import Version Metadata Gate v1.
+    Workroom now exposes `agency_workroom.__version__`, package tests compare it
+    to `pyproject.toml`, and release-candidate audit gates package metadata
+    version drift with `package_version_mismatch`.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2471,6 +2476,30 @@ Exit criteria:
   required project URL is absent.
 - Existing package identity gates, license-file metadata gates, README
   front-door checks, MCP manifest gates, and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 83. Package Import Version Metadata Gate v1
+
+Status: Done.
+
+Goal: make Workroom's release version visible from the installed import surface
+and make release-candidate audit fail closed when package metadata drifts from
+that import-level version.
+
+Exit criteria:
+
+- `agency_workroom.__version__` exists and is exported.
+- Package import tests compare `agency_workroom.__version__` to
+  `pyproject.toml` project version.
+- Release-candidate audit package surface records `expected_project_version`.
+- Release-candidate audit Markdown renders the expected version.
+- Release-candidate audit findings include `package_version_mismatch` when
+  package metadata version drifts from `agency_workroom.__version__`.
+- Existing package identity gates, project URL gates, license-file metadata
+  gates, README front-door checks, MCP manifest gates, and Kernel boundary
+  remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

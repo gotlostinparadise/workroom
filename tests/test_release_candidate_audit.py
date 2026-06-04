@@ -118,6 +118,11 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             payload["export_surface"]["missing_session_public_function_exports"],
         )
         self.assertEqual("agency-workroom", payload["package_surface"]["project_name"])
+        self.assertEqual("0.1.0", payload["package_surface"]["project_version"])
+        self.assertEqual(
+            "0.1.0",
+            payload["package_surface"]["expected_project_version"],
+        )
         self.assertEqual(
             "pyproject.toml",
             payload["package_surface"]["package_metadata_source"],
@@ -239,6 +244,8 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Run IDs match requested: True", markdown)
         self.assertIn("Smoke findings count: 0", markdown)
         self.assertIn("Smoke findings empty: True", markdown)
+        self.assertIn("Project: agency-workroom 0.1.0", markdown)
+        self.assertIn("Expected version: 0.1.0", markdown)
         self.assertIn("Requires Python:", markdown)
         self.assertIn(
             "Project URLs: Issues=https://github.com/gotlostinparadise/workroom/issues, "
@@ -787,6 +794,39 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
 
         self.assertEqual(["package_identity_mismatch"], [findings[0]["code"]])
+        self.assertEqual("error", findings[0]["severity"])
+
+    def test_audit_findings_flags_wrong_package_version(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "project_name": "agency-workroom",
+                "project_version": "9.9.9",
+                "expected_project_version": "0.1.0",
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "file",
+            },
+            release_smoke={
+                "valid": True,
+                "runbook_id_matches_expected": True,
+                "ready": True,
+                "status_matches_ready": True,
+                "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
+                "smoke_findings_empty": True,
+            },
+        )
+
+        self.assertEqual(["package_version_mismatch"], [findings[0]["code"]])
         self.assertEqual("error", findings[0]["severity"])
 
     def test_audit_findings_flags_missing_required_package_url(self) -> None:

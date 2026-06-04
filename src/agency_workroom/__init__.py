@@ -1,5 +1,6 @@
 """External Workroom workflow package."""
 
+from ._version import __version__
 from . import (
     design_review,
     design_review_decision,
@@ -237,6 +238,7 @@ from .workflow import (
 )
 
 __all__ = [
+    "__version__",
     "BusinessValidationWorkflowResult",
     "CompanyGoalRun",
     "CompanySpec",

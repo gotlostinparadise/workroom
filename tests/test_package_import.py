@@ -40,6 +40,8 @@ class PackageImportTests(unittest.TestCase):
 
         self.assertEqual("agency-workroom", project["name"])
         self.assertEqual("0.1.0", project["version"])
+        self.assertEqual(project["version"], agency_workroom.__version__)
+        self.assertIn("__version__", agency_workroom.__all__)
         self.assertEqual("README.md", project["readme"])
         self.assertEqual(">=3.11", project["requires-python"])
         self.assertEqual("LicenseRef-Proprietary", project["license"])
