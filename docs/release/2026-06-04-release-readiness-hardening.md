@@ -1,5 +1,7 @@
 # Release Readiness Hardening - 2026-06-04
 
+Status note: superseded historical snapshot. Current polished handoff artifact for this date is `docs/release/2026-06-04-release-readiness-polish-handoff-v2.md`.
+
 Status: Passed for the current local release-candidate surface.
 
 Scope:
