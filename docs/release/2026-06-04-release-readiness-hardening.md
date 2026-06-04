@@ -188,7 +188,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 611 tests in 10.310s
+Ran 619 tests in 10.310s
 OK
 ```
 
@@ -199,7 +199,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 611 tests in 10.314s
+Ran 619 tests in 10.314s
 OK
 ```
 

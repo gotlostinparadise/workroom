@@ -2,7 +2,7 @@
 
 ## Verification Snapshot
 
-- Workroom commit: `53cb991` (pushed to `origin/master`).
+- Workroom commit: `eacad08` (pushed to `origin/master`).
 - Worktree status:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
@@ -11,8 +11,8 @@
   - `all_passed`: `true`
   - Commands run/passed: `5/5` (`source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`).
   - MCP stdio smoke command path is valid and returned cleanly.
-- Source suite: `Ran 618 tests` OK.
-- Fresh editable install suite: `Ran 618 tests` OK.
+- Source suite: `Ran 619 tests` OK.
+- Fresh editable install suite: `Ran 619 tests` OK.
 - Release-candidate audit:
   - `ready_for_release_candidate_review`: `true`
   - No findings (`audit_findings: []`).
