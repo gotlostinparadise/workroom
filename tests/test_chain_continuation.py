@@ -88,6 +88,43 @@ class ChainContinuationTests(unittest.TestCase):
         ):
             recommend_chain_continuation_from_report_path(report_path)
 
+    def test_path_wrapper_rejects_malformed_chain_directory(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        report_path = (
+            Path(temp_dir.name)
+            / "evidence_chains"
+            / "../chain_escape"
+            / "company_evidence_chain_report.json"
+        )
+
+        with self.assertRaisesRegex(
+            ChainContinuationError,
+            "Workroom evidence-chain report",
+        ):
+            recommend_chain_continuation_from_report_path(report_path)
+
+    def test_path_wrapper_rejects_symlink_report_before_reading(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        root = Path(temp_dir.name)
+        target_path = root / "target.json"
+        target_path.write_text(
+            json.dumps(self.chain_payload(missing=("design_review",))),
+            encoding="utf-8",
+        )
+        report_path = (
+            root
+            / "evidence_chains"
+            / "chain_test"
+            / "company_evidence_chain_report.json"
+        )
+        report_path.parent.mkdir(parents=True)
+        report_path.symlink_to(target_path)
+
+        with self.assertRaisesRegex(ChainContinuationError, "must not be a symlink"):
+            recommend_chain_continuation_from_report_path(report_path)
+
     def chain_payload(self, *, missing: tuple[str, ...]) -> dict[str, object]:
         stages = (
             "design_review",

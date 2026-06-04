@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+import re
 from string import Formatter
 import json
 
@@ -12,6 +13,9 @@ from .models import CompanySpec
 
 class ChainContinuationError(RuntimeError):
     pass
+
+
+_CHAIN_ID_RE = re.compile(r"^chain_[A-Za-z0-9_.-]+$")
 
 
 def recommend_chain_continuation_from_report_path(
@@ -38,9 +42,12 @@ def _validate_chain_report_path(path: Path) -> None:
         raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
     if path.name != "company_evidence_chain_report.json":
         raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
-    if path.parent.name.startswith("chain_") and path.parent.parent.name == "evidence_chains":
-        return
-    raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
+    if path.parent.parent.name != "evidence_chains":
+        raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
+    if not _CHAIN_ID_RE.fullmatch(path.parent.name):
+        raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
+    if path.is_symlink():
+        raise ChainContinuationError("chain_report_path must not be a symlink")
 
 
 def recommend_chain_continuation_from_report_payload(
