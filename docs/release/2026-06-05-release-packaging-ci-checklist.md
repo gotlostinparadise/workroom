@@ -36,10 +36,17 @@
 - [x] Workroom clean status gate passes in release run.
 - [x] Kernel clean status gate passes in release run.
 - [x] A tag exists: `v0.1.0` (`git tag --list`).
-- [ ] Branch-protection policy and release-target workflow triggers were not verified via API in this pass.
+- [x] Branch-protection policy verified via API (2026-06-05):
+  - `required_approving_review_count: 1`
+  - `allow_force_pushes: false`
+  - `enforce_admins: true`
+  - `required_linear_history: true`
+- [x] Release-readiness workflow trigger surface was verified in-repo:
+  - `.github/workflows/release-readiness.yml` is configured for `push` on `master` and `v*` tags, plus `pull_request` and `workflow_dispatch`.
+  - `.github/workflows/release-publish.yml` is configured for `release` publish and manual dispatch.
 
 ## Runbook and Checklist Readiness
 
 - [x] Update/checkpoint artifacts use consistent command list and omit user home paths.
 - [x] Miro/card-ready operator snapshot drafted in this cycle (`-v5` handoff docs).
-- [ ] Confirm branch-protection policy is approved for the release tag path before public publish.
+- [x] Confirmed branch-protection policy posture and publish trigger surface before public release publish planning.
