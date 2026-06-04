@@ -1,11 +1,11 @@
 # Release Readiness Polishing Handoff — 2026-06-04 (v3)
 
 Status note: current polished handoff snapshot for this date is this file.  
-Latest verified Workroom commit: `d1dfc38` (`chore: align polish handoff v3 metadata with latest commit`).
+Latest verified Workroom commit: `30df75a` (`chore: set polish handoff v3 to latest verified commit`).
 
 ## Verification Snapshot
 
-- Workroom commit: `d1dfc38` (`chore: align polish handoff v3 metadata with latest commit`), pushed to `origin/master`.
+- Workroom commit: `30df75a` (`chore: set polish handoff v3 to latest verified commit`), pushed to `origin/master`.
 - Workroom status at verification time:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
