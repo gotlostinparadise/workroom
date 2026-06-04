@@ -36,7 +36,9 @@ class ReleaseReadinessGateCommandRunner:
             "-v",
         ):
             returncode = 1
-        if self.fail_on_install and command_tuple[1:4] == ("-m", "pip", "install"):
+        if self.fail_on_install and command_tuple[1:4] == ("-m", "pip", "install") and command_tuple[
+            -2:
+        ] == ("-e", "."):
             returncode = 1
             stdout = ""
             return CompletedProcess(
