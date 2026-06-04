@@ -213,7 +213,7 @@ def _package_surface() -> dict[str, object]:
         "project_name": str(project.get("name", "")),
         "project_version": str(project.get("version", "")),
         "requires_python": str(project.get("requires-python", "")),
-        "kernel_dependency": kernel_dependency,
+        "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
         "kernel_dependency_mode": kernel_dependency_mode,
         "distribution_scope": _distribution_scope(kernel_dependency_mode),
     }
@@ -251,7 +251,7 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
         "project_name": str(package_metadata.get("Name", "")),
         "project_version": str(package_metadata.get("Version", "")),
         "requires_python": str(package_metadata.get("Requires-Python", "")),
-        "kernel_dependency": kernel_dependency,
+        "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
         "kernel_dependency_mode": kernel_dependency_mode,
         "distribution_scope": _distribution_scope(kernel_dependency_mode),
     }
@@ -276,6 +276,13 @@ def _kernel_dependency_mode(dependency: str) -> str:
     if _dependency_name(dependency) == "kernel":
         return "declared_package"
     return "missing"
+
+
+def _redacted_dependency_reference(dependency: str) -> str:
+    mode = _kernel_dependency_mode(dependency)
+    if mode in {"absolute_file", "file"}:
+        return "kernel @ file://<local-kernel>"
+    return dependency
 
 
 def _distribution_scope(kernel_dependency_mode: str) -> str:
@@ -501,7 +508,7 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "source_suite",
             "command": (
-                "PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src "
+                "PYTHONPATH=src:../Kernel/src "
                 "python -m unittest discover -s tests -v"
             ),
         },
@@ -531,10 +538,7 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         },
         {
             "gate_id": "kernel_git_status",
-            "command": (
-                "git -C /home/bm/Work/Projects/AGENTS/Agency/Kernel "
-                "status --short --branch"
-            ),
+            "command": "git -C ../Kernel status --short --branch",
         },
     ]
 

@@ -59,6 +59,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual("workroom-release-candidate-audit.v1", audit["schema_version"])
         self.assertEqual("workroom-release-candidate-audit.v1", payload["schema_version"])
         self.assertNotIn(str(root), payload_text)
+        self.assertNotIn("/home/", payload_text)
         self.assertNotIn("audit_path", payload)
         self.assertNotIn("markdown_path", payload)
         self.assertNotIn("path", payload["runbook_release_smoke"])
@@ -114,6 +115,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "pyproject.toml",
             payload["package_surface"]["package_metadata_source"],
         )
+        self.assertEqual(
+            "kernel @ file://<local-kernel>",
+            payload["package_surface"]["kernel_dependency"],
+        )
         self.assertTrue(payload["package_surface"]["pyproject_readable"])
         self.assertFalse(payload["package_surface"]["installed_metadata_readable"])
         self.assertEqual(
@@ -145,6 +150,14 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             gate_commands["fresh_editable_install_suite"],
         )
         self.assertIn(
+            "PYTHONPATH=src:../Kernel/src",
+            gate_commands["source_suite"],
+        )
+        self.assertEqual(
+            "git -C ../Kernel status --short --branch",
+            gate_commands["kernel_git_status"],
+        )
+        self.assertIn(
             "names = set(mcp_server.TOOL_NAMES)",
             gate_commands["installed_mcp_stdio_smoke"],
         )
@@ -157,6 +170,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn(f"Audit ref: {audit['audit_ref']}", markdown)
         self.assertIn(f"Markdown ref: {audit['markdown_ref']}", markdown)
         self.assertNotIn(str(root), markdown)
+        self.assertNotIn("/home/", markdown)
         self.assertIn("Missing MCP tool exports: none", markdown)
         self.assertIn("Missing session public function exports: none", markdown)
         self.assertIn("Manifest schema: workroom-mcp-tool-manifest.v1", markdown)
@@ -827,7 +841,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                     "requires_python": ">=3.11",
                     "pyproject_readable": False,
                     "installed_metadata_readable": True,
-                    "kernel_dependency": "kernel @ file:///tmp/Kernel",
+                    "kernel_dependency": "kernel @ file://<local-kernel>",
                     "kernel_dependency_mode": "absolute_file",
                     "distribution_scope": "local_editable_checkout",
                 },
@@ -839,7 +853,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Requires Python: >=3.11", markdown)
         self.assertIn("Pyproject readable: False", markdown)
         self.assertIn("Installed metadata readable: True", markdown)
-        self.assertIn("Kernel dependency: kernel @ file:///tmp/Kernel", markdown)
+        self.assertIn("Kernel dependency: kernel @ file://<local-kernel>", markdown)
 
     def test_release_candidate_audit_markdown_renders_boundary_claims(self) -> None:
         markdown = release_candidate_audit._render_markdown(

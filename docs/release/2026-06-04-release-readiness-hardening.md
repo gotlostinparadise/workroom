@@ -34,6 +34,7 @@ Scope:
 - Runbook release-readiness smoke fixture runbook readiness gate.
 - Release-candidate audit runbook release-smoke consistency readiness gate.
 - Release-candidate audit persisted JSON path-redaction gate.
+- Release-candidate audit local dependency and manual-command redaction gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -75,10 +76,11 @@ Release-candidate audit result:
 - Required audit entrypoint checked: `create_release_candidate_audit`
 - Missing required tool finding code: `missing_required_release_tool`
 - Manual gate commands rendered in Markdown: `true`
+- Kernel dependency: `kernel @ file://<local-kernel>`
 - Kernel dependency mode: `absolute_file`
 - Distribution scope: `local_editable_checkout`
 - Markdown package surface renders Python requirement, metadata source
-  readability, and raw Kernel dependency.
+  readability, and redacted Kernel dependency.
 - Markdown boundary sections render Kernel repo, Kernel workflow behavior,
   hidden loop, implicit deploy, and external API call expectations.
 - Markdown runbook release-smoke details render the smoke artifact ref,
@@ -95,6 +97,8 @@ Release-candidate audit result:
   artifact refs without local filesystem paths.
 - Persisted release-candidate audit JSON uses artifact refs and package
   metadata source labels instead of local filesystem paths: `true`
+- Persisted release-candidate audit JSON and Markdown omit user-home paths:
+  `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -112,19 +116,19 @@ Release-candidate audit result:
 Source suite:
 
 ```text
-PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 544 tests in 9.016s
+PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
+Ran 544 tests in 8.971s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-json-path-redaction-venv
-python -m venv /tmp/workroom-release-json-path-redaction-venv
-/tmp/workroom-release-json-path-redaction-venv/bin/python -m pip install -e .
-/tmp/workroom-release-json-path-redaction-venv/bin/python -m unittest discover -s tests -v
-Ran 544 tests in 8.987s
+rm -rf /tmp/workroom-release-local-redaction-venv
+python -m venv /tmp/workroom-release-local-redaction-venv
+/tmp/workroom-release-local-redaction-venv/bin/python -m pip install -e .
+/tmp/workroom-release-local-redaction-venv/bin/python -m unittest discover -s tests -v
+Ran 544 tests in 8.976s
 OK
 ```
 

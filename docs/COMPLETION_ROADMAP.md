@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v64.
+Status: Canonical plan v65.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -457,6 +457,10 @@ These milestones are complete enough to be treated as foundation:
     The persisted release-candidate audit JSON now avoids local filesystem
     paths and records stable artifact refs or package metadata source labels
     instead.
+
+80. Release Audit Local Dependency Redaction v1.
+    The release-candidate audit now redacts raw local Kernel dependency URIs
+    and uses relative Kernel manual-gate commands instead of user-home paths.
 
 ## Milestone Plan
 
@@ -2123,6 +2127,31 @@ Exit criteria:
 - Existing Markdown path-redaction, MCP manifest gates, export-surface checks,
   package-surface checks, release-smoke gates, runbook/run-ID checks, boundary
   assertions, and manual gates remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 70. Release Audit Local Dependency Redaction v1
+
+Status: Done.
+
+Goal: prevent release-candidate audit artifacts from leaking user-home paths
+through raw Kernel file dependency URIs or manual verification commands.
+
+Exit criteria:
+
+- The package-surface `kernel_dependency` value redacts local file references
+  as `kernel @ file://<local-kernel>` while preserving dependency mode and
+  distribution-scope classification.
+- Source-suite manual gate commands use the repository-relative
+  `../Kernel/src` path instead of a user-home absolute path.
+- Kernel status manual gate commands use the repository-relative `../Kernel`
+  path instead of a user-home absolute path.
+- Tests prove the generated audit JSON and Markdown do not contain `/home/`.
+- Existing tool return paths, persisted JSON artifact refs, package metadata
+  source labels, MCP manifest gates, export-surface checks, release-smoke
+  gates, runbook/run-ID checks, boundary assertions, and manual gate rendering
+  remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
