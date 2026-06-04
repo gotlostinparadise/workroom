@@ -16,8 +16,8 @@
 ## Workflow and Artifact Gates
 
 - [x] `release_readiness_gate` in isolated workspace (`/tmp/workroom-readiness-polish-v5`) returned:
-  - `all_passed: true`
-  - `ready_for_release_candidate_review: true`
+- `all_passed: true`
+  - `release_candidate_audit.audit_status: ready`
   - No package or audit findings.
 - [x] CI-like artifacts exist and were captured locally:
   - `release_readiness_gate_result.json`

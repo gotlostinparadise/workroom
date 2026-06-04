@@ -1,11 +1,11 @@
 # Release Readiness Polishing Handoff — 2026-06-05 (v5)
 
 Status note: current polished handoff snapshot for this date.
-Latest verified Workroom commit: `878a0fb` (`test: fix fresh editable install suite for modern pip behavior`).
+Latest verified Workroom commit: `41519a0` (`fix: harden release candidate mcp smoke gate setup`).
 
 ## Verification Snapshot
 
-- Workroom status: `## chore/release-readiness-venv-fix...origin/chore/release-readiness-venv-fix` (clean).
+- Workroom status: `## master...origin/master` (ahead by one commit while waiting on PR merge).
 - Kernel status: `## master...origin/master` (clean).
 - `release_readiness_gate` run:
   - Workspace: `/tmp/workroom-readiness-polish-v5`
@@ -15,7 +15,7 @@ Latest verified Workroom commit: `878a0fb` (`test: fix fresh editable install su
 - Fresh editable install suite: `Ran 627 tests` OK.
 - MCP stdio smoke: `python -m agency_workroom.mcp_server </dev/null` returned `0`.
 - Release-candidate audit:
-  - `ready_for_release_candidate_review`: `true`
+  - `audit_status`: `ready`
   - Findings: `[]`
   - MCP parity: `manifest_tool_count=55`, `server_tool_count=55`, `manifest_matches_server=true`
   - Kernel boundary checks expected/true (`kernel_repo_changes_expected=false`, `workflow_behavior_expected_in_kernel=false`)
@@ -35,11 +35,12 @@ Latest verified Workroom commit: `878a0fb` (`test: fix fresh editable install su
 
 ## Risk Register
 
-1. **Low** — Branch-protection evidence remains external-policy dependent and is not verified via repo API in this pass.
+1. **Low** — Branch-protection evidence is external-policy dependent and is not verified via repo API in this pass.
 2. **Low** — `workroom-artifact://` references still appear in command artifact metadata by design for reproducible local evidence linking.
 3. **Low** — Explicit deploy tooling exists in product surface but remains behind explicit approval and workspace-configured targets.
 
 ## Next Step
 
 - Validate branch-protection and publish policy in repo settings, then execute final release governance review and tag publication readiness.
+- The only remaining blocker for merge is PR #3 review approval on master (required approving review count is 1).
 - Import this handoff snapshot into Miro.
