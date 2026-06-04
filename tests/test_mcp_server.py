@@ -64,6 +64,93 @@ class WorkroomMcpServerTests(unittest.TestCase):
 
             asyncio.run(run())
 
+    def test_mcp_stdio_runtime_smoke_intake_and_submit_goal_start(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{repo_root / 'src'}:{repo_root.parent / 'Kernel' / 'src'}"
+
+        with tempfile.TemporaryDirectory() as workspace:
+            ledger_path = Path(workspace) / "ledger.json"
+            params = StdioServerParameters(
+                command=sys.executable,
+                args=["-m", "agency_workroom.mcp_server"],
+                env=env,
+            )
+
+            async def run() -> None:
+                async with stdio_client(params) as streams:
+                    read, write = streams
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+
+                        start_payload = json.loads(
+                            (
+                                await session.call_tool(
+                                    "start_company_goal",
+                                    {
+                                        "goal": "runtime-smoke-check-intake",
+                                        "user_id": "qa",
+                                        "ledger_path": str(ledger_path),
+                                        "workspace_path": workspace,
+                                        "context_json": "{}",
+                                    },
+                                )
+                            )
+                            .content[0]
+                            .text
+                        )
+
+                        self.assertEqual("intake_required", start_payload["status"])
+                        self.assertEqual("submit_goal_intake_result", start_payload["next_tool"])
+                        run_id = str(start_payload["run_id"])
+
+                        submit_payload = json.loads(
+                            (
+                                await session.call_tool(
+                                    "submit_goal_intake_result",
+                                    {
+                                        "run_id": run_id,
+                                        "workspace_path": workspace,
+                                        "ledger_path": str(ledger_path),
+                                        "hypothesis": "Test hypothesis",
+                                        "audience": "developers",
+                                        "offer": "fast release confidence",
+                                        "constraints": "none",
+                                        "channels": ["email"],
+                                        "success_criteria": "Pass tests",
+                                        "assumptions": ["stable environment"],
+                                        "risks": [],
+                                        "unknowns": [],
+                                    },
+                                )
+                            )
+                            .content[0]
+                            .text
+                        )
+
+                        self.assertIn(submit_payload["status"], {"started", "existing"})
+                        self.assertEqual(run_id, str(submit_payload["run_id"]))
+                        self.assertIn("plan", submit_payload)
+
+                        state_payload = json.loads(
+                            (
+                                await session.call_tool(
+                                    "get_company_state",
+                                    {
+                                        "run_id": run_id,
+                                        "workspace_path": workspace,
+                                    },
+                                )
+                            )
+                            .content[0]
+                            .text
+                        )
+                        self.assertEqual(run_id, str(state_payload["run_id"]))
+                        self.assertIn("tasks", state_payload)
+                        self.assertIn("plan", state_payload)
+
+            asyncio.run(run())
+
     def test_mcp_server_registers_expected_tool_functions(self) -> None:
         self.assertEqual(
             (
