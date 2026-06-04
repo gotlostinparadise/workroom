@@ -43,12 +43,22 @@ class PackageImportTests(unittest.TestCase):
         self.assertEqual("README.md", project["readme"])
         self.assertEqual(">=3.11", project["requires-python"])
         self.assertEqual("LicenseRef-Proprietary", project["license"])
+        self.assertEqual(["LICENSE"], project["license-files"])
         self.assertIn(
             "External Workroom workflow layer",
             project["description"],
         )
         self.assertIn("kernel @ file:../Kernel", project["dependencies"])
         self.assertIn("mcp>=1.27,<2", project["dependencies"])
+
+    def test_license_file_is_declared_and_present(self) -> None:
+        pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+
+        self.assertEqual(["LICENSE"], pyproject["project"]["license-files"])
+        license_text = Path("LICENSE").read_text(encoding="utf-8")
+        self.assertIn("Proprietary License Notice", license_text)
+        self.assertIn("No license is", license_text)
+        self.assertIn("granted to use, copy, modify, publish, distribute", license_text)
 
     def test_readme_uses_relative_kernel_source_command(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")

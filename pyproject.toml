@@ -16,6 +16,7 @@ authors = [
     { name = "Mandate maintainers" },
 ]
 license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

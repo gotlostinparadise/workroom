@@ -51,6 +51,7 @@ Scope:
 - Package metadata Kernel dependency path redaction gate.
 - Package metadata release contract gate for project identity, version, README,
   Python requirement, license, Kernel dependency, and MCP dependency.
+- Package license-file declaration and proprietary license notice gate.
 - Python generated-artifact ignore policy gate for build, bytecode, cache,
   coverage, and wheel metadata outputs.
 - Release-candidate audit manual gate consistency readiness gate.
@@ -139,6 +140,8 @@ Release-candidate audit result:
   `workspace_path`, and `run_ids_json`: `true`
 - Package metadata release contract matches the local release-audit assumptions:
   `true`
+- Top-level proprietary LICENSE exists and is declared through
+  `project.license-files`: `true`
 - Python generated-artifact ignore policy covers release validation outputs:
   `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
@@ -165,7 +168,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 592 tests in 9.589s
+Ran 593 tests in 9.434s
 OK
 ```
 
@@ -176,8 +179,16 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 592 tests in 9.467s
+Ran 593 tests in 9.813s
 OK
+```
+
+Installed package license metadata probe:
+
+```text
+License-Expression: LicenseRef-Proprietary
+License-File: LICENSE
+License file installed: True
 ```
 
 Installed MCP smoke:

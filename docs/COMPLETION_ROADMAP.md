@@ -504,6 +504,11 @@ These milestones are complete enough to be treated as foundation:
     Package import tests now guard `.gitignore` coverage for Python bytecode,
     build, cache, coverage, and wheel metadata outputs created by validation.
 
+91. Package License File Metadata Gate v1.
+    Package import tests now require a top-level proprietary LICENSE file and
+    `project.license-files = ["LICENSE"]`, preserving installed package
+    license-file metadata for release candidates.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2413,6 +2418,29 @@ Exit criteria:
 - `.gitignore` covers common test, lint, and coverage caches.
 - Package import tests assert the generated-artifact ignore policy.
 - Existing README front-door checks, package metadata gates, release-audit
+  package-surface checks, MCP manifest gates, and Kernel boundary remain
+  unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 81. Package License File Metadata Gate v1
+
+Status: Done.
+
+Goal: make the proprietary license marker explicit in both the source checkout
+and package metadata instead of relying on an unbacked `LicenseRef`.
+
+Exit criteria:
+
+- Top-level `LICENSE` exists.
+- `pyproject.toml` declares `license = "LicenseRef-Proprietary"`.
+- `pyproject.toml` declares `license-files = ["LICENSE"]`.
+- Package import tests assert the license notice and `pyproject.toml`
+  declaration.
+- Fresh editable install metadata exposes `License-Expression:
+  LicenseRef-Proprietary` and `License-File: LICENSE`.
+- Existing package metadata gates, README front-door checks, release-audit
   package-surface checks, MCP manifest gates, and Kernel boundary remain
   unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
