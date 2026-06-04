@@ -2718,6 +2718,40 @@ class AgentSessionTests(unittest.TestCase):
         self.assertTrue(recommendation["will_mutate_state"])
         self.assertFalse(recommendation["blocked"])
 
+    def test_recommend_next_tool_call_prioritizes_blocked_task_even_when_local_route_is_ready(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_run(root)
+        run = load_company_goal_run(workspace_path, str(started["run_id"]))
+        blocked_task = TaskState(
+            task_ref="workroom-item://external-coordination",
+            role_id="ops",
+            category="external_coordination",
+            title="coordinate with external team",
+            status="blocked",
+            result_refs=(),
+            blocker_summary="external approval pending",
+            metadata={},
+        )
+        run = replace(
+            run,
+            tasks=(blocked_task, *run.tasks),
+        )
+        save_company_goal_run(workspace_path, run)
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual("", recommendation["recommended_tool"])
+        self.assertFalse(recommendation["will_mutate_state"])
+        self.assertTrue(recommendation["blocked"])
+        self.assertEqual("external_coordination task is blocked", recommendation["reason"])
+        self.assertEqual("external approval pending", recommendation["blocker_summary"])
+
     def test_recommend_next_tool_call_starts_delivery_planning_with_scope_brief(
         self,
     ) -> None:
@@ -2800,6 +2834,64 @@ class AgentSessionTests(unittest.TestCase):
             task_ref=plan_task["task_ref"],
             scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
             workspace_path=str(workspace_path),
+        )
+
+        recommendation = recommend_next_tool_call(
+            run_id=started["run_id"],
+            workspace_path=str(workspace_path),
+        )
+
+        self.assertEqual(
+            "prepare_delivery_review_decision",
+            recommendation["recommended_tool"],
+        )
+        self.assertEqual(
+            {
+                "run_id": started["run_id"],
+                "task_ref": review_task["task_ref"],
+                "scope_brief_ref": scope_brief["artifact"]["artifact_ref"],
+                "execution_plan_ref": execution_plan["artifact"]["artifact_ref"],
+                "workspace_path": str(workspace_path),
+            },
+            recommendation["arguments"],
+        )
+        self.assertTrue(recommendation["will_mutate_state"])
+        self.assertFalse(recommendation["blocked"])
+
+    def test_recommend_next_tool_call_normalizes_review_decision_metadata_for_route_selection(
+        self,
+    ) -> None:
+        assert_external_kernel_dependency(self)
+        root = self.temp_root()
+        started, workspace_path = self.started_delivery_run(root)
+        scope_task = self.task_by_category(started, "scope_brief")
+        plan_task = self.task_by_category(started, "execution_plan")
+        review_task = self.task_by_category(started, "review_decision")
+        scope_brief = create_delivery_scope_brief_artifact(
+            run_id=started["run_id"],
+            task_ref=scope_task["task_ref"],
+            workspace_path=str(workspace_path),
+        )
+        execution_plan = create_delivery_execution_plan_artifact(
+            run_id=started["run_id"],
+            task_ref=plan_task["task_ref"],
+            scope_brief_ref=scope_brief["artifact"]["artifact_ref"],
+            workspace_path=str(workspace_path),
+        )
+
+        run = load_company_goal_run(workspace_path, str(started["run_id"]))
+        adjusted_tasks = tuple(
+            replace(
+                task,
+                metadata={"decision_type": "  delivery_plan_review  "},
+            )
+            if task.task_ref == review_task["task_ref"]
+            else task
+            for task in run.tasks
+        )
+        save_company_goal_run(
+            workspace_path,
+            replace(run, tasks=adjusted_tasks),
         )
 
         recommendation = recommend_next_tool_call(

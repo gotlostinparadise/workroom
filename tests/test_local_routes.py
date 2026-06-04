@@ -7,6 +7,8 @@ from agency_workroom import local_routes
 from agency_workroom.local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LOCAL_ROUTES,
+    LocalRoute,
+    local_routes_for_task,
     LocalRouteReadiness,
     build_local_route_recommendation,
     build_local_route_recommendation_from_readiness,
@@ -333,6 +335,51 @@ class LocalRouteRegistryTests(unittest.TestCase):
         self.assertFalse(is_local_route_tool("submit_goal_intake_result"))
         with self.assertRaises(WorkroomStateError):
             get_local_route("submit_goal_intake_result")
+
+    def test_local_routes_for_task_filters_routes_by_task_metadata(self) -> None:
+        delivery_routes = local_routes_for_task(
+            category="review_decision",
+            metadata={"decision_type": "delivery_plan_review"},
+        )
+        growth_routes = local_routes_for_task(
+            category="review_decision",
+            metadata={"decision_type": "growth_experiment_review"},
+        )
+        no_routes = local_routes_for_task(
+            category="review_decision",
+            metadata={"decision_type": "unknown"},
+        )
+        fuzzy_routes = local_routes_for_task(
+            category="review_decision",
+            metadata={"decision_type": " delivery_plan_review "},
+        )
+
+        self.assertEqual(
+            ("prepare_delivery_review_decision",),
+            tuple(route.tool_name for route in delivery_routes),
+        )
+        self.assertEqual(
+            ("prepare_growth_review_decision",),
+            tuple(route.tool_name for route in growth_routes),
+        )
+        self.assertEqual((), no_routes)
+        self.assertEqual(
+            ("prepare_delivery_review_decision",),
+            tuple(route.tool_name for route in fuzzy_routes),
+        )
+
+    def test_local_route_rejects_duplicate_task_metadata_filter_keys(self) -> None:
+        with self.assertRaises(WorkroomStateError):
+            LocalRoute(
+                tool_name="dummy_local_route",
+                delegated_role="dummy",
+                result_kind="dummy_result",
+                task_category="dummy_category",
+                task_metadata_filters=(
+                    ("decision_type", "a"),
+                    ("decision_type", "b"),
+                ),
+            )
 
     def test_build_local_route_recommendation_uses_standard_payload_shape(
         self,
