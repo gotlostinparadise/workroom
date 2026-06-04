@@ -650,12 +650,9 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "installed_mcp_stdio_smoke",
             "command": (
-                "/tmp/workroom-release-candidate-venv/bin/python -c "
-                "\"from agency_workroom import mcp_server; "
-                "names = set(mcp_server.TOOL_NAMES); "
-                "assert 'create_release_candidate_audit' in names; "
-                "assert 'submit_goal_intake_result' in names; "
-                "print({'tool_count': len(names), 'required_tools_present': True})\""
+                "timeout 5s "
+                "/tmp/workroom-release-candidate-venv/bin/python "
+                "-m agency_workroom.mcp_server </dev/null"
             ),
         },
         {

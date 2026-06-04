@@ -195,10 +195,12 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "git -C ../Kernel status --short --branch",
             gate_commands["kernel_git_status"],
         )
+        self.assertIn("timeout 5s", gate_commands["installed_mcp_stdio_smoke"])
         self.assertIn(
-            "names = set(mcp_server.TOOL_NAMES)",
+            "-m agency_workroom.mcp_server",
             gate_commands["installed_mcp_stdio_smoke"],
         )
+        self.assertIn("</dev/null", gate_commands["installed_mcp_stdio_smoke"])
         self.assertIn("Release Candidate Audit", markdown)
         self.assertIn("## Audit Artifacts", markdown)
         self.assertIn(
@@ -278,7 +280,9 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Implicit deploys expected: False", markdown)
         self.assertIn("External API calls expected: False", markdown)
         self.assertIn(
-            "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
+            "installed_mcp_stdio_smoke: `timeout 5s "
+            "/tmp/workroom-release-candidate-venv/bin/python "
+            "-m agency_workroom.mcp_server </dev/null`",
             markdown,
         )
         self.assertIn(

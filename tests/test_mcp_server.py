@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import subprocess
+import sys
 import unittest
 
 from agency_workroom import mcp_server
@@ -77,6 +79,20 @@ class WorkroomMcpServerTests(unittest.TestCase):
 
     def test_mcp_server_has_fastmcp_app(self) -> None:
         self.assertEqual("Workroom", mcp_server.mcp.name)
+
+    def test_mcp_server_module_entrypoint_exits_cleanly_on_eof(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "agency_workroom.mcp_server"],
+            input="",
+            text=True,
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+
+        self.assertEqual("", result.stdout)
+        self.assertEqual("", result.stderr)
+        self.assertEqual(0, result.returncode)
 
     def test_mcp_server_registers_expected_fastmcp_tools(self) -> None:
         tools = asyncio.run(mcp_server.mcp.list_tools())

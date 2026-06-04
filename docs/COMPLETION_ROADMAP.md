@@ -519,6 +519,11 @@ These milestones are complete enough to be treated as foundation:
     to `pyproject.toml`, and release-candidate audit gates package metadata
     version drift with `package_version_mismatch`.
 
+94. Installed MCP Stdio Entrypoint Smoke Gate v1.
+    MCP server tests and release-candidate audit manual gates now verify the
+    installed operator path by running `python -m agency_workroom.mcp_server`
+    with stdin EOF and a timeout.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2500,6 +2505,27 @@ Exit criteria:
 - Existing package identity gates, project URL gates, license-file metadata
   gates, README front-door checks, MCP manifest gates, and Kernel boundary
   remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 84. Installed MCP Stdio Entrypoint Smoke Gate v1
+
+Status: Done.
+
+Goal: make the documented local stdio MCP entrypoint a directly verified
+release path instead of relying only on import-time tool inspection.
+
+Exit criteria:
+
+- MCP server tests run `python -m agency_workroom.mcp_server` and assert it
+  exits cleanly when stdin is closed.
+- Release-candidate audit manual gates record the installed editable venv
+  module-entrypoint smoke.
+- The recorded command uses `timeout`, `-m agency_workroom.mcp_server`, and
+  stdin EOF.
+- Existing MCP tool registration, MCP manifest checks, package metadata gates,
+  README front-door checks, and Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

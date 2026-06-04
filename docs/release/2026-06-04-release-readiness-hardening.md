@@ -58,6 +58,7 @@ Scope:
   coverage, and wheel metadata outputs.
 - Release-candidate audit manual gate consistency readiness gate.
 - Release-candidate audit manual gate command-presence readiness gate.
+- Release-candidate audit installed MCP stdio module-entrypoint command gate.
 - Release-candidate audit boundary expectation readiness gate.
 - Runbook, run, product, spec, and report artifact identifier validation.
 - Runbook `run_ids_json` argument validation for malformed JSON, non-array
@@ -111,6 +112,8 @@ Release-candidate audit result:
 - Manual gate required IDs complete: `true`
 - Manual gate required commands present: `true`
 - Manual gate commands omit user-home paths: `true`
+- Installed MCP stdio smoke uses `python -m agency_workroom.mcp_server` with
+  stdin EOF and a timeout: `true`
 - Boundary expectation drift blocks readiness: `true`
 - Kernel dependency: `kernel @ file://<local-kernel>`
 - Kernel dependency mode: `file`
@@ -174,7 +177,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 595 tests in 9.806s
+Ran 596 tests in 10.209s
 OK
 ```
 
@@ -185,7 +188,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 595 tests in 9.692s
+Ran 596 tests in 10.169s
 OK
 ```
 
@@ -203,7 +206,8 @@ Project-URL: ['Repository, https://github.com/gotlostinparadise/workroom', 'Issu
 Installed MCP smoke:
 
 ```text
-{'tool_count': 55, 'required_tools_present': True}
+timeout 5s /tmp/workroom-review-venv/bin/python -m agency_workroom.mcp_server </dev/null
+exit=0
 ```
 
 Non-editable package metadata probe:
