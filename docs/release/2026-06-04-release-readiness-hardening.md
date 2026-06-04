@@ -51,6 +51,8 @@ Scope:
 - Package metadata Kernel dependency path redaction gate.
 - Package metadata release contract gate for project identity, version, README,
   Python requirement, license, Kernel dependency, and MCP dependency.
+- Python generated-artifact ignore policy gate for build, bytecode, cache,
+  coverage, and wheel metadata outputs.
 - Release-candidate audit manual gate consistency readiness gate.
 - Release-candidate audit manual gate command-presence readiness gate.
 - Release-candidate audit boundary expectation readiness gate.
@@ -137,6 +139,8 @@ Release-candidate audit result:
   `workspace_path`, and `run_ids_json`: `true`
 - Package metadata release contract matches the local release-audit assumptions:
   `true`
+- Python generated-artifact ignore policy covers release validation outputs:
+  `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -161,7 +165,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 591 tests in 9.603s
+Ran 592 tests in 9.589s
 OK
 ```
 
@@ -172,7 +176,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 591 tests in 9.551s
+Ran 592 tests in 9.467s
 OK
 ```
 

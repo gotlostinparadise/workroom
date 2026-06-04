@@ -500,6 +500,10 @@ These milestones are complete enough to be treated as foundation:
     Package import tests now compare the README's verified Kernel commit to the
     sibling Kernel checkout HEAD used by the local release-candidate workflow.
 
+90. Python Generated Artifact Ignore Gate v1.
+    Package import tests now guard `.gitignore` coverage for Python bytecode,
+    build, cache, coverage, and wheel metadata outputs created by validation.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2390,6 +2394,27 @@ Exit criteria:
 - Existing README MCP tool-order checks, README argument-name checks, package
   metadata gates, release-audit package-surface checks, MCP manifest gates, and
   Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 80. Python Generated Artifact Ignore Gate v1
+
+Status: Done.
+
+Goal: keep release validation outputs from polluting the Workroom source tree
+or becoming accidental review noise.
+
+Exit criteria:
+
+- `.gitignore` covers Python bytecode directories.
+- `.gitignore` covers editable-install metadata.
+- `.gitignore` covers build and distribution directories.
+- `.gitignore` covers common test, lint, and coverage caches.
+- Package import tests assert the generated-artifact ignore policy.
+- Existing README front-door checks, package metadata gates, release-audit
+  package-surface checks, MCP manifest gates, and Kernel boundary remain
+  unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

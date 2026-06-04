@@ -15,6 +15,25 @@ from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
 class PackageImportTests(unittest.TestCase):
+    def test_gitignore_covers_python_release_artifacts(self) -> None:
+        gitignore = Path(".gitignore").read_text(encoding="utf-8").splitlines()
+
+        for pattern in (
+            "__pycache__/",
+            "*.py[cod]",
+            "*.egg-info/",
+            ".coverage",
+            ".mypy_cache/",
+            ".pytest_cache/",
+            ".ruff_cache/",
+            "coverage.xml",
+            "htmlcov/",
+            "pip-wheel-metadata/",
+            "dist/",
+            "build/",
+        ):
+            self.assertIn(pattern, gitignore)
+
     def test_pyproject_release_metadata_contract(self) -> None:
         pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
         project = pyproject["project"]
