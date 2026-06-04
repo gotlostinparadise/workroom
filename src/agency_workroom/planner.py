@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from .company_briefing import build_company_brief, role_work_spec_for_task
 from .company_specs import business_validation_company_spec
 from .models import (
@@ -99,6 +101,8 @@ def plan_workflow_from_company_spec(
             summary=_render_summary_template(
                 template.summary_template,
                 variables,
+                company_spec_id=company_spec.spec_id,
+                role_category=template.category,
             ),
             priority=template.priority,
             status=template.status,
@@ -135,15 +139,26 @@ def plan_workflow_from_company_spec(
 
 def _render_summary_template(
     summary_template: str,
-    variables: object,
+    variables: Mapping[str, object],
+    *,
+    company_spec_id: str = "unknown",
+    role_category: str = "unknown",
 ) -> str:
-    if not isinstance(variables, dict):
+    if not isinstance(variables, Mapping):
         raise WorkroomModelError("run context variables must be a mapping")
+    if not isinstance(summary_template, str) or not summary_template.strip():
+        raise WorkroomModelError(
+            f"{company_spec_id}:{role_category} summary_template must be a non-empty string"
+        )
     try:
         return summary_template.format(**variables)
     except KeyError as exc:
         missing = str(exc).strip("'")
         raise WorkroomModelError(f"missing template variable: {missing}") from exc
+    except (TypeError, ValueError, IndexError) as exc:
+        raise WorkroomModelError(
+            f"invalid summary template for {company_spec_id}:{role_category}: {exc}"
+        ) from exc
 
 
 __all__ = [

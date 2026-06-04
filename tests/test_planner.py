@@ -473,6 +473,42 @@ class BusinessValidationPlannerTests(unittest.TestCase):
                 company_spec=spec,
             )
 
+    def test_company_spec_planner_rejects_malformed_summary_template(self) -> None:
+        context = RunContext(
+            goal="Harden release process",
+            summary="Release hardening workflow",
+            variables={"experiment": "release checklist", "owner": "team"},
+        )
+        spec = CompanySpec(
+            spec_id="release_hardening",
+            version="v1",
+            display_name="Release Hardening",
+            team=TeamBlueprint(
+                name="release_hardening_team",
+                roles=(
+                    TeamRole(
+                        role_id="release_lead",
+                        display_name="Release Lead",
+                        responsibilities="Coordinate release hardening",
+                    ),
+                ),
+            ),
+            task_templates=(
+                CompanyTaskTemplate(
+                    role_id="release_lead",
+                    category="release",
+                    title="Prepare release",
+                    summary_template="Prepare {experiment for {owner}.",  # malformed
+                ),
+            ),
+        )
+
+        with self.assertRaisesRegex(WorkroomModelError, "invalid summary template"):
+            plan_workflow_from_company_spec(
+                run_context=context,
+                company_spec=spec,
+            )
+
     def test_planner_creates_role_assigned_tasks_for_business_hypothesis(self) -> None:
         request = WorkflowRequest(
             hypothesis="Founders will pay for a 48 hour AI validation sprint",

@@ -36,11 +36,15 @@ class SessionStoreTests(unittest.TestCase):
         *,
         run_id: str = "run_abc123",
         goal: str = "Validate a business hypothesis",
+        company_spec_id: str = "business_validation",
+        company_spec_version: str = "v1",
     ) -> CompanyGoalRun:
         return CompanyGoalRun(
             run_id=run_id,
             user_id="usr_1",
             goal=goal,
+            company_spec_id=company_spec_id,
+            company_spec_version=company_spec_version,
             team={"name": "business_validation_team", "roles": []},
             plan={"summary": "Plan", "tasks": []},
             commits=[{"work_item_ref": "workroom-item://items/task.json"}],
@@ -160,6 +164,68 @@ class SessionStoreTests(unittest.TestCase):
 
         with self.assertRaisesRegex(WorkroomStateError, "run state is corrupt"):
             load_company_goal_run(root, "run_bad")
+
+    def test_load_company_goal_run_rejects_missing_company_spec_id(self) -> None:
+        root = self.temp_root()
+        path = run_state_path(root, "run_missing_spec_id")
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "run_id": "run_missing_spec_id",
+                    "user_id": "usr_1",
+                    "goal": "Validate a business hypothesis",
+                    "team": {"name": "business_validation_team", "roles": []},
+                    "plan": {"summary": "Plan", "tasks": []},
+                    "commits": [{"work_item_ref": "workroom-item://items/task.json"}],
+                    "tasks": [
+                        {
+                            "task_ref": "workroom-item://items/task.json",
+                            "role_id": "strategy_lead",
+                            "category": "strategy",
+                            "title": "Define validation strategy",
+                            "status": "planned",
+                        }
+                    ],
+                    "company_spec_version": "v1",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(WorkroomStateError, "company_spec_id is required"):
+            load_company_goal_run(root, "run_missing_spec_id")
+
+    def test_load_company_goal_run_rejects_missing_company_spec_version(self) -> None:
+        root = self.temp_root()
+        path = run_state_path(root, "run_missing_spec_version")
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "run_id": "run_missing_spec_version",
+                    "user_id": "usr_1",
+                    "goal": "Validate a business hypothesis",
+                    "company_spec_id": "business_validation",
+                    "team": {"name": "business_validation_team", "roles": []},
+                    "plan": {"summary": "Plan", "tasks": []},
+                    "commits": [{"work_item_ref": "workroom-item://items/task.json"}],
+                    "tasks": [
+                        {
+                            "task_ref": "workroom-item://items/task.json",
+                            "role_id": "strategy_lead",
+                            "category": "strategy",
+                            "title": "Define validation strategy",
+                            "status": "planned",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(WorkroomStateError, "company_spec_version is required"):
+            load_company_goal_run(root, "run_missing_spec_version")
 
     def test_load_rejects_state_with_mismatched_run_id(self) -> None:
         root = self.temp_root()

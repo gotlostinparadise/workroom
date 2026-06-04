@@ -116,12 +116,25 @@ def load_company_goal_run(workspace_path: str | Path, run_id: str) -> CompanyGoa
         if payload.get("schema_version") == "goal-intake-run.v1":
             raise WorkroomStateError(f"run state is not a company run: {run_id}")
         tasks = tuple(TaskState(**task) for task in payload["tasks"])
+        company_spec_id = payload.get("company_spec_id")
+        if not isinstance(company_spec_id, str) or not company_spec_id.strip():
+            raise WorkroomStateError(
+                f"run state is corrupt: {run_id}: company_spec_id is required"
+            )
+        company_spec_version = payload.get("company_spec_version")
+        if (
+            not isinstance(company_spec_version, str)
+            or not company_spec_version.strip()
+        ):
+            raise WorkroomStateError(
+                f"run state is corrupt: {run_id}: company_spec_version is required"
+            )
         return CompanyGoalRun(
             run_id=payload["run_id"],
             user_id=payload["user_id"],
             goal=payload["goal"],
-            company_spec_id=payload.get("company_spec_id", "business_validation"),
-            company_spec_version=payload.get("company_spec_version", "v1"),
+            company_spec_id=company_spec_id,
+            company_spec_version=company_spec_version,
             team=payload["team"],
             plan=payload["plan"],
             commits=payload["commits"],
