@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class GrowthBriefArtifactError(RuntimeError):
@@ -21,11 +22,12 @@ def create_growth_brief_artifact_files(
 ) -> dict[str, object]:
     if task.category != "market_brief":
         raise WorkroomModelError("task must be a market_brief task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = hashlib.sha256(task.task_ref.encode("utf-8")).hexdigest()[:16]
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "growth_brief"
         / task_hash
@@ -33,11 +35,11 @@ def create_growth_brief_artifact_files(
     artifact_path = artifact_dir / "growth_brief.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = (
-        f"workroom-artifact://runs/{run_id}/growth_brief/"
+        f"workroom-artifact://runs/{clean_run_id}/growth_brief/"
         f"{task_hash}/growth_brief.md"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/growth_brief/{task_hash}/"
+        f"workroom-artifact://runs/{clean_run_id}/growth_brief/{task_hash}/"
         "metadata.json"
     )
     growth_variables = _growth_variables(plan)
@@ -53,7 +55,7 @@ def create_growth_brief_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "growth_variables": growth_variables,
@@ -78,11 +80,12 @@ def create_growth_experiment_plan_artifact_files(
 ) -> dict[str, object]:
     if task.category != "experiment_plan":
         raise WorkroomModelError("task must be an experiment_plan task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = hashlib.sha256(task.task_ref.encode("utf-8")).hexdigest()[:16]
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "growth_brief"
         / task_hash
@@ -90,11 +93,11 @@ def create_growth_experiment_plan_artifact_files(
     artifact_path = artifact_dir / "growth_experiment_plan.md"
     metadata_path = artifact_dir / "experiment_plan_metadata.json"
     artifact_ref = (
-        f"workroom-artifact://runs/{run_id}/growth_brief/{task_hash}/"
+        f"workroom-artifact://runs/{clean_run_id}/growth_brief/{task_hash}/"
         "growth_experiment_plan.md"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/growth_brief/{task_hash}/"
+        f"workroom-artifact://runs/{clean_run_id}/growth_brief/{task_hash}/"
         "experiment_plan_metadata.json"
     )
     growth_variables = _growth_variables(plan)
@@ -116,7 +119,7 @@ def create_growth_experiment_plan_artifact_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "brief_ref": clean_brief_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "growth_variables": growth_variables,

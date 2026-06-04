@@ -153,6 +153,21 @@ class ImplementationPlanQualityArtifactTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_create_implementation_plan_quality_report_rejects_path_like_run_id(
+        self,
+    ) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_implementation_plan_quality_report_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                task=self.quality_task(),
+                plan=self.quality_plan(),
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_implementation_plan_quality_report_files_rejects_wrong_task(
         self,
     ) -> None:

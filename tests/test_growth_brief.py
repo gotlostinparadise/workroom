@@ -118,6 +118,19 @@ class GrowthBriefArtifactTests(unittest.TestCase):
             Path(second["artifact_path"]).read_text(encoding="utf-8"),
         )
 
+    def test_create_growth_brief_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_growth_brief_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                task=self.market_brief_task(),
+                plan=self.growth_plan(),
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_growth_brief_artifact_files_rejects_non_market_brief_task(
         self,
     ) -> None:

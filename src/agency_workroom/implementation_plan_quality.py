@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class ImplementationPlanQualityArtifactError(RuntimeError):
@@ -21,21 +22,22 @@ def create_implementation_plan_quality_report_files(
 ) -> dict[str, object]:
     if task.category != "plan_quality_report":
         raise WorkroomModelError("task must be a plan_quality_report task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "implementation_plan_quality_report.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="implementation_plan_quality_report.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="metadata.json",
     )
@@ -55,7 +57,7 @@ def create_implementation_plan_quality_report_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "quality_variables": quality_variables,
@@ -82,8 +84,9 @@ def create_implementation_plan_risk_register_files(
 ) -> dict[str, object]:
     if task.category != "plan_risk_register":
         raise WorkroomModelError("task must be a plan_risk_register task")
+    clean_run_id = safe_run_id(run_id)
     clean_report_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=plan_quality_report_ref,
         suffix="/implementation_plan_quality_report.md",
         name="plan_quality_report_ref",
@@ -91,18 +94,18 @@ def create_implementation_plan_risk_register_files(
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "implementation_plan_risk_register.md"
     metadata_path = artifact_dir / "risk_register_metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="implementation_plan_risk_register.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="risk_register_metadata.json",
     )
@@ -124,7 +127,7 @@ def create_implementation_plan_risk_register_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "plan_quality_report_ref": clean_report_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "quality_variables": quality_variables,

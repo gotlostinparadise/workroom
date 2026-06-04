@@ -147,6 +147,19 @@ class ImplementationPlanningArtifactTests(unittest.TestCase):
             Path(second["artifact_path"]).read_text(encoding="utf-8"),
         )
 
+    def test_create_architecture_brief_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_architecture_brief_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                task=self.architecture_task(),
+                plan=self.implementation_plan(),
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_architecture_brief_artifact_files_rejects_non_architecture_task(
         self,
     ) -> None:

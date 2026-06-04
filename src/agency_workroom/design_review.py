@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class DesignReviewArtifactError(RuntimeError):
@@ -21,21 +22,22 @@ def create_design_critique_artifact_files(
 ) -> dict[str, object]:
     if task.category != "design_critique":
         raise WorkroomModelError("task must be a design_critique task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "design_critique.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="design_critique.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="metadata.json",
     )
@@ -55,7 +57,7 @@ def create_design_critique_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "design_variables": design_variables,
@@ -80,8 +82,9 @@ def create_design_risk_report_artifact_files(
 ) -> dict[str, object]:
     if task.category != "risk_assessment":
         raise WorkroomModelError("task must be a risk_assessment task")
+    clean_run_id = safe_run_id(run_id)
     clean_design_critique_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=design_critique_ref,
         suffix="/design_critique.md",
         name="design_critique_ref",
@@ -89,18 +92,18 @@ def create_design_risk_report_artifact_files(
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "design_risk_report.md"
     metadata_path = artifact_dir / "design_risk_report_metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="design_risk_report.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="design_risk_report_metadata.json",
     )
@@ -122,7 +125,7 @@ def create_design_risk_report_artifact_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "design_critique_ref": clean_design_critique_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "design_variables": design_variables,

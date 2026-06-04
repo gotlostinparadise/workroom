@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class DeliveryPlanningArtifactError(RuntimeError):
@@ -21,11 +22,12 @@ def create_delivery_scope_brief_artifact_files(
 ) -> dict[str, object]:
     if task.category != "scope_brief":
         raise WorkroomModelError("task must be a scope_brief task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = hashlib.sha256(task.task_ref.encode("utf-8")).hexdigest()[:16]
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "delivery_planning"
         / task_hash
@@ -33,11 +35,11 @@ def create_delivery_scope_brief_artifact_files(
     artifact_path = artifact_dir / "delivery_scope_brief.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = (
-        f"workroom-artifact://runs/{run_id}/delivery_planning/"
+        f"workroom-artifact://runs/{clean_run_id}/delivery_planning/"
         f"{task_hash}/delivery_scope_brief.md"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/delivery_planning/"
+        f"workroom-artifact://runs/{clean_run_id}/delivery_planning/"
         f"{task_hash}/metadata.json"
     )
     delivery_variables = _delivery_variables(plan)
@@ -56,7 +58,7 @@ def create_delivery_scope_brief_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "delivery_variables": delivery_variables,
@@ -83,8 +85,9 @@ def create_delivery_execution_plan_artifact_files(
 ) -> dict[str, object]:
     if task.category != "execution_plan":
         raise WorkroomModelError("task must be an execution_plan task")
+    clean_run_id = safe_run_id(run_id)
     clean_scope_brief_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=scope_brief_ref,
         suffix="/delivery_scope_brief.md",
         name="scope_brief_ref",
@@ -93,7 +96,7 @@ def create_delivery_execution_plan_artifact_files(
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "delivery_planning"
         / task_hash
@@ -101,11 +104,11 @@ def create_delivery_execution_plan_artifact_files(
     artifact_path = artifact_dir / "delivery_execution_plan.md"
     metadata_path = artifact_dir / "execution_plan_metadata.json"
     artifact_ref = (
-        f"workroom-artifact://runs/{run_id}/delivery_planning/"
+        f"workroom-artifact://runs/{clean_run_id}/delivery_planning/"
         f"{task_hash}/delivery_execution_plan.md"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/delivery_planning/"
+        f"workroom-artifact://runs/{clean_run_id}/delivery_planning/"
         f"{task_hash}/execution_plan_metadata.json"
     )
     delivery_variables = _delivery_variables(plan)
@@ -126,7 +129,7 @@ def create_delivery_execution_plan_artifact_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "scope_brief_ref": clean_scope_brief_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "delivery_variables": delivery_variables,

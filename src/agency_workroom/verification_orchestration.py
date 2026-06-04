@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class VerificationOrchestrationArtifactError(RuntimeError):
@@ -21,21 +22,22 @@ def create_verification_matrix_artifact_files(
 ) -> dict[str, object]:
     if task.category != "verification_matrix":
         raise WorkroomModelError("task must be a verification_matrix task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "verification_matrix.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="verification_matrix.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="metadata.json",
     )
@@ -55,7 +57,7 @@ def create_verification_matrix_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "verification_variables": verification_variables,
@@ -82,8 +84,9 @@ def create_verification_plan_artifact_files(
 ) -> dict[str, object]:
     if task.category != "verification_plan":
         raise WorkroomModelError("task must be a verification_plan task")
+    clean_run_id = safe_run_id(run_id)
     clean_verification_matrix_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=verification_matrix_ref,
         suffix="/verification_matrix.md",
         name="verification_matrix_ref",
@@ -91,18 +94,18 @@ def create_verification_plan_artifact_files(
     task_hash = _task_hash(task)
     artifact_dir = _artifact_dir(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
     )
     artifact_path = artifact_dir / "verification_plan.md"
     metadata_path = artifact_dir / "verification_plan_metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="verification_plan.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="verification_plan_metadata.json",
     )
@@ -124,7 +127,7 @@ def create_verification_plan_artifact_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "verification_matrix_ref": clean_verification_matrix_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "verification_variables": verification_variables,

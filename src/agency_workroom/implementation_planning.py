@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class ImplementationPlanningArtifactError(RuntimeError):
@@ -21,17 +22,22 @@ def create_architecture_brief_artifact_files(
 ) -> dict[str, object]:
     if task.category != "architecture_brief":
         raise WorkroomModelError("task must be an architecture_brief task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = _task_hash(task)
-    artifact_dir = _artifact_dir(workspace_path=workspace_path, run_id=run_id, task_hash=task_hash)
+    artifact_dir = _artifact_dir(
+        workspace_path=workspace_path,
+        run_id=clean_run_id,
+        task_hash=task_hash,
+    )
     artifact_path = artifact_dir / "architecture_brief.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="architecture_brief.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="metadata.json",
     )
@@ -51,7 +57,7 @@ def create_architecture_brief_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "implementation_variables": implementation_variables,
@@ -78,23 +84,28 @@ def create_implementation_plan_artifact_files(
 ) -> dict[str, object]:
     if task.category != "implementation_plan":
         raise WorkroomModelError("task must be an implementation_plan task")
+    clean_run_id = safe_run_id(run_id)
     clean_architecture_brief_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=architecture_brief_ref,
         suffix="/architecture_brief.md",
         name="architecture_brief_ref",
     )
     task_hash = _task_hash(task)
-    artifact_dir = _artifact_dir(workspace_path=workspace_path, run_id=run_id, task_hash=task_hash)
+    artifact_dir = _artifact_dir(
+        workspace_path=workspace_path,
+        run_id=clean_run_id,
+        task_hash=task_hash,
+    )
     artifact_path = artifact_dir / "implementation_plan.md"
     metadata_path = artifact_dir / "implementation_plan_metadata.json"
     artifact_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="implementation_plan.md",
     )
     metadata_ref = _artifact_ref(
-        run_id=run_id,
+        run_id=clean_run_id,
         task_hash=task_hash,
         filename="implementation_plan_metadata.json",
     )
@@ -116,7 +127,7 @@ def create_implementation_plan_artifact_files(
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
             "architecture_brief_ref": clean_architecture_brief_ref,
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "implementation_variables": implementation_variables,

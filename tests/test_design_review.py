@@ -140,6 +140,19 @@ class DesignReviewArtifactTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_create_design_critique_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_design_critique_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                task=self.critique_task(),
+                plan=self.design_plan(),
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_design_critique_artifact_files_rejects_non_critique_task(
         self,
     ) -> None:
