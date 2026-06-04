@@ -1,7 +1,7 @@
 # Release Readiness Polishing Handoff — 2026-06-04
 
 Status note: superseded historical snapshot. Latest release-polish handoff is
-`docs/release/2026-06-04-release-readiness-polish-handoff-v3.md` (626 tests).
+`docs/release/2026-06-04-release-readiness-polish-handoff-v4.md` (626 tests).
 
 ## Verification Snapshot
 

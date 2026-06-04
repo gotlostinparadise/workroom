@@ -2606,10 +2606,10 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Continue the independent release review before adding more workflow behavior:
-review architecture boundaries, remaining public MCP naming and operator
-ergonomics, README and roadmap consistency, package installation behavior, and
-the dated release hardening evidence. Fix only concrete findings that block
-release readiness. Only add more infrastructure first if live repo truth shows
-it is the safer prerequisite. Preserve the no-loop, no-external-effect,
+Move to release operator tooling polish (non-behavioral):
+package a final release checkpoint in operator-facing format (Miro importable
+content, release notes draft, and a concise evidence summary), run an
+announcement/packaging sanity pass (tag/CI checks and artifact publish
+surface review), then hold one final release gate review before opening any new
+workflow behavior milestone. Preserve the no-loop, no-external-effect,
 Kernel-boundary floor.

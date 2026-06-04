@@ -1,0 +1,66 @@
+name: Workroom Release Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build and upload release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Workroom
+        uses: actions/checkout@v4
+        with:
+          path: workroom
+
+      - name: Checkout Kernel sibling
+        uses: actions/checkout@v4
+        with:
+          repository: gotlostinparadise/kernel
+          path: Kernel
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build tooling
+        working-directory: workroom
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+
+      - name: Install Workroom package
+        working-directory: workroom
+        run: |
+          python -m pip install -e .
+
+      - name: Build artifacts
+        working-directory: workroom
+        run: |
+          python -m build
+          python -m twine check dist/*
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release'
+        with:
+          files: |
+            workroom/dist/*
+
+      - name: Upload artifacts (manual run)
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: workroom-release-artifacts
+          path: |
+            workroom/dist/*.tar.gz
+            workroom/dist/*.whl
+          if-no-files-found: error

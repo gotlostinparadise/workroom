@@ -1,0 +1,64 @@
+name: Workroom Release Readiness
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+
+jobs:
+  readiness:
+    name: Release Readiness Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Workroom
+        uses: actions/checkout@v4
+        with:
+          path: workroom
+
+      - name: Checkout Kernel sibling
+        uses: actions/checkout@v4
+        with:
+          repository: gotlostinparadise/kernel
+          path: Kernel
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build tooling
+        working-directory: workroom
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+
+      - name: Install Workroom package (includes dependency setup)
+        working-directory: workroom
+        run: |
+          python -m pip install -e .
+
+      - name: Package sanity (sdist/wheel + twine check)
+        working-directory: workroom
+        run: |
+          python -m build
+          python -m twine check dist/*
+
+      - name: Source test suite
+        working-directory: workroom
+        run: |
+          PYTHONPATH="${PWD}/src:../Kernel/src" python -m unittest discover -s tests -v
+
+      - name: Release readiness gate
+        working-directory: workroom
+        env:
+          PYTHONPATH: "${{ github.workspace }}/workroom/src:${{ github.workspace }}/Kernel/src"
+        run: |
+          python -m agency_workroom.release_readiness_gate --keep-workspace --kernel-checkout ../Kernel

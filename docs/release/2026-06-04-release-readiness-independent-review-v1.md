@@ -10,6 +10,7 @@
 ## Review Inputs
 
 - Active worktree: clean (`master...origin/master`)
+- Active worktree note: clean-state evidence was captured earlier from this commit; current local tree has additional polishing edits pending staging/commit.
 - Source suite run:
   - `PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v`
   - `Ran 626 tests in 10.981s`
@@ -48,9 +49,9 @@
 - `README.md` MCP tool list is synchronized to `mcp_server.TOOL_NAMES` (55 entries).
 - `docs/COMPLETION_ROADMAP.md` "Current Next Action" remains:
   - independent release review before adding more workflow behavior.
-- `docs/release/2026-06-04-release-readiness-polish-handoff-v3.md` updated to:
-  - `d55edd5`
-  - workspace `"/tmp/workroom-readiness-polish-official4"` (for command output shown in this
+- `docs/release/2026-06-04-release-readiness-polish-handoff-v4.md` updated to:
+  - `ce01e71`
+  - workspace `"/tmp/workroom-readiness-final"` (latest command output shown in this
     checkpoint).
 
 ## Findings
@@ -62,4 +63,4 @@
 ## Decision
 
 - Continue with **release operator tooling polish** (operator playbooks, runbook sequencing
-  docs, and rollout communication) before adding new workflow behavior.
+  docs, and rollout communication) and package/publish-readiness closure before adding new workflow behavior.
