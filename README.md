@@ -99,11 +99,11 @@ The MCP tools are agent-facing:
 - `list_company_specs`
 - `list_company_runbooks`
 - `create_runbook_operating_packet`
+- `create_runbook_smoke_example`
 - `create_runbook_progress_report`
 - `create_runbook_closeout_packet`
 - `create_runbook_release_readiness_smoke`
 - `create_release_candidate_audit`
-- `create_runbook_smoke_example`
 
 For Codex, configure Workroom as a local stdio MCP server. The supported shape
 uses Codex `config.toml` MCP server settings:
@@ -125,19 +125,24 @@ into this repository.
 Recommended first calls:
 
 1. `get_mcp_tool_manifest`
-2. `check_workroom_mcp_config` with absolute ledger/workspace paths whose
-   parent directories already exist
+2. `check_workroom_mcp_config` with absolute `ledger_path` and `workspace_path`
+   values whose parent directories already exist
 3. `list_company_specs`
 4. `list_company_runbooks`
 5. `create_runbook_operating_packet`
 6. `create_runbook_smoke_example`
-7. `start_company_goal`
+7. `start_company_goal` with `goal`, `user_id`, `ledger_path`, and
+   `workspace_path`
 8. `submit_goal_intake_result` when `start_company_goal` returns
    `status: "intake_required"` and `next_tool: "submit_goal_intake_result"`
-9. `create_runbook_progress_report` after one or more runbook stage runs exist
-10. `create_runbook_closeout_packet` after runbook stage runs and review reports exist
-11. `create_runbook_release_readiness_smoke` after the runbook fixture chain exists
-12. `create_release_candidate_audit` before release-candidate review
+9. `create_runbook_progress_report` with `run_ids_json` after one or more
+   runbook stage runs exist
+10. `create_runbook_closeout_packet` with `run_ids_json` after runbook stage
+    runs and review reports exist
+11. `create_runbook_release_readiness_smoke` with `run_ids_json` after the
+    runbook fixture chain exists
+12. `create_release_candidate_audit` with `run_ids_json` before
+    release-candidate review
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or

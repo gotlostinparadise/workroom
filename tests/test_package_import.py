@@ -3,11 +3,13 @@ from __future__ import annotations
 from importlib.metadata import version
 import inspect
 from pathlib import Path
+import re
 import tomllib
 import unittest
 
 import agency_workroom
 from agency_workroom import agent_session
+from agency_workroom import mcp_server
 from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
@@ -33,6 +35,36 @@ class PackageImportTests(unittest.TestCase):
 
         self.assertIn("PYTHONPATH=src:../Kernel/src", readme)
         self.assertNotIn("/home/", readme)
+
+    def test_readme_mcp_tool_list_matches_server_order(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        section = readme.split("## MCP Agent Tool Interface", 1)[1].split(
+            "For Codex, configure",
+            1,
+        )[0]
+        documented_tools = tuple(
+            match.group(1)
+            for line in section.splitlines()
+            if (match := re.match(r"- `([^`]+)`", line.strip()))
+        )
+
+        self.assertEqual(mcp_server.TOOL_NAMES, documented_tools)
+
+    def test_readme_mcp_first_calls_use_exact_argument_names(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        section = readme.split("Recommended first calls:", 1)[1].split(
+            "This interface is local",
+            1,
+        )[0]
+
+        for argument_name in (
+            "goal",
+            "user_id",
+            "ledger_path",
+            "workspace_path",
+            "run_ids_json",
+        ):
+            self.assertIn(f"`{argument_name}`", section)
 
     def test_pyproject_uses_relative_kernel_dependency(self) -> None:
         pyproject = Path("pyproject.toml").read_text(encoding="utf-8")

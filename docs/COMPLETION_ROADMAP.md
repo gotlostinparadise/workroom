@@ -491,6 +491,11 @@ These milestones are complete enough to be treated as foundation:
     metadata used by install and audit evidence: project identity, version,
     README, Python requirement, license, Kernel dependency, and MCP dependency.
 
+88. README MCP Operator Drift Gate v1.
+    Package import tests now compare the README MCP tool list to the live server
+    tool order and require exact operator argument names for the startup and
+    runbook release-audit path.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2341,6 +2346,28 @@ Exit criteria:
 - Existing package install behavior, release-audit package-surface behavior,
   README path redaction, MCP manifest gates, export-surface checks, boundary
   assertions, and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 78. README MCP Operator Drift Gate v1
+
+Status: Done.
+
+Goal: keep the public README MCP operator path aligned with the live MCP server
+surface and exact tool argument names.
+
+Exit criteria:
+
+- README MCP tool list order matches `mcp_server.TOOL_NAMES`.
+- README recommended first calls name `goal`.
+- README recommended first calls name `user_id`.
+- README recommended first calls name `ledger_path`.
+- README recommended first calls name `workspace_path`.
+- README recommended first calls name `run_ids_json`.
+- Existing MCP registration, MCP manifest signature gates, release-audit
+  package-surface checks, README Kernel path redaction, package metadata gates,
+  and Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

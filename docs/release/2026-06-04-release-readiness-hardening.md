@@ -44,6 +44,9 @@ Scope:
   path-redaction gates while preserving caller return paths.
 - Release-candidate audit local dependency and manual-command redaction gate.
 - README source-checkout Kernel path redaction gate.
+- README MCP tool-list order drift gate against the live MCP server.
+- README recommended first-call argument-name gate for startup and runbook
+  release flow.
 - Package metadata Kernel dependency path redaction gate.
 - Package metadata release contract gate for project identity, version, README,
   Python requirement, license, Kernel dependency, and MCP dependency.
@@ -127,6 +130,9 @@ Release-candidate audit result:
 - Persisted release-candidate audit JSON and Markdown omit user-home paths:
   `true`
 - README source-tree command uses `PYTHONPATH=src:../Kernel/src`: `true`
+- README MCP tool list matches live MCP server order: `true`
+- README first-call path names `goal`, `user_id`, `ledger_path`,
+  `workspace_path`, and `run_ids_json`: `true`
 - Package metadata release contract matches the local release-audit assumptions:
   `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
@@ -153,7 +159,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 588 tests in 9.588s
+Ran 590 tests in 9.219s
 OK
 ```
 
@@ -164,7 +170,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 588 tests in 9.636s
+Ran 590 tests in 9.735s
 OK
 ```
 
