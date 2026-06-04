@@ -229,10 +229,16 @@ def _load_external_company_specs() -> dict[str, CompanySpec]:
         return _EXTERNAL_SPEC_CACHE
 
     path = Path(registry_path).expanduser()
+    if not path.is_file():
+        if path.exists():
+            raise WorkroomModelError("company spec registry path must be a regular file")
+        raise WorkroomModelError("company spec registry file not found")
+    if path.is_symlink():
+        raise WorkroomModelError("company spec registry path must not be a symlink")
     try:
         text = path.read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise WorkroomModelError("company spec registry file not found") from exc
+    except OSError as exc:
+        raise WorkroomModelError("company spec registry file could not be read") from exc
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:

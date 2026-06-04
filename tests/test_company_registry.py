@@ -218,6 +218,39 @@ class CompanyRegistryTests(unittest.TestCase):
             ):
                 list_company_specs()
 
+    def test_external_registry_rejects_directory_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.dict(
+                os.environ,
+                {"WORKROOM_COMPANY_SPEC_REGISTRY_PATH": temporary},
+                clear=False,
+            ):
+                _clear_external_company_spec_cache()
+                with self.assertRaisesRegex(
+                    WorkroomModelError,
+                    "company spec registry path must be a regular file",
+                ):
+                    list_company_specs()
+
+    def test_external_registry_rejects_symlink_path(self) -> None:
+        catalog = self._external_catalog_payload()
+        target = self._write_catalog(catalog)
+        with tempfile.TemporaryDirectory() as temporary:
+            symlink = Path(temporary) / "catalog-link.json"
+            symlink.symlink_to(target)
+            with patch.dict(
+                os.environ,
+                {"WORKROOM_COMPANY_SPEC_REGISTRY_PATH": str(symlink)},
+                clear=False,
+            ):
+                _clear_external_company_spec_cache()
+                with self.assertRaisesRegex(
+                    WorkroomModelError,
+                    "company spec registry path must not be a symlink",
+                ):
+                    list_company_specs()
+            symlink.unlink(missing_ok=True)
+
     def test_external_registry_wrong_schema_version_is_rejected(self) -> None:
         catalog = self._external_catalog_payload()
         catalog["schema_version"] = "future"
