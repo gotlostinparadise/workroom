@@ -18,7 +18,7 @@ from .models import (
     SupervisorTurn,
     TaskState,
 )
-from .session_store import WorkroomStateError
+from .session_store import WorkroomStateError, safe_identifier, safe_run_id
 
 
 SUPERVISOR_ID_PREFIX = "goal-supervisor:"
@@ -351,11 +351,13 @@ def write_supervisor_turn(
     workspace_path: str | Path,
     turn: SupervisorTurn,
 ) -> dict[str, object]:
-    turn_dir = Path(workspace_path) / "runs" / turn.run_id / "supervisor" / "turns"
-    turn_path = turn_dir / f"{turn.turn_id}.json"
+    clean_run_id = safe_run_id(turn.run_id)
+    clean_turn_id = safe_identifier("turn_id", turn.turn_id)
+    turn_dir = Path(workspace_path) / "runs" / clean_run_id / "supervisor" / "turns"
+    turn_path = turn_dir / f"{clean_turn_id}.json"
     turn_ref = (
-        f"workroom-artifact://runs/{turn.run_id}/supervisor/turns/"
-        f"{turn.turn_id}.json"
+        f"workroom-artifact://runs/{clean_run_id}/supervisor/turns/"
+        f"{clean_turn_id}.json"
     )
     payload = {
         **turn.to_payload(),
@@ -417,17 +419,19 @@ def write_role_work_request(
     workspace_path: str | Path,
     request: RoleWorkRequest,
 ) -> dict[str, object]:
+    clean_run_id = safe_run_id(request.run_id)
+    clean_request_id = safe_identifier("request_id", request.request_id)
     request_dir = (
         Path(workspace_path)
         / "runs"
-        / request.run_id
+        / clean_run_id
         / "role_work"
         / "requests"
     )
-    request_path = request_dir / f"{request.request_id}.json"
+    request_path = request_dir / f"{clean_request_id}.json"
     request_ref = (
-        f"workroom-artifact://runs/{request.run_id}/role_work/requests/"
-        f"{request.request_id}.json"
+        f"workroom-artifact://runs/{clean_run_id}/role_work/requests/"
+        f"{clean_request_id}.json"
     )
     payload = {
         **request.to_payload(),
@@ -493,17 +497,19 @@ def write_role_work_result(
     workspace_path: str | Path,
     result: RoleWorkResult,
 ) -> dict[str, object]:
+    clean_run_id = safe_run_id(result.run_id)
+    clean_result_id = safe_identifier("result_id", result.result_id)
     result_dir = (
         Path(workspace_path)
         / "runs"
-        / result.run_id
+        / clean_run_id
         / "role_work"
         / "results"
     )
-    result_path = result_dir / f"{result.result_id}.json"
+    result_path = result_dir / f"{clean_result_id}.json"
     result_ref = (
-        f"workroom-artifact://runs/{result.run_id}/role_work/results/"
-        f"{result.result_id}.json"
+        f"workroom-artifact://runs/{clean_run_id}/role_work/results/"
+        f"{clean_result_id}.json"
     )
     payload = {
         **result.to_payload(),
@@ -619,11 +625,13 @@ def write_handoff_record(
     workspace_path: str | Path,
     record: HandoffRecord,
 ) -> dict[str, object]:
-    handoff_dir = Path(workspace_path) / "runs" / record.run_id / "handoffs"
-    handoff_path = handoff_dir / f"{record.handoff_id}.json"
+    clean_run_id = safe_run_id(record.run_id)
+    clean_handoff_id = safe_identifier("handoff_id", record.handoff_id)
+    handoff_dir = Path(workspace_path) / "runs" / clean_run_id / "handoffs"
+    handoff_path = handoff_dir / f"{clean_handoff_id}.json"
     handoff_ref = (
-        f"workroom-artifact://runs/{record.run_id}/handoffs/"
-        f"{record.handoff_id}.json"
+        f"workroom-artifact://runs/{clean_run_id}/handoffs/"
+        f"{clean_handoff_id}.json"
     )
     payload = {
         **record.to_payload(),
@@ -647,11 +655,13 @@ def write_decision_record(
     workspace_path: str | Path,
     record: DecisionRecord,
 ) -> dict[str, object]:
-    decision_dir = Path(workspace_path) / "runs" / record.run_id / "decisions"
-    decision_path = decision_dir / f"{record.decision_id}.json"
+    clean_run_id = safe_run_id(record.run_id)
+    clean_decision_id = safe_identifier("decision_id", record.decision_id)
+    decision_dir = Path(workspace_path) / "runs" / clean_run_id / "decisions"
+    decision_path = decision_dir / f"{clean_decision_id}.json"
     decision_ref = (
-        f"workroom-artifact://runs/{record.run_id}/decisions/"
-        f"{record.decision_id}.json"
+        f"workroom-artifact://runs/{clean_run_id}/decisions/"
+        f"{clean_decision_id}.json"
     )
     payload = {
         **record.to_payload(),

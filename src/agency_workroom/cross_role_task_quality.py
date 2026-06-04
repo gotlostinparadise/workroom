@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import CompanyGoalRun, TaskState
+from .session_store import safe_run_id
 
 
 class CrossRoleTaskQualityError(RuntimeError):
@@ -21,15 +22,16 @@ def create_cross_role_task_quality_report_files(
     evaluation: Mapping[str, object],
     recommendation: Mapping[str, object],
 ) -> dict[str, object]:
-    report_dir = Path(workspace_path) / "runs" / run.run_id / "reports"
+    clean_run_id = safe_run_id(run.run_id)
+    report_dir = Path(workspace_path) / "runs" / clean_run_id / "reports"
     report_path = report_dir / "cross_role_task_quality_report.json"
     markdown_path = report_dir / "cross_role_task_quality_report.md"
     report_ref = (
-        f"workroom-artifact://runs/{run.run_id}/reports/"
+        f"workroom-artifact://runs/{clean_run_id}/reports/"
         "cross_role_task_quality_report.json"
     )
     markdown_ref = (
-        f"workroom-artifact://runs/{run.run_id}/reports/"
+        f"workroom-artifact://runs/{clean_run_id}/reports/"
         "cross_role_task_quality_report.md"
     )
     payload = _report_payload(
@@ -56,7 +58,7 @@ def create_cross_role_task_quality_report_files(
         ) from exc
     return {
         "schema_version": payload["schema_version"],
-        "run_id": run.run_id,
+        "run_id": clean_run_id,
         "report_ref": report_ref,
         "report_path": str(report_path),
         "markdown_ref": markdown_ref,

@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 from agency_workroom.runbook_context_transfer import (
     create_runbook_context_transfer_files,
 )
@@ -63,6 +71,22 @@ class RunbookContextTransferTests(unittest.TestCase):
         self.assertTrue(Path(result["markdown_path"]).exists())
         self.assertIn("Runbook Context Transfer", markdown)
         self.assertIn("implementation_planning", markdown)
+
+    def test_create_runbook_context_transfer_rejects_path_like_source_run_id(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = replace(self.source_run(), run_id="../escape")
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_runbook_context_transfer_files(
+                workspace_path=root,
+                source_run=run,
+                target_company_spec_id="implementation_planning",
+                inspection=self.inspection(),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def source_run(self) -> CompanyGoalRun:
         team = TeamBlueprint(

@@ -9,7 +9,13 @@ from pathlib import Path
 from agency_workroom.agent_session import advance_company_goal, start_company_run
 from agency_workroom.company_registry import get_company_spec
 from agency_workroom.local_routes import LOCAL_ROUTES, get_local_route
-from agency_workroom.models import CompanyGoalRun, RunContext, SupervisorTurn, TaskState
+from agency_workroom.models import (
+    CompanyGoalRun,
+    RunContext,
+    SupervisorTurn,
+    TaskState,
+    WorkroomModelError,
+)
 from agency_workroom.session_store import load_company_goal_run
 import agency_workroom.supervisor as supervisor
 from agency_workroom.supervisor import (
@@ -764,6 +770,43 @@ class SupervisorCoreTests(unittest.TestCase):
             payload["turn_ref"],
         )
 
+    def test_write_supervisor_turn_rejects_path_like_ids(self) -> None:
+        root = self.temp_root()
+        turn = SupervisorTurn(
+            turn_id="turn_abc",
+            run_id="run_abc",
+            supervisor_id="goal-supervisor:run_abc",
+            phase_before="local_production",
+            phase_after="qa",
+            action_type="local_step_executed",
+            selected_tool="run_next_local_step",
+            delegated_role="landing_builder",
+            reason="landing task is ready",
+            recommendation={},
+            result_ref="workroom-artifact://runs/run_abc/landing_page/aaa/index.html",
+            requires_approval=False,
+            approval_request={},
+            next_recommendation={},
+            status_counts={"completed": 1, "planned": 3},
+        )
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            write_supervisor_turn(root / "workspace", replace(turn, run_id="../escape"))
+        with self.assertRaisesRegex(WorkroomModelError, "turn_id"):
+            write_supervisor_turn(root / "workspace", replace(turn, turn_id="../escape"))
+
+        self.assertFalse((root / "workspace" / "escape").exists())
+        self.assertFalse(
+            (
+                root
+                / "workspace"
+                / "runs"
+                / "run_abc"
+                / "supervisor"
+                / "escape.json"
+            ).exists()
+        )
+
     def test_write_role_work_request_creates_artifact_and_ref(self) -> None:
         root = self.temp_root()
         run = self.make_run(self.make_tasks())
@@ -793,6 +836,39 @@ class SupervisorCoreTests(unittest.TestCase):
         self.assertEqual(
             f"workroom-artifact://runs/run_abc/role_work/requests/{request.request_id}.json",
             payload["request_ref"],
+        )
+
+    def test_write_role_work_request_rejects_path_like_ids(self) -> None:
+        root = self.temp_root()
+        run = self.make_run(self.make_tasks())
+        request = build_role_work_request(
+            run=run,
+            task=run.tasks[0],
+            department="product",
+            objective="Create landing page artifact",
+        )
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            write_role_work_request(
+                root / "workspace",
+                replace(request, run_id="../escape"),
+            )
+        with self.assertRaisesRegex(WorkroomModelError, "request_id"):
+            write_role_work_request(
+                root / "workspace",
+                replace(request, request_id="../escape"),
+            )
+
+        self.assertFalse((root / "workspace" / "escape").exists())
+        self.assertFalse(
+            (
+                root
+                / "workspace"
+                / "runs"
+                / "run_abc"
+                / "role_work"
+                / "escape.json"
+            ).exists()
         )
 
     def test_write_role_work_result_creates_artifact_and_ref(self) -> None:

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .models import CompanyGoalRun, TaskState
+from .session_store import safe_run_id
 
 
 class CrossRoleBriefError(RuntimeError):
@@ -21,11 +22,16 @@ def create_cross_role_run_brief_files(
     evaluation: Mapping[str, object],
     recommendation: Mapping[str, object],
 ) -> dict[str, object]:
-    report_dir = Path(workspace_path) / "runs" / run.run_id / "reports"
+    clean_run_id = safe_run_id(run.run_id)
+    report_dir = Path(workspace_path) / "runs" / clean_run_id / "reports"
     brief_path = report_dir / "cross_role_run_brief.json"
     markdown_path = report_dir / "cross_role_run_brief.md"
-    brief_ref = f"workroom-artifact://runs/{run.run_id}/reports/cross_role_run_brief.json"
-    markdown_ref = f"workroom-artifact://runs/{run.run_id}/reports/cross_role_run_brief.md"
+    brief_ref = (
+        f"workroom-artifact://runs/{clean_run_id}/reports/cross_role_run_brief.json"
+    )
+    markdown_ref = (
+        f"workroom-artifact://runs/{clean_run_id}/reports/cross_role_run_brief.md"
+    )
     payload = _brief_payload(
         run=run,
         summary=summary,
@@ -49,7 +55,7 @@ def create_cross_role_run_brief_files(
         raise CrossRoleBriefError("cross-role run brief write failed") from exc
     return {
         "schema_version": payload["schema_version"],
-        "run_id": run.run_id,
+        "run_id": clean_run_id,
         "brief_ref": brief_ref,
         "brief_path": str(brief_path),
         "markdown_ref": markdown_ref,

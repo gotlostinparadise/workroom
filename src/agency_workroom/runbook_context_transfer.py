@@ -7,6 +7,7 @@ import json
 
 from .company_registry import get_company_spec
 from .models import CompanyGoalRun, CompanySpec
+from .session_store import safe_run_id
 
 
 class RunbookContextTransferError(RuntimeError):
@@ -21,16 +22,17 @@ def create_runbook_context_transfer_files(
     inspection: Mapping[str, object],
 ) -> dict[str, object]:
     target_spec = get_company_spec(target_company_spec_id)
-    report_dir = Path(workspace_path) / "runs" / source_run.run_id / "reports"
+    clean_source_run_id = safe_run_id(source_run.run_id)
+    report_dir = Path(workspace_path) / "runs" / clean_source_run_id / "reports"
     safe_target = target_spec.spec_id.replace("-", "_")
     transfer_path = report_dir / f"runbook_context_transfer_{safe_target}.json"
     markdown_path = report_dir / f"runbook_context_transfer_{safe_target}.md"
     transfer_ref = (
-        f"workroom-artifact://runs/{source_run.run_id}/reports/"
+        f"workroom-artifact://runs/{clean_source_run_id}/reports/"
         f"runbook_context_transfer_{safe_target}.json"
     )
     markdown_ref = (
-        f"workroom-artifact://runs/{source_run.run_id}/reports/"
+        f"workroom-artifact://runs/{clean_source_run_id}/reports/"
         f"runbook_context_transfer_{safe_target}.md"
     )
     payload = _payload(
@@ -53,7 +55,7 @@ def create_runbook_context_transfer_files(
         raise RunbookContextTransferError("runbook context transfer write failed") from exc
     return {
         "schema_version": payload["schema_version"],
-        "source_run_id": source_run.run_id,
+        "source_run_id": clean_source_run_id,
         "target_company_spec_id": target_spec.spec_id,
         "transfer_ref": transfer_ref,
         "transfer_path": str(transfer_path),

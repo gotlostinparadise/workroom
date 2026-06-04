@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .models import CompanyGoalRun
+from .session_store import safe_run_id
 
 
 class GoalRunReportError(RuntimeError):
@@ -18,11 +19,12 @@ def create_goal_run_report_files(
     run: CompanyGoalRun,
     summary: Mapping[str, object],
 ) -> dict[str, object]:
-    report_dir = Path(workspace_path) / "runs" / run.run_id / "reports"
+    clean_run_id = safe_run_id(run.run_id)
+    report_dir = Path(workspace_path) / "runs" / clean_run_id / "reports"
     report_path = report_dir / "goal_run_report.json"
     markdown_path = report_dir / "goal_run_report.md"
-    report_ref = f"workroom-artifact://runs/{run.run_id}/reports/goal_run_report.json"
-    markdown_ref = f"workroom-artifact://runs/{run.run_id}/reports/goal_run_report.md"
+    report_ref = f"workroom-artifact://runs/{clean_run_id}/reports/goal_run_report.json"
+    markdown_ref = f"workroom-artifact://runs/{clean_run_id}/reports/goal_run_report.md"
     payload = _report_payload(
         workspace_path=Path(workspace_path),
         run=run,
@@ -43,7 +45,7 @@ def create_goal_run_report_files(
         raise GoalRunReportError("goal run report write failed") from exc
     return {
         "schema_version": payload["schema_version"],
-        "run_id": run.run_id,
+        "run_id": clean_run_id,
         "report_ref": report_ref,
         "report_path": str(report_path),
         "markdown_ref": markdown_ref,

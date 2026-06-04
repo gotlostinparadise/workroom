@@ -18,17 +18,22 @@ class WorkroomStateError(RuntimeError):
     pass
 
 
-def _safe_run_id(run_id: str) -> str:
-    if not isinstance(run_id, str) or not run_id.strip():
-        raise WorkroomModelError("run_id is required")
-    value = run_id.strip()
+def safe_identifier(label: str, value: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise WorkroomModelError(f"{label} is required")
+    clean_label = label.strip() if isinstance(label, str) and label.strip() else "id"
+    value = value.strip()
     if "/" in value or "\\" in value or value in {".", ".."} or ".." in value:
-        raise WorkroomModelError("run_id must be a safe identifier")
+        raise WorkroomModelError(f"{clean_label} must be a safe identifier")
     return value
 
 
+def safe_run_id(run_id: str) -> str:
+    return safe_identifier("run_id", run_id)
+
+
 def run_state_path(workspace_path: str | Path, run_id: str) -> Path:
-    return Path(workspace_path) / "runs" / _safe_run_id(run_id) / "state.json"
+    return Path(workspace_path) / "runs" / safe_run_id(run_id) / "state.json"
 
 
 def save_company_goal_run(workspace_path: str | Path, run: CompanyGoalRun) -> Path:
@@ -83,13 +88,13 @@ def _save_run_payload(
 
 
 def load_run_state_payload(workspace_path: str | Path, run_id: str) -> dict[str, object]:
-    safe_run_id = _safe_run_id(run_id)
-    path = Path(workspace_path) / "runs" / safe_run_id / "state.json"
+    clean_run_id = safe_run_id(run_id)
+    path = Path(workspace_path) / "runs" / clean_run_id / "state.json"
     if not path.exists():
         raise WorkroomStateError(f"run state not found: {run_id}")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if payload["run_id"] != safe_run_id:
+        if payload["run_id"] != clean_run_id:
             raise WorkroomModelError("run_id does not match requested run_id")
         if not isinstance(payload, dict):
             raise WorkroomModelError("run state payload must be a mapping")
@@ -166,6 +171,8 @@ __all__ = [
     "load_company_goal_run",
     "load_run_state_payload",
     "run_state_path",
+    "safe_identifier",
+    "safe_run_id",
     "save_goal_intake_run",
     "save_company_goal_run",
 ]

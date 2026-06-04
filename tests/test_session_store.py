@@ -18,6 +18,8 @@ from agency_workroom.session_store import (
     load_goal_intake_run,
     load_company_goal_run,
     run_state_path,
+    safe_identifier,
+    safe_run_id,
     save_goal_intake_run,
     save_company_goal_run,
 )
@@ -134,6 +136,15 @@ class SessionStoreTests(unittest.TestCase):
 
         with self.assertRaisesRegex(WorkroomModelError, "run_id"):
             run_state_path(root, "../bad")
+
+    def test_safe_identifier_rejects_path_like_values(self) -> None:
+        for value in ("../bad", "nested/id", r"nested\id", "bad..id", ".", ".."):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(WorkroomModelError, "record_id"):
+                    safe_identifier("record_id", value)
+
+    def test_safe_run_id_strips_valid_run_ids(self) -> None:
+        self.assertEqual("run_abc123", safe_run_id("  run_abc123  "))
 
     def test_load_missing_run_raises_state_error(self) -> None:
         root = self.temp_root()

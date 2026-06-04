@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import inspect
 import json
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 
 from agency_workroom import goal_run_report
 from agency_workroom.goal_run_report import create_goal_run_report_files
-from agency_workroom.models import CompanyGoalRun, TaskState
+from agency_workroom.models import CompanyGoalRun, TaskState, WorkroomModelError
 from agency_workroom.session_store import save_company_goal_run
 
 
@@ -211,6 +212,19 @@ class GoalRunReportTests(unittest.TestCase):
             Path(first["markdown_path"]).read_text(encoding="utf-8"),
             Path(second["markdown_path"]).read_text(encoding="utf-8"),
         )
+
+    def test_create_goal_run_report_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+        run = replace(self.make_run(), run_id="../escape")
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_goal_run_report_files(
+                workspace_path=root,
+                run=run,
+                summary={},
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_goal_run_report_module_has_no_process_network_or_loop_primitives(
         self,

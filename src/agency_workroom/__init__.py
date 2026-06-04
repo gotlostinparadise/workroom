@@ -217,6 +217,8 @@ from .session_store import (
     WorkroomStateError,
     load_company_goal_run,
     run_state_path,
+    safe_identifier,
+    safe_run_id,
     save_company_goal_run,
 )
 from .supervisor import (
@@ -412,6 +414,8 @@ __all__ = [
     "run_context_from_workflow_request",
     "run_company_workflow",
     "run_state_path",
+    "safe_identifier",
+    "safe_run_id",
     "run_business_validation_workflow",
     "save_company_goal_run",
     "start_company_run",
