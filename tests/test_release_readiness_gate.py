@@ -125,7 +125,7 @@ class ReleaseReadinessGateTests(unittest.TestCase):
             runner.calls[1][0][:3],
         )
         self.assertEqual(
-            str(Path(release_readiness_gate.RELEASE_VENV_DIRNAME).resolve()),
+            str((Path(workspace) / release_readiness_gate.RELEASE_VENV_DIRNAME).resolve()),
             str(runner.calls[1][0][3]),
         )
 

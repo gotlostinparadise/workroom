@@ -32,7 +32,11 @@
 ## Commands to Re-run at Final Cut
 
 - `PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v`
-- `rm -rf /tmp/workroom-release-readiness-venv && python -m venv /tmp/workroom-release-readiness-venv && /tmp/workroom-release-readiness-venv/bin/python -m pip install -e . && /tmp/workroom-release-readiness-venv/bin/python -m unittest discover -s tests -v`
+- `release_readiness_venv="${WORKROOM_READINESS_VENV:-"$(mktemp -d)/workroom-readiness-venv"}" && \`
+  `release_readiness_venv=$(eval echo "${release_readiness_venv}") && \`
+  `rm -rf "$release_readiness_venv" && python -m venv "$release_readiness_venv" && \`
+  `"${release_readiness_venv}"/bin/python -m pip install -e . && \`
+  `"${release_readiness_venv}"/bin/python -m unittest discover -s tests -v`
 - `PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m agency_workroom.mcp_server < /dev/null`
 - `git status --short --branch`
 - `git -C /home/bm/Work/Projects/AGENTS/Agency/Kernel status --short --branch`

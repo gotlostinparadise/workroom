@@ -29,7 +29,7 @@ RELEASE_SPEC_IDS = (
     "implementation_plan_quality",
     "verification_orchestration",
 )
-RELEASE_VENV_DIRNAME = "/tmp/workroom-release-readiness-venv"
+RELEASE_VENV_DIRNAME = ".workroom-release-readiness-venv"
 
 
 def run_release_readiness_gate(
@@ -400,7 +400,7 @@ def _run_installed_mcp_smoke(
 def _build_release_candidate_venv_path(
     *, workspace: Path
 ) -> Path:
-    return Path(RELEASE_VENV_DIRNAME)
+    return workspace / RELEASE_VENV_DIRNAME
 
 
 def _run_git_status(
