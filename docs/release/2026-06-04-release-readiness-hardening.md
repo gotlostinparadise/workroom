@@ -33,6 +33,7 @@ Scope:
 - Runbook release-readiness smoke progress/closeout run IDs readiness gate.
 - Runbook release-readiness smoke fixture runbook readiness gate.
 - Release-candidate audit runbook release-smoke consistency readiness gate.
+- Release-candidate audit persisted JSON path-redaction gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -92,6 +93,8 @@ Release-candidate audit result:
   findings to be empty: `true`
 - Markdown audit artifact context renders requested run IDs and Workroom
   artifact refs without local filesystem paths.
+- Persisted release-candidate audit JSON uses artifact refs and package
+  metadata source labels instead of local filesystem paths: `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -110,18 +113,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 544 tests in 8.915s
+Ran 544 tests in 9.016s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-smoke-consistency-gate-venv
-python -m venv /tmp/workroom-release-smoke-consistency-gate-venv
-/tmp/workroom-release-smoke-consistency-gate-venv/bin/python -m pip install -e .
-/tmp/workroom-release-smoke-consistency-gate-venv/bin/python -m unittest discover -s tests -v
-Ran 544 tests in 9.060s
+rm -rf /tmp/workroom-release-json-path-redaction-venv
+python -m venv /tmp/workroom-release-json-path-redaction-venv
+/tmp/workroom-release-json-path-redaction-venv/bin/python -m pip install -e .
+/tmp/workroom-release-json-path-redaction-venv/bin/python -m unittest discover -s tests -v
+Ran 544 tests in 8.987s
 OK
 ```
 

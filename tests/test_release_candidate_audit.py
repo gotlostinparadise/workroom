@@ -54,9 +54,15 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
 
         payload = json.loads(Path(audit["audit_path"]).read_text(encoding="utf-8"))
         markdown = Path(audit["markdown_path"]).read_text(encoding="utf-8")
+        payload_text = json.dumps(payload, sort_keys=True)
 
         self.assertEqual("workroom-release-candidate-audit.v1", audit["schema_version"])
         self.assertEqual("workroom-release-candidate-audit.v1", payload["schema_version"])
+        self.assertNotIn(str(root), payload_text)
+        self.assertNotIn("audit_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn("path", payload["runbook_release_smoke"])
+        self.assertNotIn("pyproject_path", payload["package_surface"])
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertEqual(list(run_ids), payload["run_ids"])
         self.assertEqual("ready", payload["audit_status"])
@@ -104,6 +110,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             payload["export_surface"]["missing_session_public_function_exports"],
         )
         self.assertEqual("agency-workroom", payload["package_surface"]["project_name"])
+        self.assertEqual(
+            "pyproject.toml",
+            payload["package_surface"]["package_metadata_source"],
+        )
         self.assertTrue(payload["package_surface"]["pyproject_readable"])
         self.assertFalse(payload["package_surface"]["installed_metadata_readable"])
         self.assertEqual(

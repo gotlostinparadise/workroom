@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v63.
+Status: Canonical plan v64.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -452,6 +452,11 @@ These milestones are complete enough to be treated as foundation:
 78. Release Audit Smoke Consistency Gate v1.
     The release-candidate audit now gates whether persisted release-readiness
     smoke status, readiness, and findings are internally consistent.
+
+79. Release Audit JSON Path Redaction v1.
+    The persisted release-candidate audit JSON now avoids local filesystem
+    paths and records stable artifact refs or package metadata source labels
+    instead.
 
 ## Milestone Plan
 
@@ -2094,6 +2099,30 @@ Exit criteria:
   release-smoke schema/readiness checks, runbook/run-ID checks, boundary
   assertions, manual gates, and artifact-context path redaction remain
   unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 69. Release Audit JSON Path Redaction v1
+
+Status: Done.
+
+Goal: prevent the persisted release-candidate audit JSON artifact from leaking
+machine-local filesystem paths while preserving tool return paths for local
+callers that need to open the generated files.
+
+Exit criteria:
+
+- The persisted audit JSON does not include `audit_path` or `markdown_path`.
+- The persisted runbook release-smoke section does not include a local `path`.
+- The persisted package-surface section does not include `pyproject_path`.
+- The package-surface section records a non-sensitive metadata source label.
+- The MCP/tool return payload still includes local `audit_path` and
+  `markdown_path` for immediate local operator use.
+- Tests prove the generated audit JSON does not contain the workspace temp path.
+- Existing Markdown path-redaction, MCP manifest gates, export-surface checks,
+  package-surface checks, release-smoke gates, runbook/run-ID checks, boundary
+  assertions, and manual gates remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

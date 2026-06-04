@@ -59,8 +59,6 @@ def create_release_candidate_audit_files(
         workspace_path=Path(workspace_path),
         runbook_id=clean_runbook_id,
         run_ids=clean_run_ids,
-        audit_path=audit_path,
-        markdown_path=markdown_path,
         audit_ref=audit_ref,
         markdown_ref=markdown_ref,
     )
@@ -89,8 +87,6 @@ def _audit_payload(
     workspace_path: Path,
     runbook_id: str,
     run_ids: tuple[str, ...],
-    audit_path: Path,
-    markdown_path: Path,
     audit_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -103,7 +99,6 @@ def _audit_payload(
     release_smoke_payload = _release_smoke_payload(
         run_ids=run_ids,
         runbook_id=runbook_id,
-        path=release_smoke_path,
         payload=release_smoke,
     )
     findings = _audit_findings(
@@ -136,9 +131,7 @@ def _audit_payload(
         },
         "audit_findings": findings,
         "audit_ref": audit_ref,
-        "audit_path": str(audit_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 
@@ -214,7 +207,7 @@ def _package_surface() -> dict[str, object]:
     )
     kernel_dependency_mode = _kernel_dependency_mode(kernel_dependency)
     return {
-        "pyproject_path": str(pyproject_path),
+        "package_metadata_source": "pyproject.toml",
         "pyproject_readable": True,
         "installed_metadata_readable": False,
         "project_name": str(project.get("name", "")),
@@ -232,7 +225,7 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
         dependencies = importlib_metadata.requires("agency-workroom") or []
     except importlib_metadata.PackageNotFoundError:
         return {
-            "pyproject_path": str(pyproject_path),
+            "package_metadata_source": "unavailable",
             "pyproject_readable": False,
             "installed_metadata_readable": False,
             "project_name": "",
@@ -252,7 +245,7 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
     )
     kernel_dependency_mode = _kernel_dependency_mode(kernel_dependency)
     return {
-        "pyproject_path": str(pyproject_path),
+        "package_metadata_source": "installed_metadata",
         "pyproject_readable": False,
         "installed_metadata_readable": True,
         "project_name": str(package_metadata.get("Name", "")),
@@ -299,7 +292,6 @@ def _release_smoke_payload(
     *,
     run_ids: tuple[str, ...],
     runbook_id: str,
-    path: Path,
     payload: Mapping[str, object],
 ) -> dict[str, object]:
     expected_ref = (
@@ -311,7 +303,6 @@ def _release_smoke_payload(
     smoke_findings = _mapping_list(payload.get("smoke_findings"))
     return {
         "ref": expected_ref,
-        "path": str(path),
         "schema_version": str(payload.get("schema_version", "")),
         "runbook_id": str(payload.get("runbook_id", "")),
         "expected_runbook_id": runbook_id,
