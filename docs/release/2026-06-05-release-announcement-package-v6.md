@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom source branch: `master` (local tip `5275d88`), fully merged and cleaned to `origin/master`.
-- Workroom commit: `5275d88` (`chore: publish release readiness v6 handoff snapshot`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `0eff6f2`).
+- Workroom commit: `0eff6f2` (`ci: force JS actions runtime to node24 in release workflows`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
@@ -27,6 +27,13 @@
 - `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/release_candidate_audit.json`
 - `dist/agency_workroom-0.1.0.tar.gz`
 - `dist/agency_workroom-0.1.0-py3-none-any.whl`
+
+## Polishing Delta Since Prior Snapshot
+
+- Added runtime-hygiene pin in release workflows:
+  - `.github/workflows/release-readiness.yml`
+  - `.github/workflows/release-publish.yml`
+  - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` in each job env.
 
 ## Public Feature Summary
 
