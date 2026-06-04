@@ -43,6 +43,7 @@ Scope:
 - Release checklist, release quality gate, and release notes persisted metadata
   path-redaction gates while preserving caller return paths.
 - Release-candidate audit local dependency and manual-command redaction gate.
+- README verified Kernel commit drift gate against sibling Kernel HEAD.
 - README source-checkout Kernel path redaction gate.
 - README MCP tool-list order drift gate against the live MCP server.
 - README recommended first-call argument-name gate for startup and runbook
@@ -129,6 +130,7 @@ Release-candidate audit result:
   metadata source labels instead of local filesystem paths: `true`
 - Persisted release-candidate audit JSON and Markdown omit user-home paths:
   `true`
+- README verified Kernel commit matches sibling Kernel HEAD: `true`
 - README source-tree command uses `PYTHONPATH=src:../Kernel/src`: `true`
 - README MCP tool list matches live MCP server order: `true`
 - README first-call path names `goal`, `user_id`, `ledger_path`,
@@ -159,7 +161,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 590 tests in 9.219s
+Ran 591 tests in 9.603s
 OK
 ```
 
@@ -170,7 +172,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 590 tests in 9.735s
+Ran 591 tests in 9.551s
 OK
 ```
 

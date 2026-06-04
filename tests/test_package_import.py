@@ -4,6 +4,7 @@ from importlib.metadata import version
 import inspect
 from pathlib import Path
 import re
+import subprocess
 import tomllib
 import unittest
 
@@ -35,6 +36,20 @@ class PackageImportTests(unittest.TestCase):
 
         self.assertIn("PYTHONPATH=src:../Kernel/src", readme)
         self.assertNotIn("/home/", readme)
+
+    def test_readme_verified_kernel_commit_matches_sibling_kernel_head(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        match = re.search(
+            r"Verified Kernel commit:\n\n```text\n([0-9a-f]{40})\n```",
+            readme,
+        )
+        self.assertIsNotNone(match)
+        kernel_head = subprocess.check_output(
+            ["git", "-C", "../Kernel", "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+
+        self.assertEqual(kernel_head, match.group(1))
 
     def test_readme_mcp_tool_list_matches_server_order(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")

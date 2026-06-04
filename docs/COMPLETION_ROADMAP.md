@@ -496,6 +496,10 @@ These milestones are complete enough to be treated as foundation:
     tool order and require exact operator argument names for the startup and
     runbook release-audit path.
 
+89. README Verified Kernel Commit Drift Gate v1.
+    Package import tests now compare the README's verified Kernel commit to the
+    sibling Kernel checkout HEAD used by the local release-candidate workflow.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2368,6 +2372,24 @@ Exit criteria:
 - Existing MCP registration, MCP manifest signature gates, release-audit
   package-surface checks, README Kernel path redaction, package metadata gates,
   and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 79. README Verified Kernel Commit Drift Gate v1
+
+Status: Done.
+
+Goal: keep the README's front-door Kernel compatibility claim tied to the
+sibling Kernel checkout actually used by the local release-candidate workflow.
+
+Exit criteria:
+
+- README contains one 40-character verified Kernel commit.
+- Package import tests compare that commit to `git -C ../Kernel rev-parse HEAD`.
+- Existing README MCP tool-order checks, README argument-name checks, package
+  metadata gates, release-audit package-surface checks, MCP manifest gates, and
+  Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
