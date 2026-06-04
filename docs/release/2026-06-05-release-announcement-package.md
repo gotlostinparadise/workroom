@@ -1,5 +1,7 @@
 # Workroom Release Announcement Package — 2026-06-05
 
+Status note: superseded by `docs/release/2026-06-05-release-announcement-package-v6.md`.
+
 ## Release Candidate Snapshot (v5)
 
 - Workroom source branch: `master` (local tip `41519a0`), with merge pending on PR #3.

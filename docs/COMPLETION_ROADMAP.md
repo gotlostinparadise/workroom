@@ -2606,10 +2606,8 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Move to release operator tooling polish (non-behavioral):
-package a final release checkpoint in operator-facing format (Miro importable
-content, release notes draft, and a concise evidence summary), run an
-announcement/packaging sanity pass (tag/CI checks and artifact publish
-surface review), then hold one final release gate review before opening any new
-workflow behavior milestone. Preserve the no-loop, no-external-effect,
-Kernel-boundary floor.
+Prepare the final release governance checkpoint for publication:
+run the repository-level policy and tag publish-readiness review against the
+v6 handoff snapshots, then proceed to explicit release sign-off if clean.
+Keep the no-loop, no-external-effect, and Kernel-boundary floors until release
+governance is complete.
