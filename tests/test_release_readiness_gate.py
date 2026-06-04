@@ -124,9 +124,9 @@ class ReleaseReadinessGateTests(unittest.TestCase):
             ("python", "-m", "venv"),
             runner.calls[1][0][:3],
         )
-        self.assertTrue(
-            str(runner.calls[1][0][3]).startswith(str(Path(workspace).resolve()))
-            and ".workroom-release-readiness-venv" in str(runner.calls[1][0][3]),
+        self.assertEqual(
+            str(Path(release_readiness_gate.RELEASE_VENV_DIRNAME).resolve()),
+            str(runner.calls[1][0][3]),
         )
 
         self.assertEqual(

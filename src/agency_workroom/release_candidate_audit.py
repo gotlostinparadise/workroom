@@ -676,7 +676,7 @@ def _audit_status(findings: list[Mapping[str, object]]) -> str:
 
 
 def _manual_verification_gates() -> list[dict[str, object]]:
-    release_readiness_venv = ".workroom-release-readiness-venv"
+    release_readiness_venv = "/tmp/workroom-release-readiness-venv"
     return [
         {
             "gate_id": "source_suite",
