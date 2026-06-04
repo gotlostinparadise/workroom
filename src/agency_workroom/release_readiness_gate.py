@@ -294,6 +294,14 @@ def _run_fresh_install_suite(
     if venv_path.exists():
         _remove_venv(venv_path)
     create = ("python", "-m", "venv", str(venv_path))
+    upgrade_pip = (
+        str(venv_path / "bin" / "python"),
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "pip",
+    )
     install = (
         str(venv_path / "bin" / "python"),
         "-m",
@@ -323,6 +331,19 @@ def _run_fresh_install_suite(
             "fresh_editable_install_suite",
             "create_venv_failed",
             command_result=create_result,
+        )
+    upgrade_result = _run_command(
+        repo_root=repo_root,
+        command=upgrade_pip,
+        command_runner=command_runner,
+        command_name="fresh_install_suite",
+        step_name="upgrade_pip",
+    )
+    if not upgrade_result["passed"]:
+        return _failed_gate(
+            "fresh_editable_install_suite",
+            "upgrade_pip_failed",
+            command_result=upgrade_result,
         )
     install_result = _run_command(
         repo_root=repo_root,
