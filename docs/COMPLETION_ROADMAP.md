@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v61.
+Status: Canonical plan v62.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -444,6 +444,10 @@ These milestones are complete enough to be treated as foundation:
 76. Runbook Smoke Fixture Run IDs Gate v1.
     The runbook release-readiness smoke now gates whether progress and closeout
     fixtures cover exactly the requested run IDs.
+
+77. Runbook Smoke Fixture Runbook Gate v1.
+    The runbook release-readiness smoke now gates whether every fixture belongs
+    to the requested runbook.
 
 ## Milestone Plan
 
@@ -2028,6 +2032,34 @@ Exit criteria:
 - Existing fixture schema checks, closeout readiness checks, follow-up tool
   recommendations, release-audit gates, MCP surface, public tool shape, and
   path-redaction behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 67. Runbook Smoke Fixture Runbook Gate v1
+
+Status: Done.
+
+Goal: prevent runbook release-readiness smoke from reporting readiness when a
+schema-valid fixture file belongs to a different runbook than the requested
+release runbook.
+
+Exit criteria:
+
+- The runbook release-readiness smoke payload records per-fixture runbook ID
+  match checks.
+- Operating packet, smoke example, progress report, and closeout packet
+  fixtures must all belong to the requested runbook before smoke readiness can
+  be true.
+- Schema-invalid fixtures still produce the existing missing-or-invalid fixture
+  finding.
+- Schema-valid fixtures with the wrong runbook ID produce a specific
+  `runbook_id_mismatch` finding.
+- Tests cover generated matching fixture output and a schema-valid fixture
+  mutated to another runbook ID.
+- Existing fixture schema checks, run-ID checks, closeout readiness checks,
+  follow-up tool recommendations, release-audit gates, MCP surface, public tool
+  shape, and path-redaction behavior remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

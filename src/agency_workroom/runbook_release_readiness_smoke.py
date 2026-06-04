@@ -81,21 +81,25 @@ def _smoke_payload(
             path=runbook_dir / "runbook_operating_packet.json",
             ref=f"workroom-artifact://runbooks/{runbook_id}/runbook_operating_packet.json",
             expected_schema="runbook-operating-packet.v1",
+            expected_runbook_id=runbook_id,
         ),
         "smoke_example": _fixture(
             path=runbook_dir / "runbook_smoke_example.json",
             ref=f"workroom-artifact://runbooks/{runbook_id}/runbook_smoke_example.json",
             expected_schema="runbook-smoke-example.v1",
+            expected_runbook_id=runbook_id,
         ),
         "progress_report": _fixture(
             path=runbook_dir / "runbook_progress_report.json",
             ref=f"workroom-artifact://runbooks/{runbook_id}/runbook_progress_report.json",
             expected_schema="runbook-progress-report.v1",
+            expected_runbook_id=runbook_id,
         ),
         "closeout_packet": _fixture(
             path=runbook_dir / "runbook_closeout_packet.json",
             ref=f"workroom-artifact://runbooks/{runbook_id}/runbook_closeout_packet.json",
             expected_schema="runbook-closeout-packet.v1",
+            expected_runbook_id=runbook_id,
         ),
     }
     progress_payload = fixtures["progress_report"]["payload"]
@@ -131,6 +135,10 @@ def _smoke_payload(
         "fixture_checks": {
             name: bool(fixture["valid"]) for name, fixture in fixtures.items()
         },
+        "fixture_runbook_checks": {
+            name: bool(fixture["runbook_id_matches_expected"])
+            for name, fixture in fixtures.items()
+        },
         "fixture_schemas": {
             name: str(_mapping(fixture.get("payload")).get("schema_version", ""))
             for name, fixture in fixtures.items()
@@ -156,14 +164,28 @@ def _smoke_payload(
     }
 
 
-def _fixture(*, path: Path, ref: str, expected_schema: str) -> dict[str, object]:
+def _fixture(
+    *,
+    path: Path,
+    ref: str,
+    expected_schema: str,
+    expected_runbook_id: str,
+) -> dict[str, object]:
     payload = _optional_json_file(path)
+    schema_valid = payload.get("schema_version") == expected_schema
+    runbook_id_matches_expected = (
+        str(payload.get("runbook_id", "")) == expected_runbook_id
+    )
     return {
         "ref": ref,
         "path": str(path),
         "expected_schema": expected_schema,
+        "expected_runbook_id": expected_runbook_id,
         "payload": dict(payload),
-        "valid": payload.get("schema_version") == expected_schema,
+        "schema_valid": schema_valid,
+        "runbook_id": str(payload.get("runbook_id", "")),
+        "runbook_id_matches_expected": runbook_id_matches_expected,
+        "valid": schema_valid and runbook_id_matches_expected,
     }
 
 
@@ -176,13 +198,26 @@ def _smoke_findings(
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     for name, fixture in fixtures.items():
-        if fixture.get("valid"):
+        if fixture.get("schema_valid"):
             continue
         findings.append(
             {
                 "severity": "warning",
                 "code": "missing_or_invalid_fixture",
                 "message": f"required fixture is missing or invalid: {name}",
+                "fixture": name,
+            }
+        )
+    for name, fixture in fixtures.items():
+        if not fixture.get("schema_valid") or fixture.get(
+            "runbook_id_matches_expected"
+        ):
+            continue
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "runbook_id_mismatch",
+                "message": f"fixture runbook ID does not match requested runbook: {name}",
                 "fixture": name,
             }
         )

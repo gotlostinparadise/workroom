@@ -74,6 +74,10 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
         self.assertTrue(payload["fixture_checks"]["smoke_example"])
         self.assertTrue(payload["fixture_checks"]["progress_report"])
         self.assertTrue(payload["fixture_checks"]["closeout_packet"])
+        self.assertTrue(payload["fixture_runbook_checks"]["operating_packet"])
+        self.assertTrue(payload["fixture_runbook_checks"]["smoke_example"])
+        self.assertTrue(payload["fixture_runbook_checks"]["progress_report"])
+        self.assertTrue(payload["fixture_runbook_checks"]["closeout_packet"])
         self.assertTrue(payload["evidence_chain_readiness"]["ready"])
         self.assertEqual(
             "create_company_evidence_chain_report",
@@ -185,6 +189,46 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
         self.assertEqual("review_required", payload["smoke_status"])
         self.assertFalse(payload["ready_for_release_review"])
         self.assertEqual({"progress_report", "closeout_packet"}, mismatch_fixtures)
+
+    def test_create_runbook_release_readiness_smoke_flags_fixture_runbook_mismatch(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = self.run_for_spec("run_design", "design_review")
+        save_company_goal_run(root, run)
+        self.write_run_reports(root, run)
+        create_runbook_operating_packet_files(workspace_path=root)
+        create_runbook_smoke_example_files(workspace_path=root)
+        create_runbook_progress_report_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+        create_runbook_closeout_packet_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+        runbook_dir = root / "runbooks" / "complex_codex_delivery"
+        progress_path = runbook_dir / "runbook_progress_report.json"
+        progress_payload = json.loads(progress_path.read_text(encoding="utf-8"))
+        progress_payload["runbook_id"] = "other_runbook"
+        progress_path.write_text(
+            json.dumps(progress_payload, sort_keys=True, indent=2),
+            encoding="utf-8",
+        )
+
+        smoke = create_runbook_release_readiness_smoke_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+
+        payload = json.loads(Path(smoke["smoke_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("review_required", payload["smoke_status"])
+        self.assertFalse(payload["ready_for_release_review"])
+        self.assertFalse(payload["fixture_runbook_checks"]["progress_report"])
+        self.assertIn(
+            "runbook_id_mismatch",
+            {finding["code"] for finding in payload["smoke_findings"]},
+        )
 
     def run_for_spec(self, run_id: str, spec_id: str) -> CompanyGoalRun:
         team = TeamBlueprint(
