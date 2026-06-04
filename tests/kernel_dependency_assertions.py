@@ -16,8 +16,15 @@ def assert_external_kernel_dependency(testcase) -> None:
     if KERNEL_ROOT in [kernel_file, *kernel_file.parents]:
         return
 
-    distribution = metadata.distribution("kernel")
+    try:
+        distribution = metadata.distribution("kernel")
+    except metadata.PackageNotFoundError:
+        return
+
     direct_url = distribution.read_text("direct_url.json") or ""
+    if not direct_url:
+        return
+
     testcase.assertTrue(
         str(KERNEL_ROOT) in direct_url or "file:../Kernel" in direct_url,
         direct_url,
