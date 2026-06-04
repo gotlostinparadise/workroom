@@ -141,6 +141,17 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             ["source_suite", "fresh_editable_install_suite", "installed_mcp_stdio_smoke"],
             [gate["gate_id"] for gate in payload["manual_verification_gates"][:3]],
         )
+        self.assertEqual(
+            list(release_candidate_audit.REQUIRED_MANUAL_GATE_IDS),
+            payload["manual_verification_gate_checks"]["required_gate_ids"],
+        )
+        self.assertEqual(
+            [],
+            payload["manual_verification_gate_checks"]["missing_required_gate_ids"],
+        )
+        self.assertTrue(
+            payload["manual_verification_gate_checks"]["commands_omit_user_home"]
+        )
         gate_commands = {
             gate["gate_id"]: gate["command"]
             for gate in payload["manual_verification_gates"]
@@ -224,6 +235,13 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "installed_mcp_stdio_smoke: `/tmp/workroom-release-candidate-venv",
             markdown,
         )
+        self.assertIn(
+            "Required gate IDs: source_suite, fresh_editable_install_suite, "
+            "installed_mcp_stdio_smoke, workroom_git_status, kernel_git_status",
+            markdown,
+        )
+        self.assertIn("Missing required gate IDs: none", markdown)
+        self.assertIn("Commands omit user-home paths: True", markdown)
         self.assertIn("## Findings\n\n- none", markdown)
 
     def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
@@ -405,6 +423,48 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(
             "portable_package_candidate",
             release_candidate_audit._distribution_scope("declared_package"),
+        )
+
+    def test_audit_findings_flag_manual_gate_drift(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "manifest_schema_matches_expected": True,
+                "manifest_count_matches_tools": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "file",
+                "project_name": "agency-workroom",
+            },
+            release_smoke={
+                "valid": True,
+                "runbook_id_matches_expected": True,
+                "ready": True,
+                "status_matches_ready": True,
+                "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
+                "smoke_findings_empty": True,
+            },
+            manual_gate_checks={
+                "missing_required_gate_ids": ["kernel_git_status"],
+                "commands_omit_user_home": False,
+            },
+        )
+
+        self.assertEqual(
+            [
+                "missing_manual_verification_gate",
+                "manual_verification_gate_path_leak",
+            ],
+            [finding["code"] for finding in findings],
         )
         self.assertEqual("unknown", release_candidate_audit._distribution_scope("missing"))
 

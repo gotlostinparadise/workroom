@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v68.
+Status: Canonical plan v69.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -473,6 +473,10 @@ These milestones are complete enough to be treated as foundation:
 83. Release Audit Package Surface Wording Alignment v1.
     Earlier package-surface roadmap wording now matches the redacted Kernel
     dependency display contract.
+
+84. Release Audit Manual Gate Consistency v1.
+    The release-candidate audit now records and gates required manual
+    verification gate IDs and user-home path redaction for gate commands.
 
 ## Milestone Plan
 
@@ -2229,6 +2233,33 @@ Exit criteria:
 - No source behavior, package metadata, MCP surface, release-audit output,
   tests, Kernel files, hidden loops, deploys, posts, external API calls, or new
   external effects are changed.
+
+### 74. Release Audit Manual Gate Consistency v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when manual verification gates drift
+from the required release-review gate set or reintroduce user-home command
+paths.
+
+Exit criteria:
+
+- The release-candidate audit payload records required manual gate IDs.
+- The release-candidate audit payload records missing required manual gate IDs.
+- The release-candidate audit payload records whether manual gate commands omit
+  user-home paths.
+- Missing required manual gates produce findings and block readiness.
+- Manual gate commands containing user-home paths produce findings and block
+  readiness.
+- Markdown renders required gate IDs, missing gate IDs, and user-home path
+  omission state.
+- Tests cover clean generated output plus synthetic manual gate drift.
+- Existing package metadata behavior, MCP manifest gates, export-surface
+  checks, release-smoke gates, runbook/run-ID checks, boundary assertions,
+  README path redaction, and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
 
 ## Plan Change Rules
 

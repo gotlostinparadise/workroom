@@ -37,6 +37,7 @@ Scope:
 - Release-candidate audit local dependency and manual-command redaction gate.
 - README source-checkout Kernel path redaction gate.
 - Package metadata Kernel dependency path redaction gate.
+- Release-candidate audit manual gate consistency readiness gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -78,6 +79,8 @@ Release-candidate audit result:
 - Required audit entrypoint checked: `create_release_candidate_audit`
 - Missing required tool finding code: `missing_required_release_tool`
 - Manual gate commands rendered in Markdown: `true`
+- Manual gate required IDs complete: `true`
+- Manual gate commands omit user-home paths: `true`
 - Kernel dependency: `kernel @ file://<local-kernel>`
 - Kernel dependency mode: `file`
 - Distribution scope: `local_file_dependency`
@@ -113,6 +116,8 @@ Release-candidate audit result:
   - `installed_mcp_stdio_smoke`
   - `workroom_git_status`
   - `kernel_git_status`
+- Manual gate readiness finding codes: `missing_manual_verification_gate`,
+  `manual_verification_gate_path_leak`
 
 ## Verification
 
@@ -120,18 +125,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 546 tests in 9.062s
+Ran 547 tests in 9.061s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-relative-kernel-dep-venv
-python -m venv /tmp/workroom-relative-kernel-dep-venv
-/tmp/workroom-relative-kernel-dep-venv/bin/python -m pip install -e .
-/tmp/workroom-relative-kernel-dep-venv/bin/python -m unittest discover -s tests -v
-Ran 546 tests in 9.025s
+rm -rf /tmp/workroom-manual-gate-consistency-venv
+python -m venv /tmp/workroom-manual-gate-consistency-venv
+/tmp/workroom-manual-gate-consistency-venv/bin/python -m pip install -e .
+/tmp/workroom-manual-gate-consistency-venv/bin/python -m unittest discover -s tests -v
+Ran 547 tests in 9.092s
 OK
 ```
 

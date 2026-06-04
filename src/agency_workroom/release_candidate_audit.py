@@ -26,6 +26,13 @@ REQUIRED_RELEASE_TOOLS = (
     "recommend_chain_continuation",
 )
 EXPECTED_MCP_MANIFEST_SCHEMA_VERSION = "workroom-mcp-tool-manifest.v1"
+REQUIRED_MANUAL_GATE_IDS = (
+    "source_suite",
+    "fresh_editable_install_suite",
+    "installed_mcp_stdio_smoke",
+    "workroom_git_status",
+    "kernel_git_status",
+)
 
 
 class ReleaseCandidateAuditError(RuntimeError):
@@ -96,6 +103,8 @@ def _audit_payload(
     mcp_surface = _mcp_surface()
     export_surface = _export_surface()
     package_surface = _package_surface()
+    manual_gates = _manual_verification_gates()
+    manual_gate_checks = _manual_gate_checks(manual_gates)
     release_smoke_payload = _release_smoke_payload(
         run_ids=run_ids,
         runbook_id=runbook_id,
@@ -107,6 +116,7 @@ def _audit_payload(
         export_surface=export_surface,
         package_surface=package_surface,
         release_smoke=release_smoke_payload,
+        manual_gate_checks=manual_gate_checks,
     )
     return {
         "schema_version": "workroom-release-candidate-audit.v1",
@@ -118,7 +128,8 @@ def _audit_payload(
         "export_surface": export_surface,
         "package_surface": package_surface,
         "runbook_release_smoke": release_smoke_payload,
-        "manual_verification_gates": _manual_verification_gates(),
+        "manual_verification_gates": manual_gates,
+        "manual_verification_gate_checks": manual_gate_checks,
         "kernel_boundary": {
             "kernel_repo_changes_expected": False,
             "workflow_behavior_expected_in_kernel": False,
@@ -334,8 +345,10 @@ def _audit_findings(
     export_surface: Mapping[str, object],
     package_surface: Mapping[str, object],
     release_smoke: Mapping[str, object],
+    manual_gate_checks: Mapping[str, object] | None = None,
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
+    manual_gate_checks = _mapping(manual_gate_checks)
     if not bool(mcp_surface.get("manifest_matches_server")):
         findings.append(
             {
@@ -475,6 +488,22 @@ def _audit_findings(
                 "message": "runbook release readiness smoke contains findings",
             }
         )
+    for gate_id in _string_list(manual_gate_checks.get("missing_required_gate_ids")):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "missing_manual_verification_gate",
+                "message": f"manual verification gate is missing: {gate_id}",
+            }
+        )
+    if not bool(manual_gate_checks.get("commands_omit_user_home", True)):
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "manual_verification_gate_path_leak",
+                "message": "manual verification gate command contains a user-home path",
+            }
+        )
     return sorted(
         findings,
         key=_finding_sort_key,
@@ -541,6 +570,21 @@ def _manual_verification_gates() -> list[dict[str, object]]:
             "command": "git -C ../Kernel status --short --branch",
         },
     ]
+
+
+def _manual_gate_checks(
+    gates: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    gate_ids = tuple(str(gate.get("gate_id", "")) for gate in gates)
+    commands = tuple(str(gate.get("command", "")) for gate in gates)
+    return {
+        "required_gate_ids": list(REQUIRED_MANUAL_GATE_IDS),
+        "gate_ids": [gate_id for gate_id in gate_ids if gate_id],
+        "missing_required_gate_ids": sorted(
+            set(REQUIRED_MANUAL_GATE_IDS) - set(gate_ids)
+        ),
+        "commands_omit_user_home": all("/home/" not in command for command in commands),
+    }
 
 
 def _optional_json_file(path: Path) -> Mapping[str, object]:
@@ -770,6 +814,22 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         f"{_single_line(external_effect_boundary.get('external_api_calls_expected', False))}"
     )
     lines.extend(["", "## Manual Gates", ""])
+    manual_gate_checks = _mapping(payload.get("manual_verification_gate_checks"))
+    lines.append(
+        "- "
+        f"Required gate IDs: "
+        f"{_render_string_list(manual_gate_checks.get('required_gate_ids'))}"
+    )
+    lines.append(
+        "- "
+        f"Missing required gate IDs: "
+        f"{_render_string_list(manual_gate_checks.get('missing_required_gate_ids'))}"
+    )
+    lines.append(
+        "- "
+        f"Commands omit user-home paths: "
+        f"{_single_line(manual_gate_checks.get('commands_omit_user_home', False))}"
+    )
     for gate in _mapping_list(payload.get("manual_verification_gates")):
         lines.append(
             "- "
