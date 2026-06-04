@@ -1,5 +1,7 @@
 # Packaging and CI Readiness Checklist — 2026-06-04
 
+Status note: superseded by `2026-06-05-release-packaging-ci-checklist.md`.
+
 ## Release Packaging Verification
 
 - [x] Build artifacts in isolated environment (`python -m build`) for source distribution and wheel.

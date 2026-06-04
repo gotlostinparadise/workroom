@@ -1,5 +1,7 @@
 # Release Checkpoint Board Draft — 2026-06-04 (v4)
 
+Status note: superseded by `docs/release/2026-06-05-release-readiness-polish-handoff-v5-miro.md`.
+
 ## Card 1 — Status
 
 - Scope: Workroom release readiness polish checkpoint for `master` at `ce01e71`.
