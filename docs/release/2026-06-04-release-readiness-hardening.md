@@ -62,6 +62,7 @@ Scope:
 - Release-candidate audit manual gate command-presence readiness gate.
 - Release-candidate audit installed MCP stdio module-entrypoint command gate.
 - Release-candidate audit boundary expectation readiness gate.
+- Dynamic self-scaffolding company spec registry catalog gate.
 - Runbook, run, product, spec, and report artifact identifier validation.
 - Runbook `run_ids_json` argument validation for malformed JSON, non-array
   shapes, duplicate normalized IDs, and path-like run IDs.
@@ -156,6 +157,11 @@ Release-candidate audit result:
   gates missing required project URLs: `true`
 - Python generated-artifact ignore policy covers release validation outputs:
   `true`
+- Dynamic self-scaffolding company spec registry loads explicitly configured
+  local catalogs and preserves bundled defaults without a catalog path: `true`
+- Dynamic self-scaffolding company spec registry requires
+  `workroom-company-spec-registry.v1`, rejects malformed catalog entries, and
+  redacts configured local paths from surfaced file errors: `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`,
   `package_version_mismatch`, `package_license_mismatch`,

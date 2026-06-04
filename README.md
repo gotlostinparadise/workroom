@@ -164,6 +164,18 @@ Omitting the arguments keeps the default `business_validation` company. Passing
 same local startup path. This does not deploy, push, post, or call external
 APIs.
 
+Workroom can also load additional declarative company specs from a local JSON
+catalog when `WORKROOM_COMPANY_SPEC_REGISTRY_PATH` is explicitly set. The
+catalog is optional: without it, the bundled spec list and default
+`business_validation` behavior are unchanged. Configured catalogs must use
+`schema_version: "workroom-company-spec-registry.v1"` and a `company_specs`
+array whose entries map to the existing `CompanySpec`, `TeamBlueprint`,
+`Department`, `TeamRole`, and `CompanyTaskTemplate` model shapes. Malformed
+catalogs fail closed when the registry is read. External catalog specs cannot
+override bundled spec IDs. This only changes registry discovery and startup
+selection; it does not add tools, loops, deploys, shell execution, or external
+API calls.
+
 Workroom also includes a third bundled company spec, `growth_brief`. It uses a
 local growth strategist role for a `market_brief` task followed by an
 `experiment_plan` task and a `review_decision` task. Its required context

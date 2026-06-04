@@ -529,6 +529,11 @@ These milestones are complete enough to be treated as foundation:
     license expression and license files, and readiness findings gate missing
     or drifting proprietary license metadata.
 
+96. Dynamic Self-Scaffolding Registry Catalog v1.
+    Company spec discovery can now merge bundled specs with an explicitly
+    configured local JSON catalog, fail closed on malformed catalog data, and
+    preserve the existing default MCP startup surface when no catalog is set.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2556,6 +2561,35 @@ Exit criteria:
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
+
+### 86. Dynamic Self-Scaffolding Registry Catalog v1
+
+Status: Done.
+
+Goal: let Workroom discover additional company specs from an explicitly
+configured local catalog while preserving bundled behavior and Kernel
+boundaries.
+
+Exit criteria:
+
+- `list_company_specs()` includes external catalog specs when
+  `WORKROOM_COMPANY_SPEC_REGISTRY_PATH` points to a valid local JSON catalog.
+- `get_company_spec()` can resolve valid external specs from the merged
+  registry.
+- Bundled specs and the default `business_validation` startup path remain
+  unchanged when no catalog path is configured.
+- External catalog entries use the existing generic `CompanySpec`,
+  `TeamBlueprint`, `Department`, `TeamRole`, and `CompanyTaskTemplate` model
+  primitives.
+- Catalog loading requires `schema_version:
+  "workroom-company-spec-registry.v1"`.
+- Malformed catalog JSON, non-object list entries, duplicate external IDs, and
+  attempts to override bundled spec IDs fail closed with `WorkroomModelError`.
+- Configured local catalog paths are not echoed in surfaced model errors.
+- Public MCP tool names and argument shapes remain unchanged.
+- No Kernel changes, hidden loops, supervisor advancement, shell execution,
+  deploys, pushes, posts, external API calls, or new external effects are
+  added.
 
 ## Plan Change Rules
 
