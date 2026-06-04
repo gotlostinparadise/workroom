@@ -5,6 +5,8 @@ Status: Passed for the current local release-candidate surface.
 Scope:
 
 - Public MCP tool count and installed MCP schema.
+- MCP manifest required/optional argument drift guard against live MCP function
+  signatures.
 - README operator path for runbook reporting and release-candidate audit.
 - Runbook fixture-chain generation in a temporary local workspace.
 - Release-candidate audit over persisted local fixtures.
@@ -141,7 +143,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 586 tests in 8.922s
+Ran 587 tests in 8.913s
 OK
 ```
 
@@ -152,7 +154,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 586 tests in 8.994s
+Ran 587 tests in 9.205s
 OK
 ```
 

@@ -27,6 +27,40 @@ class McpManifestTests(unittest.TestCase):
         )
         self.assertEqual(len(mcp_server.TOOL_NAMES), manifest["tool_count"])
 
+    def test_tool_manifest_arguments_match_mcp_function_signatures(self) -> None:
+        manifest = workroom_mcp_tool_manifest()
+        tools = {tool["name"]: tool for tool in manifest["tools"]}
+
+        for tool_name in mcp_server.TOOL_NAMES:
+            signature = inspect.signature(getattr(mcp_server, tool_name))
+            parameters = [
+                parameter
+                for parameter in signature.parameters.values()
+                if parameter.kind
+                in (parameter.POSITIONAL_OR_KEYWORD, parameter.KEYWORD_ONLY)
+            ]
+            required_arguments = [
+                parameter.name
+                for parameter in parameters
+                if parameter.default is inspect.Parameter.empty
+            ]
+            optional_arguments = [
+                parameter.name
+                for parameter in parameters
+                if parameter.default is not inspect.Parameter.empty
+            ]
+
+            self.assertEqual(
+                required_arguments,
+                tools[tool_name]["required_arguments"],
+                tool_name,
+            )
+            self.assertEqual(
+                optional_arguments,
+                tools[tool_name]["optional_arguments"],
+                tool_name,
+            )
+
     def test_tool_manifest_classifies_read_only_local_and_high_stakes_tools(self) -> None:
         manifest = workroom_mcp_tool_manifest()
         tools = {tool["name"]: tool for tool in manifest["tools"]}

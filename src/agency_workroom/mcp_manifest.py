@@ -256,6 +256,7 @@ _TOOL_ARGUMENTS = {
 
 _OPTIONAL_TOOL_ARGUMENTS = {
     "start_company_goal": ("company_spec_id", "context_json"),
+    "submit_goal_intake_result": ("assumptions", "risks", "unknowns"),
     "create_runbook_operating_packet": ("runbook_id",),
     "create_runbook_progress_report": ("runbook_id",),
     "create_runbook_closeout_packet": ("runbook_id",),
