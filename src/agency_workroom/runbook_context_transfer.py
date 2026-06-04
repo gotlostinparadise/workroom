@@ -40,8 +40,6 @@ def create_runbook_context_transfer_files(
         source_run_id=clean_source_run_id,
         target_spec=target_spec,
         inspection=inspection,
-        transfer_path=transfer_path,
-        markdown_path=markdown_path,
         transfer_ref=transfer_ref,
         markdown_ref=markdown_ref,
     )
@@ -72,8 +70,6 @@ def _payload(
     source_run_id: str,
     target_spec: CompanySpec,
     inspection: Mapping[str, object],
-    transfer_path: Path,
-    markdown_path: Path,
     transfer_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -108,9 +104,7 @@ def _payload(
             "this artifact does not approve or start the target company",
         ],
         "transfer_ref": transfer_ref,
-        "transfer_path": str(transfer_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

@@ -11,6 +11,8 @@ Scope:
 - Runbook fixture-chain generation in a temporary local workspace.
 - Runbook fixture-chain persisted JSON path-redaction gates while preserving
   caller return paths.
+- Evidence-chain and runbook context-transfer persisted JSON path-redaction
+  gates while preserving caller return paths.
 - Release-candidate audit over persisted local fixtures.
 - Release-candidate audit startup-handshake and package-scope hardening.
 - Release-candidate audit package metadata fallback for non-editable installs.
@@ -147,7 +149,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 587 tests in 9.194s
+Ran 587 tests in 9.241s
 OK
 ```
 
@@ -158,7 +160,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 587 tests in 9.215s
+Ran 587 tests in 9.463s
 OK
 ```
 

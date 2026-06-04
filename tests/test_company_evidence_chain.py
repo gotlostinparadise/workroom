@@ -48,6 +48,9 @@ class CompanyEvidenceChainTests(unittest.TestCase):
 
         self.assertEqual("company-evidence-chain-report.v1", report["schema_version"])
         self.assertEqual("company-evidence-chain-report.v1", payload["schema_version"])
+        self.assertNotIn("chain_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual(expected_chain_id, report["chain_id"])
         self.assertEqual(
             f"workroom-artifact://evidence-chains/{expected_chain_id}/company_evidence_chain_report.json",

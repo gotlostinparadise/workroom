@@ -54,9 +54,7 @@ def create_company_evidence_chain_report_files(
         inspections=tuple(inspections),
         chain_id=chain_id,
         chain_ref=chain_ref,
-        chain_path=chain_path,
         markdown_ref=markdown_ref,
-        markdown_path=markdown_path,
     )
     try:
         report_dir.mkdir(parents=True, exist_ok=True)
@@ -85,9 +83,7 @@ def _report_payload(
     inspections: tuple[Mapping[str, object], ...],
     chain_id: str,
     chain_ref: str,
-    chain_path: Path,
     markdown_ref: str,
-    markdown_path: Path,
 ) -> dict[str, object]:
     coverage = _stage_coverage(runs=runs, run_ids=run_ids)
     run_summaries = [
@@ -111,9 +107,7 @@ def _report_payload(
         "findings": findings,
         "evidence_refs": _evidence_refs(inspections),
         "chain_ref": chain_ref,
-        "chain_path": str(chain_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

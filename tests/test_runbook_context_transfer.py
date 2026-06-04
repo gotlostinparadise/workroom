@@ -45,6 +45,9 @@ class RunbookContextTransferTests(unittest.TestCase):
         )
 
         self.assertEqual("runbook-context-transfer.v1", payload["schema_version"])
+        self.assertNotIn("transfer_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("run_design", payload["source_run_id"])
         self.assertEqual("design_review", payload["source_company_spec_id"])
         self.assertEqual("implementation_planning", payload["target_company_spec_id"])
