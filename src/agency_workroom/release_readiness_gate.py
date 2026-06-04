@@ -114,11 +114,11 @@ def run_release_readiness_gate(
             "release_candidate_audit": release_audit,
         }
         report_path = workspace / "release_readiness_gate_result.json"
+        payload["artifacts"]["release_readiness_gate_report_path"] = str(report_path)
         report_path.write_text(
             json.dumps(payload, indent=2, sort_keys=True),
             encoding="utf-8",
         )
-        payload["artifacts"]["release_readiness_gate_report_path"] = str(report_path)
         return payload
     finally:
         _remove_venv(release_venv_path)

@@ -67,6 +67,15 @@ class ReleaseReadinessGateTests(unittest.TestCase):
                 self.assertTrue(
                     (workspace / "release_readiness_gate_result.json").exists()
                 )
+                persisted_payload = json.loads(
+                    (workspace / "release_readiness_gate_result.json").read_text(
+                        encoding="utf-8",
+                    ),
+                )
+                self.assertEqual(
+                    str(workspace / "release_readiness_gate_result.json"),
+                    str(persisted_payload["artifacts"]["release_readiness_gate_report_path"]),
+                )
 
         self.assertIn("source_suite", payload["command_results"])
         self.assertIn("audit_status", payload["release_candidate_audit"])
