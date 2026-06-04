@@ -524,6 +524,11 @@ These milestones are complete enough to be treated as foundation:
     installed operator path by running `python -m agency_workroom.mcp_server`
     with stdin EOF and a timeout.
 
+95. Release Audit Package License Metadata Gate v1.
+    Release-candidate audit package surface now records source/installed
+    license expression and license files, and readiness findings gate missing
+    or drifting proprietary license metadata.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2526,6 +2531,28 @@ Exit criteria:
   stdin EOF.
 - Existing MCP tool registration, MCP manifest checks, package metadata gates,
   README front-door checks, and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 85. Release Audit Package License Metadata Gate v1
+
+Status: Done.
+
+Goal: make release-candidate audit prove package license metadata from both
+source and installed metadata surfaces.
+
+Exit criteria:
+
+- Release-candidate audit package surface records `package_license`.
+- Release-candidate audit package surface records `license_files`.
+- Source pyproject package surface reads `license` and `license-files`.
+- Installed metadata fallback reads `License-Expression` and `License-File`.
+- Release-candidate audit Markdown renders license expression and license files.
+- Release-candidate audit findings include `package_license_mismatch`.
+- Release-candidate audit findings include `package_license_file_missing`.
+- Existing package identity, version, project URL, README, MCP manifest, and
+  Kernel boundary gates remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

@@ -29,6 +29,8 @@ REQUIRED_RELEASE_TOOLS = (
 )
 EXPECTED_MCP_MANIFEST_SCHEMA_VERSION = "workroom-mcp-tool-manifest.v1"
 REQUIRED_PACKAGE_URLS = ("Repository",)
+EXPECTED_PACKAGE_LICENSE = "LicenseRef-Proprietary"
+REQUIRED_PACKAGE_LICENSE_FILES = ("LICENSE",)
 REQUIRED_MANUAL_GATE_IDS = (
     "source_suite",
     "fresh_editable_install_suite",
@@ -222,6 +224,10 @@ def _package_surface() -> dict[str, object]:
         "project_version": str(project.get("version", "")),
         "expected_project_version": __version__,
         "requires_python": str(project.get("requires-python", "")),
+        "package_license": str(project.get("license", "")),
+        "expected_package_license": EXPECTED_PACKAGE_LICENSE,
+        "license_files": _string_list(project.get("license-files")),
+        "required_license_files": list(REQUIRED_PACKAGE_LICENSE_FILES),
         "project_urls": _project_urls(project.get("urls")),
         "required_project_urls": list(REQUIRED_PACKAGE_URLS),
         "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
@@ -243,6 +249,10 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
             "project_version": "",
             "expected_project_version": __version__,
             "requires_python": "",
+            "package_license": "",
+            "expected_package_license": EXPECTED_PACKAGE_LICENSE,
+            "license_files": [],
+            "required_license_files": list(REQUIRED_PACKAGE_LICENSE_FILES),
             "project_urls": {},
             "required_project_urls": list(REQUIRED_PACKAGE_URLS),
             "kernel_dependency": "",
@@ -266,6 +276,10 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
         "project_version": str(package_metadata.get("Version", "")),
         "expected_project_version": __version__,
         "requires_python": str(package_metadata.get("Requires-Python", "")),
+        "package_license": str(package_metadata.get("License-Expression", "")),
+        "expected_package_license": EXPECTED_PACKAGE_LICENSE,
+        "license_files": _string_list(package_metadata.get_all("License-File", ())),
+        "required_license_files": list(REQUIRED_PACKAGE_LICENSE_FILES),
         "project_urls": _installed_project_urls(package_metadata),
         "required_project_urls": list(REQUIRED_PACKAGE_URLS),
         "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
@@ -450,6 +464,36 @@ def _audit_findings(
                 "message": "package version does not match agency_workroom.__version__",
             }
         )
+    package_metadata_readable = bool(package_surface.get("pyproject_readable")) or bool(
+        package_surface.get("installed_metadata_readable")
+    )
+    package_license = str(package_surface.get("package_license", ""))
+    expected_package_license = str(
+        package_surface.get("expected_package_license", "")
+    )
+    if (
+        package_metadata_readable
+        and package_license != expected_package_license
+    ):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "package_license_mismatch",
+                "message": "package license marker is not LicenseRef-Proprietary",
+            }
+        )
+    license_files = set(_string_list(package_surface.get("license_files")))
+    for required_license_file in _string_list(
+        package_surface.get("required_license_files")
+    ):
+        if package_metadata_readable and required_license_file not in license_files:
+            findings.append(
+                {
+                    "severity": "error",
+                    "code": "package_license_file_missing",
+                    "message": f"package license file is missing: {required_license_file}",
+                }
+            )
     project_urls = _mapping(package_surface.get("project_urls"))
     for required_url_name in _string_list(package_surface.get("required_project_urls")):
         if not str(project_urls.get(required_url_name, "")):
@@ -877,6 +921,14 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     lines.append(
         "- "
         f"Requires Python: {_single_line(package_surface.get('requires_python', ''))}"
+    )
+    lines.append(
+        "- "
+        f"License: {_single_line(package_surface.get('package_license', ''))}"
+    )
+    lines.append(
+        "- "
+        f"License files: {_render_string_list(package_surface.get('license_files'))}"
     )
     lines.append(
         "- "

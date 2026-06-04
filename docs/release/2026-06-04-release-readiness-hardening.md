@@ -23,6 +23,8 @@ Scope:
 - Release-candidate audit required-tool finding code stabilization.
 - Release-candidate audit package-scope readiness gate.
 - Release-candidate audit package-identity readiness gate.
+- Release-candidate audit package license expression and license-file readiness
+  gates.
 - Release-candidate audit Markdown finding severity rendering.
 - Release-candidate audit explicit finding severity ordering.
 - Release-candidate audit explicit empty findings Markdown state.
@@ -146,6 +148,8 @@ Release-candidate audit result:
 - Package metadata release contract matches the local release-audit assumptions:
   `true`
 - Package metadata version matches `agency_workroom.__version__`: `true`
+- Release-candidate audit package surface records license expression and
+  license files: `true`
 - Top-level proprietary LICENSE exists and is declared through
   `project.license-files`: `true`
 - Package project URLs include the release Repository URL and audit readiness
@@ -154,7 +158,8 @@ Release-candidate audit result:
   `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`,
-  `package_version_mismatch`, `package_url_missing`
+  `package_version_mismatch`, `package_license_mismatch`,
+  `package_license_file_missing`, `package_url_missing`
 - Markdown findings render `severity`, `code`, and `message`.
 - Finding order: `error`, `warning`, `info`, then unknown severities.
 - Empty Markdown findings render `none`.
