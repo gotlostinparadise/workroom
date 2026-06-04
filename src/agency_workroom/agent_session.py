@@ -85,6 +85,7 @@ from .landing_qa import LandingQaError, create_landing_qa_report_file
 from .local_routes import (
     LOCAL_ROUTE_TOOL_NAMES,
     LocalRouteReadiness,
+    local_route_for_task,
     build_local_route_recommendation_from_readiness,
     build_local_route_readiness,
     execute_local_route,
@@ -169,6 +170,104 @@ _GITHUB_PAGES_DEPLOY_BLOCKER = (
     "deploy proposal created; execution requires explicit approval and "
     "current GitHub repo/auth verification"
 )
+
+
+def _local_route_recommendation_for_task(
+    *,
+    run: CompanyGoalRun,
+    workspace_path: str,
+    task: TaskState,
+) -> dict[str, object] | None:
+    route = local_route_for_task(category=task.category, metadata=task.metadata)
+    if route is None:
+        return None
+
+    result_ref = _result_ref_for_kind(run, route.result_kind)
+    if result_ref is not None:
+        return None
+
+    if task.status == "blocked":
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason=f"{task.category} task is blocked",
+            blocker_summary=task.blocker_summary,
+        )
+
+    if task.status != "completed" and task.status not in _NEXT_ACTION_STATUSES:
+        return None
+
+    extra_arguments: dict[str, object] = {}
+    for required_artifact in route.required_artifacts:
+        required_ref = _result_ref_for_kind(
+            run,
+            required_artifact.artifact_kind,
+        )
+        if required_ref is None:
+            return None
+        extra_arguments[required_artifact.argument_name] = required_ref
+
+    if task.status == "completed":
+        return _missing_prerequisite_recommendation(
+            run_id=run.run_id,
+            missing_prerequisite=route.missing_prerequisite,
+            reason=(
+                f"{task.category} task is completed without a "
+                f"{route.missing_prerequisite}"
+            ),
+        )
+
+    if task.category == "review_decision":
+        decision_type = str(task.metadata.get("decision_type", "")).strip()
+        if decision_type:
+            reason = (
+                f"review_decision task ({decision_type}) is ready and has no "
+                f"{route.result_kind.replace('_', ' ')}"
+            )
+        else:
+            reason = (
+                f"review_decision task is ready and has no "
+                f"{route.result_kind.replace('_', ' ')}"
+            )
+    else:
+        reason = (
+            f"{task.category} task is ready and has no "
+            f"{route.result_kind.replace('_', ' ')}"
+        )
+
+    readiness = build_local_route_readiness(
+        tool_name=route.tool_name,
+        task_ref=task.task_ref,
+        reason=reason,
+        extra_arguments=extra_arguments if extra_arguments else None,
+    )
+    return build_local_route_recommendation_from_readiness(
+        run_id=run.run_id,
+        workspace_path=workspace_path,
+        readiness=readiness,
+    )
+
+
+def _route_recommendation_for_company_goal(
+    *,
+    run: CompanyGoalRun,
+    workspace_path: str,
+) -> dict[str, object] | None:
+    blocked_task = _first_blocked_task(run)
+    if blocked_task is not None:
+        return _blocked_recommendation(
+            run_id=run.run_id,
+            reason=f"{blocked_task.category} task is blocked",
+            blocker_summary=blocked_task.blocker_summary,
+        )
+    for task in run.tasks:
+        recommendation = _local_route_recommendation_for_task(
+            run=run,
+            workspace_path=workspace_path,
+            task=task,
+        )
+        if recommendation is not None:
+            return recommendation
+    return None
 
 
 def _run_id_for(user_id: str, goal: str) -> str:
@@ -726,8 +825,14 @@ def recommend_next_tool_call(*, run_id: str, workspace_path: str) -> dict[str, o
             will_mutate_state=True,
             blocked=True,
             blocker_summary="goal intake is required",
-        ).to_payload()
+    ).to_payload()
     run = load_company_goal_run(workspace_path, run_id)
+    route_recommendation = _route_recommendation_for_company_goal(
+        run=run,
+        workspace_path=workspace_path,
+    )
+    if route_recommendation is not None:
+        return route_recommendation
     release_recommendation = _release_checklist_recommendation(
         run=run,
         workspace_path=workspace_path,
