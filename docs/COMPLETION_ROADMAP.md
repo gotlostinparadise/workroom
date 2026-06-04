@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v69.
+Status: Canonical plan v70.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -477,6 +477,10 @@ These milestones are complete enough to be treated as foundation:
 84. Release Audit Manual Gate Consistency v1.
     The release-candidate audit now records and gates required manual
     verification gate IDs and user-home path redaction for gate commands.
+
+85. Release Audit Manual Gate Command Presence v1.
+    The release-candidate audit now gates whether each required manual
+    verification gate has a non-empty command.
 
 ## Milestone Plan
 
@@ -2257,6 +2261,29 @@ Exit criteria:
 - Existing package metadata behavior, MCP manifest gates, export-surface
   checks, release-smoke gates, runbook/run-ID checks, boundary assertions,
   README path redaction, and Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 75. Release Audit Manual Gate Command Presence v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when a required manual verification
+gate is present by ID but lacks an executable command.
+
+Exit criteria:
+
+- The release-candidate audit payload records required manual gate IDs that
+  have missing commands.
+- Missing commands for required manual gates produce findings and block
+  readiness.
+- Markdown renders missing-command gate IDs.
+- Tests cover clean generated output and synthetic command-missing gate drift.
+- Existing manual gate ID checks, path-redaction checks, package metadata
+  behavior, MCP manifest gates, export-surface checks, release-smoke gates,
+  runbook/run-ID checks, boundary assertions, README path redaction, and Kernel
+  boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

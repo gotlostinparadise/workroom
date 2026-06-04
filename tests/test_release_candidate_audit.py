@@ -149,6 +149,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             [],
             payload["manual_verification_gate_checks"]["missing_required_gate_ids"],
         )
+        self.assertEqual(
+            [],
+            payload["manual_verification_gate_checks"]["missing_command_gate_ids"],
+        )
         self.assertTrue(
             payload["manual_verification_gate_checks"]["commands_omit_user_home"]
         )
@@ -241,6 +245,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             markdown,
         )
         self.assertIn("Missing required gate IDs: none", markdown)
+        self.assertIn("Missing command gate IDs: none", markdown)
         self.assertIn("Commands omit user-home paths: True", markdown)
         self.assertIn("## Findings\n\n- none", markdown)
 
@@ -455,12 +460,14 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             },
             manual_gate_checks={
                 "missing_required_gate_ids": ["kernel_git_status"],
+                "missing_command_gate_ids": ["source_suite"],
                 "commands_omit_user_home": False,
             },
         )
 
         self.assertEqual(
             [
+                "manual_verification_gate_command_missing",
                 "missing_manual_verification_gate",
                 "manual_verification_gate_path_leak",
             ],

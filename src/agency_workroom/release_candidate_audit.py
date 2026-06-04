@@ -496,6 +496,14 @@ def _audit_findings(
                 "message": f"manual verification gate is missing: {gate_id}",
             }
         )
+    for gate_id in _string_list(manual_gate_checks.get("missing_command_gate_ids")):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "manual_verification_gate_command_missing",
+                "message": f"manual verification gate command is missing: {gate_id}",
+            }
+        )
     if not bool(manual_gate_checks.get("commands_omit_user_home", True)):
         findings.append(
             {
@@ -577,11 +585,19 @@ def _manual_gate_checks(
 ) -> dict[str, object]:
     gate_ids = tuple(str(gate.get("gate_id", "")) for gate in gates)
     commands = tuple(str(gate.get("command", "")) for gate in gates)
+    gate_ids_with_commands = {
+        str(gate.get("gate_id", ""))
+        for gate in gates
+        if str(gate.get("gate_id", "")) and str(gate.get("command", "")).strip()
+    }
     return {
         "required_gate_ids": list(REQUIRED_MANUAL_GATE_IDS),
         "gate_ids": [gate_id for gate_id in gate_ids if gate_id],
         "missing_required_gate_ids": sorted(
             set(REQUIRED_MANUAL_GATE_IDS) - set(gate_ids)
+        ),
+        "missing_command_gate_ids": sorted(
+            set(REQUIRED_MANUAL_GATE_IDS) - gate_ids_with_commands
         ),
         "commands_omit_user_home": all("/home/" not in command for command in commands),
     }
@@ -824,6 +840,11 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         "- "
         f"Missing required gate IDs: "
         f"{_render_string_list(manual_gate_checks.get('missing_required_gate_ids'))}"
+    )
+    lines.append(
+        "- "
+        f"Missing command gate IDs: "
+        f"{_render_string_list(manual_gate_checks.get('missing_command_gate_ids'))}"
     )
     lines.append(
         "- "
