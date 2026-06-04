@@ -192,7 +192,7 @@ def _smoke_findings(
         ("closeout_packet", closeout),
     ):
         persisted_run_ids = _string_list(payload.get("run_ids"))
-        if not persisted_run_ids or persisted_run_ids == expected_run_ids:
+        if persisted_run_ids == expected_run_ids:
             continue
         findings.append(
             {

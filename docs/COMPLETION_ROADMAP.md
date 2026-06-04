@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v60.
+Status: Canonical plan v61.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -440,6 +440,10 @@ These milestones are complete enough to be treated as foundation:
 75. Release Audit Smoke Run IDs Gate v1.
     The release-candidate audit now records and gates whether the persisted
     runbook release-readiness smoke covers exactly the requested run IDs.
+
+76. Runbook Smoke Fixture Run IDs Gate v1.
+    The runbook release-readiness smoke now gates whether progress and closeout
+    fixtures cover exactly the requested run IDs.
 
 ## Milestone Plan
 
@@ -2000,6 +2004,30 @@ Exit criteria:
   package-surface checks, release-smoke schema/readiness checks,
   release-smoke runbook checks, boundary assertions, manual gates, and
   artifact-context path redaction remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 66. Runbook Smoke Fixture Run IDs Gate v1
+
+Status: Done.
+
+Goal: prevent runbook release-readiness smoke from reporting readiness when its
+progress or closeout fixture omits or mismatches the requested run IDs.
+
+Exit criteria:
+
+- The runbook release-readiness smoke treats missing progress-report run IDs as
+  a mismatch.
+- The runbook release-readiness smoke treats missing closeout-packet run IDs as
+  a mismatch.
+- Progress and closeout fixture run IDs must exactly match the requested run
+  IDs before smoke readiness can be true.
+- Tests cover the existing matching fixture chain, a different run-ID request,
+  and schema-valid progress/closeout fixtures with missing run IDs.
+- Existing fixture schema checks, closeout readiness checks, follow-up tool
+  recommendations, release-audit gates, MCP surface, public tool shape, and
+  path-redaction behavior remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

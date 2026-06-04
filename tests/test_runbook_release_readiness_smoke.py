@@ -136,6 +136,56 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
             {finding["code"] for finding in payload["smoke_findings"]},
         )
 
+    def test_create_runbook_release_readiness_smoke_flags_missing_fixture_run_ids(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = self.run_for_spec("run_design", "design_review")
+        save_company_goal_run(root, run)
+        self.write_run_reports(root, run)
+        create_runbook_operating_packet_files(workspace_path=root)
+        create_runbook_smoke_example_files(workspace_path=root)
+        runbook_dir = root / "runbooks" / "complex_codex_delivery"
+        runbook_dir.mkdir(parents=True, exist_ok=True)
+        (runbook_dir / "runbook_progress_report.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "runbook-progress-report.v1",
+                    "progress_status": "ready",
+                },
+                sort_keys=True,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        (runbook_dir / "runbook_closeout_packet.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "runbook-closeout-packet.v1",
+                    "closeout_status": "ready",
+                    "ready_for_release": True,
+                },
+                sort_keys=True,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        smoke = create_runbook_release_readiness_smoke_files(
+            workspace_path=root,
+            run_ids=("run_design",),
+        )
+
+        payload = json.loads(Path(smoke["smoke_path"]).read_text(encoding="utf-8"))
+        mismatch_fixtures = {
+            finding["fixture"]
+            for finding in payload["smoke_findings"]
+            if finding["code"] == "run_ids_mismatch"
+        }
+        self.assertEqual("review_required", payload["smoke_status"])
+        self.assertFalse(payload["ready_for_release_review"])
+        self.assertEqual({"progress_report", "closeout_packet"}, mismatch_fixtures)
+
     def run_for_spec(self, run_id: str, spec_id: str) -> CompanyGoalRun:
         team = TeamBlueprint(
             name="Runbook Smoke Team",
