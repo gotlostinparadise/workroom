@@ -1,16 +1,16 @@
 # Release Readiness Polishing Handoff — 2026-06-04 (v3)
 
 Status note: current polished handoff snapshot for this date is this file.  
-Latest verified Workroom commit: `8564616` (`chore: refresh release polish handoff pointers`).
+Latest verified Workroom commit: `d1dfc38` (`chore: align polish handoff v3 metadata with latest commit`).
 
 ## Verification Snapshot
 
-- Workroom commit: `8564616` (`chore: refresh release polish handoff pointers`), pushed to `origin/master`.
+- Workroom commit: `d1dfc38` (`chore: align polish handoff v3 metadata with latest commit`), pushed to `origin/master`.
 - Workroom status at verification time:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
 - `release_readiness_gate` run:
-  - Workspace: `/tmp/workroom-readiness-polish-v3`
+- Workspace: `/tmp/workroom-readiness-polish-final`
   - `all_passed`: `true`
   - Commands run/passed: `5/5` (`source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`).
   - MCP stdio smoke command path is valid and returned cleanly.
@@ -31,13 +31,13 @@ Latest verified Workroom commit: `8564616` (`chore: refresh release polish hando
 
 ## Artifacts Produced
 
-- `/tmp/workroom-readiness-polish-v3/release_readiness_gate_result.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/runbook_operating_packet.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/runbook_smoke_example.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/runbook_progress_report.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
-- `/tmp/workroom-readiness-polish-v3/runbooks/complex_codex_delivery/release_candidate_audit.json`
+- `/tmp/workroom-readiness-polish-final/release_readiness_gate_result.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/runbook_operating_packet.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/runbook_smoke_example.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/runbook_progress_report.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
+- `/tmp/workroom-readiness-polish-final/runbooks/complex_codex_delivery/release_candidate_audit.json`
 
 ## Risk Register
 
