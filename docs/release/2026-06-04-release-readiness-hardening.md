@@ -36,6 +36,8 @@ Scope:
 - Runbook release-readiness smoke fixture runbook readiness gate.
 - Release-candidate audit runbook release-smoke consistency readiness gate.
 - Release-candidate audit persisted JSON path-redaction gate.
+- Release checklist, release quality gate, and release notes persisted metadata
+  path-redaction gates while preserving caller return paths.
 - Release-candidate audit local dependency and manual-command redaction gate.
 - README source-checkout Kernel path redaction gate.
 - Package metadata Kernel dependency path redaction gate.
@@ -143,7 +145,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 587 tests in 8.913s
+Ran 587 tests in 8.947s
 OK
 ```
 
@@ -154,7 +156,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 587 tests in 9.205s
+Ran 587 tests in 8.915s
 OK
 ```
 

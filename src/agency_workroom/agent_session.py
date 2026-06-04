@@ -5590,7 +5590,11 @@ def _release_checklist_payload_for_existing_ref(
         raise WorkroomStateError("release checklist artifact metadata is corrupt") from exc
     if payload.get("artifact_ref") != artifact_ref:
         raise WorkroomStateError("release checklist artifact metadata does not match ref")
-    return payload
+    return {
+        **payload,
+        "artifact_path": str(metadata_path.parent / "release_checklist.md"),
+        "metadata_path": str(metadata_path),
+    }
 
 
 def _growth_brief_payload_for_existing_ref(
@@ -6104,7 +6108,11 @@ def _release_quality_gate_report_payload_for_existing_ref(
         raise WorkroomStateError("release quality gate report metadata does not match ref")
     if payload.get("checklist_ref") != checklist_ref:
         raise WorkroomStateError("release quality gate report checklist does not match")
-    return payload
+    return {
+        **payload,
+        "report_path": str(metadata_path.parent / "quality_gate_report.json"),
+        "metadata_path": str(metadata_path),
+    }
 
 
 def _release_notes_artifact_payload_for_existing_ref(
@@ -6145,7 +6153,11 @@ def _release_notes_artifact_payload_for_existing_ref(
         raise WorkroomStateError("release notes artifact checklist does not match")
     if payload.get("quality_report_ref") != quality_report_ref:
         raise WorkroomStateError("release notes artifact quality report does not match")
-    return payload
+    return {
+        **payload,
+        "artifact_path": str(metadata_path.parent / "release_notes.md"),
+        "metadata_path": str(metadata_path),
+    }
 
 
 def _decision_payload_for_existing_ref(

@@ -71,9 +71,7 @@ def create_release_quality_gate_report_files(
         metadata = {
             "schema_version": "release-quality-gate-report-metadata.v1",
             "report_ref": report_ref,
-            "report_path": str(report_path),
             "metadata_ref": metadata_ref,
-            "metadata_path": str(metadata_path),
             "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
@@ -88,7 +86,11 @@ def create_release_quality_gate_report_files(
         )
     except OSError as exc:
         raise ReleaseQualityError("release quality gate report write failed") from exc
-    return metadata
+    return {
+        **metadata,
+        "report_path": str(report_path),
+        "metadata_path": str(metadata_path),
+    }
 
 
 def _checklist_ref_for_run(run_id: str, checklist_ref: str) -> str:

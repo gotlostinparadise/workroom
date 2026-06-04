@@ -76,9 +76,7 @@ def create_release_notes_artifact_files(
         metadata = {
             "schema_version": "release-notes-artifact.v1",
             "artifact_ref": artifact_ref,
-            "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
-            "metadata_path": str(metadata_path),
             "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
@@ -94,7 +92,11 @@ def create_release_notes_artifact_files(
         )
     except OSError as exc:
         raise ReleaseNotesError("release notes artifact write failed") from exc
-    return metadata
+    return {
+        **metadata,
+        "artifact_path": str(artifact_path),
+        "metadata_path": str(metadata_path),
+    }
 
 
 def _artifact_ref_for_run(*, run_id: str, ref: str, suffix: str, name: str) -> str:

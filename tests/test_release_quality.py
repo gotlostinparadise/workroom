@@ -88,6 +88,9 @@ class ReleaseQualityTests(unittest.TestCase):
         self.assertTrue(all(gate["status"] == "passed" for gate in payload["gates"]))
         self.assertIn("residual_risks", payload)
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        self.assertNotIn("report_path", metadata)
+        self.assertNotIn("metadata_path", metadata)
+        self.assertNotIn(str(root), json.dumps(metadata, sort_keys=True))
         self.assertEqual(report["report_ref"], metadata["report_ref"])
         self.assertEqual(
             hashlib.sha256(report_path.read_bytes()).hexdigest(),
