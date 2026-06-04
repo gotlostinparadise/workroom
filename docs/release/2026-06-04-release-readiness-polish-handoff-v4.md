@@ -1,11 +1,11 @@
 # Release Readiness Polishing Handoff — 2026-06-04 (v4)
 
 Status note: current polished handoff snapshot for this date is this file.  
-Latest verified Workroom commit: `ce01e71` (`docs: add independent release readiness review v1`).
+Latest verified Workroom commit: `7332590` (`chore: publish release readiness artifacts in CI`).
 
 ## Verification Snapshot
 
-- Workroom commit: `ce01e71` (`docs: add independent release readiness review v1`), pushed to `origin/master`.
+- Workroom commit: `7332590` (`chore: publish release readiness artifacts in CI`), pushed to `origin/master`.
 - Workroom status at verification time:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
@@ -14,7 +14,6 @@ Latest verified Workroom commit: `ce01e71` (`docs: add independent release readi
   - `all_passed`: `true`
   - Commands run/passed: `5/5` (`source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`).
   - MCP stdio smoke command path is valid and returned cleanly.
-- Current-note: this snapshot is from a clean temporary workspace; the current local working tree is intentionally dirty while polishing docs and workflow artifacts, so `workroom_git_status` can fail until those edits are staged/committed.
 - Source suite: `Ran 626 tests` OK.
 - Fresh editable install suite: `Ran 626 tests` OK.
 - Release-candidate audit:
@@ -64,4 +63,4 @@ No additional code changes are required for this polishing cycle.
 - `twine check dist/*`: passes for both wheel and source distributions.
 - Git tags: none present in repository (`git tag --list` empty).
 - Release publish workflow: `.github/workflows/release-readiness.yml` and `.github/workflows/release-publish.yml` are present.
-- `workroom-readiness_gate` currently reports `all_passed: false` only when workspace is intentionally dirty or missing git metadata; suites and artifact validation remain pass-ready.
+- `workroom-readiness_gate` reports `all_passed: true` on the current clean local tree and on the polished temporary-workspace snapshot (`/tmp/workroom-readiness-final`).

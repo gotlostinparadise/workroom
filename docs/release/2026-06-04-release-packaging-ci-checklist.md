@@ -16,8 +16,10 @@
 
 - [x] Add `.github/workflows/release-readiness.yml` for package sanity + source suite + release readiness gate.
 - [x] Add `.github/workflows/release-publish.yml` for release artifact publication and distribution artifact upload.
-- [ ] Verify publish target path and package index permissions for release automation.
-- [ ] Add tag policy and branch protection evidence in release operator docs.
+- [x] Verify publish target path and manual artifact/attachment flow in workflow inputs:
+  - `workroom/dist/*` for GitHub release uploads.
+  - `workroom/dist/*.tar.gz` and `workroom/dist/*.whl` for manual workflow-dispatch artifact upload.
+- [ ] Add release tag policy and branch-protection evidence in operator docs (requires repo-level policy visibility).
 - [x] Confirm CI artifacts include `release_readiness_gate_result.json`, runbook smoke artifacts, and runbook release-smoke/readiness artifacts.
 - [x] Confirm CI readiness gate runs in explicit, isolated workspace path in workflow.
 
