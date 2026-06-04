@@ -120,6 +120,7 @@ from .session_store import (
     load_goal_intake_run,
     load_company_goal_run,
     run_state_path,
+    safe_run_id,
     save_goal_intake_run,
     save_company_goal_run,
 )
@@ -4118,7 +4119,10 @@ def _run_ids_from_json(run_ids_json: str) -> tuple[str, ...]:
         raise WorkroomStateError("run_ids_json must be valid JSON") from exc
     if not isinstance(decoded, list) or not decoded:
         raise WorkroomStateError("run_ids_json must be a non-empty JSON array")
-    run_ids = tuple(_required_text("run_id", item) for item in decoded)
+    try:
+        run_ids = tuple(safe_run_id(item) for item in decoded)
+    except WorkroomModelError as exc:
+        raise WorkroomStateError("run_ids_json contains an invalid run_id") from exc
     if len(set(run_ids)) != len(run_ids):
         raise WorkroomStateError("run ids must be unique")
     return run_ids

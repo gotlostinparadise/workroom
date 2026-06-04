@@ -735,6 +735,47 @@ class AgentSessionTests(unittest.TestCase):
         self.assertIn("implementation_planning", payload["missing_stage_ids"])
         self.assertFalse((workspace_path / "runs" / "run_implementation").exists())
 
+    def test_runbook_run_ids_json_rejects_invalid_json(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomStateError, "valid JSON"):
+            create_runbook_progress_report(
+                workspace_path=str(root / "workspace"),
+                run_ids_json="[",
+            )
+
+    def test_runbook_run_ids_json_rejects_non_array_shape(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomStateError, "non-empty JSON array"):
+            create_runbook_progress_report(
+                workspace_path=str(root / "workspace"),
+                run_ids_json='"run_design"',
+            )
+
+    def test_runbook_run_ids_json_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+
+        with self.assertRaisesRegex(WorkroomStateError, "invalid run_id"):
+            create_runbook_progress_report(
+                workspace_path=str(workspace_path),
+                run_ids_json='["../escape"]',
+            )
+
+        self.assertFalse((root / "escape").exists())
+
+    def test_runbook_run_ids_json_rejects_duplicates_after_normalization(
+        self,
+    ) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomStateError, "run ids must be unique"):
+            create_runbook_progress_report(
+                workspace_path=str(root / "workspace"),
+                run_ids_json='["run_design", " run_design "]',
+            )
+
     def test_create_runbook_closeout_packet_reads_existing_runs_only(self) -> None:
         root = self.temp_root()
         workspace_path = root / "workspace"
