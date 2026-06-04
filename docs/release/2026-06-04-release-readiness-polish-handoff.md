@@ -2,7 +2,7 @@
 
 ## Verification Snapshot
 
-- Workroom commit: `99a66e6` (latest on this polishing handoff branch).
+- Workroom commit: `1be291a` (pushed to `origin/master`).
 - Worktree status:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
