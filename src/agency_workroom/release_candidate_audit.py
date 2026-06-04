@@ -699,9 +699,14 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "installed_mcp_stdio_smoke",
             "command": (
+                f"release_readiness_venv={release_readiness_venv}; "
+                f"release_readiness_venv=$(eval echo {release_readiness_venv}); "
+                "if [ ! -x \"$release_readiness_venv/bin/python\" ]; then "
+                "python -m venv \"$release_readiness_venv\" && "
+                "\"${release_readiness_venv}\"/bin/python -m pip install -e . && "
+                "fi; "
                 "timeout 5s "
-                "\"${release_readiness_venv}\"/bin/python "
-                "-m agency_workroom.mcp_server </dev/null"
+                "\"${release_readiness_venv}\"/bin/python -m agency_workroom.mcp_server </dev/null"
             ),
         },
         {

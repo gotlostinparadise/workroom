@@ -298,9 +298,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Implicit deploys expected: False", markdown)
         self.assertIn("External API calls expected: False", markdown)
         self.assertIn(
-            "installed_mcp_stdio_smoke: `timeout 5s "
-            "\"${release_readiness_venv}\"/bin/python -m agency_workroom.mcp_server"
-            " </dev/null`",
+            'timeout 5s "${release_readiness_venv}"/bin/python -m agency_workroom.mcp_server </dev/null',
             markdown,
         )
         self.assertIn(
