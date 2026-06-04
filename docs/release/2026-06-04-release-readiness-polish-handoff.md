@@ -2,7 +2,7 @@
 
 ## Verification Snapshot
 
-- Workroom commit: `fca1a22` (pushed to `origin/master`).
+- Workroom commit: latest polish handoff snapshot (pushed to `origin/master`).
 - Worktree status:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
