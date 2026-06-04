@@ -2,7 +2,7 @@
 
 ## Verification Snapshot
 
-- Workroom commit: `eacad08` (pushed to `origin/master`).
+- Workroom commit: `40ffe35` (pushed to `origin/master`).
 - Worktree status:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
@@ -34,7 +34,7 @@
 ## Risk Register
 
 1. **High** – No new high-severity findings emerged in the audit (`no errors`).
-2. **Medium** – Explicit deploy capability remains available (`devops_operations`), so release safety still depends on operator workflow staying behind explicit manual approval and explicit target repo checks.
+2. **Medium** – Explicit deploy capability remains available (`prepare_github_pages_deploy_execution_plan` and `execute_github_pages_deploy`), so release safety still depends on operator workflow staying behind explicit manual approval and explicit target repo checks.
 3. **Low** – Local path values (`/tmp/...`) are still present in local run artifacts by design for command reproducibility and cleanup tracking.
 
 ## Next Step (Recommended)
