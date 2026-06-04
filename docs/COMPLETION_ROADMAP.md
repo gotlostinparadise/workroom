@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v67.
+Status: Canonical plan v68.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -469,6 +469,10 @@ These milestones are complete enough to be treated as foundation:
 82. Package Kernel Dependency Path Redaction v1.
     `pyproject.toml` now depends on sibling Kernel through `file:../Kernel`
     instead of a user-home absolute file URI.
+
+83. Release Audit Package Surface Wording Alignment v1.
+    Earlier package-surface roadmap wording now matches the redacted Kernel
+    dependency display contract.
 
 ## Milestone Plan
 
@@ -1842,7 +1846,7 @@ Exit criteria:
 - Markdown package surface renders the Python requirement.
 - Markdown package surface renders whether `pyproject.toml` was readable.
 - Markdown package surface renders whether installed metadata was readable.
-- Markdown package surface renders the raw Kernel dependency string.
+- Markdown package surface renders the redacted Kernel dependency string.
 - Tests cover both source-checkout and installed-metadata package-surface
   Markdown output.
 - JSON payload shape, audit status behavior, readiness behavior, finding
@@ -2210,6 +2214,21 @@ Exit criteria:
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
+
+### 73. Release Audit Package Surface Wording Alignment v1
+
+Status: Done.
+
+Goal: keep historical package-surface roadmap wording aligned with the current
+release-audit contract that renders redacted Kernel dependency references.
+
+Exit criteria:
+
+- The package-surface Markdown milestone says the Kernel dependency string is
+  redacted.
+- No source behavior, package metadata, MCP surface, release-audit output,
+  tests, Kernel files, hidden loops, deploys, posts, external API calls, or new
+  external effects are changed.
 
 ## Plan Change Rules
 
