@@ -676,7 +676,7 @@ def _audit_status(findings: list[Mapping[str, object]]) -> str:
 
 
 def _manual_verification_gates() -> list[dict[str, object]]:
-    release_readiness_venv = ".workroom-release-readiness-venv"
+    release_readiness_venv = "${WORKROOM_READINESS_VENV:-\"$(mktemp -d)/workroom-release-readiness-venv\"}"
     return [
         {
             "gate_id": "source_suite",
@@ -688,17 +688,19 @@ def _manual_verification_gates() -> list[dict[str, object]]:
         {
             "gate_id": "fresh_editable_install_suite",
             "command": (
-                f"rm -rf {release_readiness_venv} && "
-                f"python -m venv {release_readiness_venv} && "
-                f"{release_readiness_venv}/bin/python -m pip install -e . && "
-                f"{release_readiness_venv}/bin/python -m unittest discover -s tests -v"
+                f"release_readiness_venv={release_readiness_venv}; "
+                f"release_readiness_venv=$(eval echo {release_readiness_venv}); "
+                f"rm -rf \"$release_readiness_venv\" && "
+                "python -m venv \"$release_readiness_venv\" && "
+                "\"${release_readiness_venv}\"/bin/python -m pip install -e . && "
+                "\"${release_readiness_venv}\"/bin/python -m unittest discover -s tests -v"
             ),
         },
         {
             "gate_id": "installed_mcp_stdio_smoke",
             "command": (
                 "timeout 5s "
-                f"{release_readiness_venv}/bin/python "
+                "\"${release_readiness_venv}\"/bin/python "
                 "-m agency_workroom.mcp_server </dev/null"
             ),
         },

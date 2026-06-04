@@ -1,5 +1,7 @@
 # Workroom Release Announcement Package — 2026-06-04
 
+Status note: superseded by `2026-06-05-release-announcement-package.md`.
+
 ## Draft Release Notes (v0.1.0)
 
 ### Highlights

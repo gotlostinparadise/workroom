@@ -3,6 +3,8 @@
 Status note: current polished handoff snapshot for this date is this file.  
 Latest verified Workroom commit: `7332590` (`chore: publish release readiness artifacts in CI`).
 
+Status note: superseded by `docs/release/2026-06-05-release-readiness-polish-handoff-v5.md`.
+
 ## Verification Snapshot
 
 - Workroom commit: `7332590` (`chore: publish release readiness artifacts in CI`), pushed to `origin/master`.

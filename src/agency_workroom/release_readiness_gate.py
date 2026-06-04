@@ -294,6 +294,14 @@ def _run_fresh_install_suite(
     if venv_path.exists():
         _remove_venv(venv_path)
     create = ("python", "-m", "venv", str(venv_path))
+    upgrade_pip = (
+        str(venv_path / "bin" / "python"),
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "pip",
+    )
     install = (
         str(venv_path / "bin" / "python"),
         "-m",
@@ -319,7 +327,24 @@ def _run_fresh_install_suite(
         step_name="create_venv",
     )
     if not create_result["passed"]:
-        return _failed_gate("fresh_editable_install_suite", "create_venv_failed")
+        return _failed_gate(
+            "fresh_editable_install_suite",
+            "create_venv_failed",
+            command_result=create_result,
+        )
+    upgrade_result = _run_command(
+        repo_root=repo_root,
+        command=upgrade_pip,
+        command_runner=command_runner,
+        command_name="fresh_install_suite",
+        step_name="upgrade_pip",
+    )
+    if not upgrade_result["passed"]:
+        return _failed_gate(
+            "fresh_editable_install_suite",
+            "upgrade_pip_failed",
+            command_result=upgrade_result,
+        )
     install_result = _run_command(
         repo_root=repo_root,
         command=install,
@@ -328,7 +353,11 @@ def _run_fresh_install_suite(
         step_name="install_edition",
     )
     if not install_result["passed"]:
-        return _failed_gate("fresh_editable_install_suite", "install_edition_failed")
+        return _failed_gate(
+            "fresh_editable_install_suite",
+            "install_edition_failed",
+            command_result=install_result,
+        )
     return _run_command(
         repo_root=repo_root,
         command=suite,
@@ -338,15 +367,34 @@ def _run_fresh_install_suite(
     )
 
 
-def _failed_gate(gate_id: str, reason: str) -> dict[str, object]:
-    return {
+def _failed_gate(
+    gate_id: str,
+    reason: str,
+    command_result: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "command_name": gate_id,
         "step": reason,
         "command": "",
         "return_code": 1,
         "passed": False,
         "error": reason,
+        "stdout": "",
+        "stderr": "",
     }
+    if command_result is not None:
+        payload["command"] = str(command_result.get("command", payload["command"]))
+        payload["return_code"] = int(command_result.get("return_code", 1))
+        payload["stdout"] = str(command_result.get("stdout", ""))
+        payload["stderr"] = str(command_result.get("stderr", ""))
+        payload["error"] = str(
+            command_result.get("error")
+            or command_result.get("stderr")
+            or command_result.get("stdout")
+            or reason
+        )
+    return payload
+
 
 
 def _run_installed_mcp_smoke(
