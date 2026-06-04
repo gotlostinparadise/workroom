@@ -1,5 +1,7 @@
 # Release Readiness Polishing Handoff — 2026-06-05 (v5)
 
+Status note: superseded by `docs/release/2026-06-05-release-readiness-polish-handoff-v6.md`.
+
 Status note: current polished handoff snapshot for this date.
 Latest verified Workroom commit: `41519a0` (`fix: harden release candidate mcp smoke gate setup`).
 
