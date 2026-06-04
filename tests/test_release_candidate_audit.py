@@ -122,11 +122,11 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertTrue(payload["package_surface"]["pyproject_readable"])
         self.assertFalse(payload["package_surface"]["installed_metadata_readable"])
         self.assertEqual(
-            "absolute_file",
+            "file",
             payload["package_surface"]["kernel_dependency_mode"],
         )
         self.assertEqual(
-            "local_editable_checkout",
+            "local_file_dependency",
             payload["package_surface"]["distribution_scope"],
         )
         self.assertIn(
@@ -210,7 +210,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Pyproject readable: True", markdown)
         self.assertIn("Installed metadata readable: False", markdown)
         self.assertIn("Kernel dependency: kernel @ file://", markdown)
-        self.assertIn("Kernel dependency mode: absolute_file", markdown)
+        self.assertIn("Kernel dependency mode: file", markdown)
         self.assertIn("Kernel repo changes expected: False", markdown)
         self.assertIn("Workflow behavior expected in Kernel: False", markdown)
         self.assertIn(
@@ -377,14 +377,18 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(
             "absolute_file",
             release_candidate_audit._kernel_dependency_mode(
-                "kernel @ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel"
+                "kernel @ file:///opt/agency/Kernel"
             ),
         )
         self.assertEqual(
             "absolute_file",
             release_candidate_audit._kernel_dependency_mode(
-                "kernel@ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel"
+                "kernel@ file:///opt/agency/Kernel"
             ),
+        )
+        self.assertEqual(
+            "file",
+            release_candidate_audit._kernel_dependency_mode("kernel @ file:../Kernel"),
         )
         self.assertEqual(
             "declared_package",
@@ -393,6 +397,10 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertEqual(
             "local_editable_checkout",
             release_candidate_audit._distribution_scope("absolute_file"),
+        )
+        self.assertEqual(
+            "local_file_dependency",
+            release_candidate_audit._distribution_scope("file"),
         )
         self.assertEqual(
             "portable_package_candidate",

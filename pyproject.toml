@@ -9,7 +9,7 @@ description = "External Workroom workflow layer consuming the standalone Kernel 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "kernel @ file:///home/bm/Work/Projects/AGENTS/Agency/Kernel",
+    "kernel @ file:../Kernel",
     "mcp>=1.27,<2",
 ]
 authors = [

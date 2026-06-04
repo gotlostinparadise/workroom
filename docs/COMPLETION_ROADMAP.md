@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v66.
+Status: Canonical plan v67.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -465,6 +465,10 @@ These milestones are complete enough to be treated as foundation:
 81. README Kernel Path Redaction v1.
     The README front-door source checkout command now uses the sibling
     `../Kernel/src` path instead of a user-home absolute Kernel path.
+
+82. Package Kernel Dependency Path Redaction v1.
+    `pyproject.toml` now depends on sibling Kernel through `file:../Kernel`
+    instead of a user-home absolute file URI.
 
 ## Milestone Plan
 
@@ -2177,6 +2181,32 @@ Exit criteria:
 - Existing package dependency behavior, release-audit redaction, MCP manifest
   gates, export-surface checks, release-smoke gates, runbook/run-ID checks,
   boundary assertions, and manual gate rendering remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 72. Package Kernel Dependency Path Redaction v1
+
+Status: Done.
+
+Goal: remove the user-home absolute Kernel path from Workroom package metadata
+while preserving the explicit external sibling Kernel dependency for local
+release-candidate installs.
+
+Exit criteria:
+
+- `pyproject.toml` declares `kernel @ file:../Kernel`.
+- The release-candidate audit classifies the Kernel dependency as
+  `file` with `local_file_dependency` distribution scope.
+- The release-candidate audit still redacts the dependency display as
+  `kernel @ file://<local-kernel>`.
+- Tests derive the expected sibling Kernel path from the checkout instead of a
+  user-home literal.
+- Focused package/import and release-audit tests pass.
+- Fresh editable install still installs Workroom and Kernel successfully.
+- Existing MCP manifest gates, export-surface checks, release-smoke gates,
+  runbook/run-ID checks, boundary assertions, manual gate rendering, and README
+  path redaction remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

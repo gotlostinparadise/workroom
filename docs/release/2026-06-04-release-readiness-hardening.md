@@ -36,6 +36,7 @@ Scope:
 - Release-candidate audit persisted JSON path-redaction gate.
 - Release-candidate audit local dependency and manual-command redaction gate.
 - README source-checkout Kernel path redaction gate.
+- Package metadata Kernel dependency path redaction gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -78,8 +79,8 @@ Release-candidate audit result:
 - Missing required tool finding code: `missing_required_release_tool`
 - Manual gate commands rendered in Markdown: `true`
 - Kernel dependency: `kernel @ file://<local-kernel>`
-- Kernel dependency mode: `absolute_file`
-- Distribution scope: `local_editable_checkout`
+- Kernel dependency mode: `file`
+- Distribution scope: `local_file_dependency`
 - Markdown package surface renders Python requirement, metadata source
   readability, and redacted Kernel dependency.
 - Markdown boundary sections render Kernel repo, Kernel workflow behavior,
@@ -119,18 +120,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 545 tests in 9.032s
+Ran 546 tests in 9.062s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-readme-kernel-path-venv
-python -m venv /tmp/workroom-readme-kernel-path-venv
-/tmp/workroom-readme-kernel-path-venv/bin/python -m pip install -e .
-/tmp/workroom-readme-kernel-path-venv/bin/python -m unittest discover -s tests -v
-Ran 545 tests in 9.065s
+rm -rf /tmp/workroom-relative-kernel-dep-venv
+python -m venv /tmp/workroom-relative-kernel-dep-venv
+/tmp/workroom-relative-kernel-dep-venv/bin/python -m pip install -e .
+/tmp/workroom-relative-kernel-dep-venv/bin/python -m unittest discover -s tests -v
+Ran 546 tests in 9.025s
 OK
 ```
 
@@ -143,14 +144,15 @@ Installed MCP smoke:
 Non-editable package metadata probe:
 
 ```text
-rm -rf /tmp/workroom-wheel-scope-check-venv
-python -m venv /tmp/workroom-wheel-scope-check-venv
-/tmp/workroom-wheel-scope-check-venv/bin/python -m pip install .
+rm -rf /tmp/workroom-wheel-relative-kernel-dep-venv
+python -m venv /tmp/workroom-wheel-relative-kernel-dep-venv
+/tmp/workroom-wheel-relative-kernel-dep-venv/bin/python -m pip install .
 project_name=agency-workroom
 pyproject_readable=False
 installed_metadata_readable=True
-kernel_dependency_mode=absolute_file
-distribution_scope=local_editable_checkout
+kernel_dependency=kernel @ file://<local-kernel>
+kernel_dependency_mode=file
+distribution_scope=local_file_dependency
 ```
 
 Git status:
@@ -168,9 +170,9 @@ Kernel: ## master...origin/master
 - The release-candidate audit is local-file-only and records manual gates; it
   does not run tests, start MCP stdio, inspect git state, start companies, or
   advance runs by itself.
-- The package currently depends on Kernel through an absolute local file path.
-  This is explicit release evidence for the local editable checkout workflow,
-  not a portable package-distribution claim.
+- The package currently depends on sibling Kernel through `file:../Kernel`.
+  This is explicit release evidence for the local sibling-checkout workflow,
+  not a public package-index distribution claim.
 - The release-candidate audit reads installed package metadata when
   `pyproject.toml` is unavailable after non-editable installation, so the
   package-scope evidence remains explicit outside source checkouts.

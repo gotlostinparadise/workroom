@@ -6,8 +6,8 @@ from pathlib import Path
 import kernel
 
 
-WORKROOM_ROOT = Path("/home/bm/Work/Projects/AGENTS/Agency/Workroom").resolve()
-KERNEL_ROOT = Path("/home/bm/Work/Projects/AGENTS/Agency/Kernel").resolve()
+WORKROOM_ROOT = Path(__file__).resolve().parents[1]
+KERNEL_ROOT = (WORKROOM_ROOT.parent / "Kernel").resolve()
 
 
 def assert_external_kernel_dependency(testcase) -> None:
@@ -18,4 +18,7 @@ def assert_external_kernel_dependency(testcase) -> None:
 
     distribution = metadata.distribution("kernel")
     direct_url = distribution.read_text("direct_url.json") or ""
-    testcase.assertIn("/home/bm/Work/Projects/AGENTS/Agency/Kernel", direct_url)
+    testcase.assertTrue(
+        str(KERNEL_ROOT) in direct_url or "file:../Kernel" in direct_url,
+        direct_url,
+    )

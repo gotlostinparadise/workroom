@@ -15,8 +15,13 @@ class PackageImportTests(unittest.TestCase):
         readme = Path("README.md").read_text(encoding="utf-8")
 
         self.assertIn("PYTHONPATH=src:../Kernel/src", readme)
-        self.assertNotIn("/home/bm/Work/Projects/AGENTS/Agency/Kernel/src", readme)
-        self.assertNotIn("/home/bm/Work/Projects/AGENTS/Agency/Kernel", readme)
+        self.assertNotIn("/home/", readme)
+
+    def test_pyproject_uses_relative_kernel_dependency(self) -> None:
+        pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+        self.assertIn('"kernel @ file:../Kernel"', pyproject)
+        self.assertNotIn("/home/", pyproject)
 
     def test_imports_use_external_kernel_dependency(self) -> None:
         self.assertEqual("agency_workroom", agency_workroom.__name__)
