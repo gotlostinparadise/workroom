@@ -40,6 +40,11 @@ Scope:
 - Release-candidate audit manual gate consistency readiness gate.
 - Release-candidate audit manual gate command-presence readiness gate.
 - Release-candidate audit boundary expectation readiness gate.
+- Runbook, run, product, spec, and report artifact identifier validation.
+- Runbook `run_ids_json` argument validation for malformed JSON, non-array
+  shapes, duplicate normalized IDs, and path-like run IDs.
+- Chain-continuation report path validation for Workroom evidence-chain report
+  layout, safe chain IDs, and symlink rejection before file reads.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -133,18 +138,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 548 tests in 9.099s
+Ran 583 tests in 9.413s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-boundary-expectation-venv
-python -m venv /tmp/workroom-boundary-expectation-venv
-/tmp/workroom-boundary-expectation-venv/bin/python -m pip install -e .
-/tmp/workroom-boundary-expectation-venv/bin/python -m unittest discover -s tests -v
-Ran 548 tests in 9.120s
+rm -rf /tmp/workroom-review-venv
+python -m venv /tmp/workroom-review-venv
+/tmp/workroom-review-venv/bin/python -m pip install -e .
+/tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
+Ran 583 tests in 9.145s
 OK
 ```
 
