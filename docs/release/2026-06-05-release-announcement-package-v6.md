@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `0eff6f2`).
-- Workroom commit: `0eff6f2` (`ci: force JS actions runtime to node24 in release workflows`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `689c333`).
+- Workroom commit: `689c333` (`docs: update v6 release handoff for node24 runtime polish commit`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
