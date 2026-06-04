@@ -15,6 +15,7 @@ class ReleaseReadinessGateCommandRunner:
         self.calls: list[tuple[tuple[str, ...], dict[str, object]]] = []
         self.fail_on_source = fail_on_source
         self.dirty_git = dirty_git
+        self.fail_on_install = False
         self.status = "## main...origin/main\n"
         if self.dirty_git:
             self.status += " M README.md\n"
@@ -35,6 +36,15 @@ class ReleaseReadinessGateCommandRunner:
             "-v",
         ):
             returncode = 1
+        if self.fail_on_install and command_tuple[1:4] == ("-m", "pip", "install"):
+            returncode = 1
+            stdout = ""
+            return CompletedProcess(
+                args=command_tuple,
+                returncode=returncode,
+                stdout=stdout,
+                stderr="install failed",
+            )
         if command_tuple[:4] == ("git", "status", "--short", "--branch"):
             stdout = self.status
         return CompletedProcess(
@@ -152,15 +162,38 @@ class ReleaseReadinessGateTests(unittest.TestCase):
                     run_command=runner,
                 )
 
-            self.assertFalse(payload["all_passed"])
-            source_results = payload["command_results"]["source_suite"]
-            self.assertFalse(source_results["passed"])
-            self.assertIn("return_code", source_results)
-            release_audit = payload["release_candidate_audit"]
-            self.assertEqual(
-                "ready",
-                release_audit.get("audit_status"),
-            )
+        self.assertFalse(payload["all_passed"])
+        source_results = payload["command_results"]["source_suite"]
+        self.assertFalse(source_results["passed"])
+        self.assertIn("return_code", source_results)
+        release_audit = payload["release_candidate_audit"]
+        self.assertEqual(
+            "ready",
+            release_audit.get("audit_status"),
+        )
+
+    def test_run_release_readiness_gate_preserves_failed_fresh_install_details(self) -> None:
+        runner = ReleaseReadinessGateCommandRunner()
+        runner.fail_on_install = True
+        with tempfile.TemporaryDirectory() as repo_root:
+            with tempfile.TemporaryDirectory() as workspace:
+                payload = release_readiness_gate.run_release_readiness_gate(
+                    repo_root=Path(repo_root),
+                    keep_workspace=True,
+                    workspace_path=workspace,
+                    kernel_checkout=Path(repo_root) / "../Kernel",
+                    run_command=runner,
+                )
+
+        self.assertFalse(payload["all_passed"])
+        fresh_suite = payload["command_results"]["fresh_editable_install_suite"]
+        self.assertFalse(fresh_suite["passed"])
+        self.assertEqual("install_edition_failed", fresh_suite["step"])
+        self.assertEqual("install failed", fresh_suite["error"])
+        self.assertIn("pip", str(fresh_suite["command"]))
+        self.assertIn("install", str(fresh_suite["command"]))
+        self.assertIn("-e .", str(fresh_suite["command"]))
+        self.assertIn("python", str(fresh_suite["command"]))
 
     def test_temporary_workspace_is_cleaned_up_when_not_kept(self) -> None:
         runner = ReleaseReadinessGateCommandRunner()
