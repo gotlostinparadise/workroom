@@ -1,15 +1,69 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import inspect
 import subprocess
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.session import ClientSession
+from mcp.client.stdio import stdio_client
 from agency_workroom import mcp_server
 
 
 class WorkroomMcpServerTests(unittest.TestCase):
+    def test_mcp_stdio_runtime_smoke_runs_list_tools_and_start(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{repo_root / 'src'}:{repo_root.parent / 'Kernel' / 'src'}"
+
+        with tempfile.TemporaryDirectory() as workspace:
+            ledger_path = Path(workspace) / "ledger.json"
+            params = StdioServerParameters(
+                command=sys.executable,
+                args=["-m", "agency_workroom.mcp_server"],
+                env=env,
+            )
+
+            async def run() -> None:
+                async with stdio_client(params) as streams:
+                    read, write = streams
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+
+                        tools = await session.list_tools()
+                        tool_names = [tool.name for tool in tools.tools]
+                        self.assertIn("start_company_goal", tool_names)
+                        self.assertIn("create_release_candidate_audit", tool_names)
+
+                        response = await session.call_tool(
+                            "start_company_goal",
+                            {
+                                "goal": "runtime-smoke-check",
+                                "user_id": "qa",
+                                "ledger_path": str(ledger_path),
+                                "workspace_path": workspace,
+                                "company_spec_id": "business_validation",
+                                "context_json": "{}",
+                            },
+                        )
+                        self.assertFalse(response.isError)
+                        payload = json.loads(response.content[0].text)
+                        self.assertIn(payload["status"], {"run", "intake_required"})
+                        self.assertIn("run_id", payload)
+                        if payload["status"] == "run":
+                            self.assertIn("plan", payload)
+                        else:
+                            self.assertEqual("intake_required", payload["status"])
+                            self.assertIn("intake_request", payload)
+
+            asyncio.run(run())
+
     def test_mcp_server_registers_expected_tool_functions(self) -> None:
         self.assertEqual(
             (
