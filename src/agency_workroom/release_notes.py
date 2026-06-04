@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class ReleaseNotesError(RuntimeError):
@@ -23,14 +24,15 @@ def create_release_notes_artifact_files(
 ) -> dict[str, object]:
     if task.category != "release_notes":
         raise WorkroomModelError("task must be a release_notes task")
+    clean_run_id = safe_run_id(run_id)
     clean_checklist_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=checklist_ref,
         suffix="/release_checklist.md",
         name="checklist_ref",
     )
     clean_quality_report_ref = _artifact_ref_for_run(
-        run_id=run_id,
+        run_id=clean_run_id,
         ref=quality_report_ref,
         suffix="/quality_gate_report.json",
         name="quality_report_ref",
@@ -39,7 +41,7 @@ def create_release_notes_artifact_files(
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "release_hardening"
         / task_hash
@@ -47,11 +49,11 @@ def create_release_notes_artifact_files(
     artifact_path = artifact_dir / "release_notes.md"
     metadata_path = artifact_dir / "metadata.json"
     artifact_ref = (
-        f"workroom-artifact://runs/{run_id}/release_hardening/"
+        f"workroom-artifact://runs/{clean_run_id}/release_hardening/"
         f"{task_hash}/release_notes.md"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/release_hardening/{task_hash}/"
+        f"workroom-artifact://runs/{clean_run_id}/release_hardening/{task_hash}/"
         "metadata.json"
     )
     release_variables = _release_variables(plan)
@@ -77,7 +79,7 @@ def create_release_notes_artifact_files(
             "artifact_path": str(artifact_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "checklist_ref": clean_checklist_ref,

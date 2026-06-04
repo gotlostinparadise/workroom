@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class LandingArtifactError(RuntimeError):
@@ -24,20 +25,23 @@ def create_landing_artifact_files(
 ) -> dict[str, object]:
     if task.category != "landing_page":
         raise WorkroomModelError("task must be a landing_page task")
+    clean_run_id = safe_run_id(run_id)
     task_hash = hashlib.sha256(task.task_ref.encode("utf-8")).hexdigest()[:16]
     artifact_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "landing_page"
         / task_hash
     )
     html_path = artifact_dir / "index.html"
     metadata_path = artifact_dir / "metadata.json"
-    artifact_ref = f"workroom-artifact://runs/{run_id}/landing_page/{task_hash}/index.html"
+    artifact_ref = (
+        f"workroom-artifact://runs/{clean_run_id}/landing_page/{task_hash}/index.html"
+    )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/landing_page/{task_hash}/metadata.json"
+        f"workroom-artifact://runs/{clean_run_id}/landing_page/{task_hash}/metadata.json"
     )
     request = _request_payload(plan)
     title = f"Validate: {goal.strip()}"
@@ -62,7 +66,7 @@ def create_landing_artifact_files(
             "artifact_path": str(html_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "title": title,
         }

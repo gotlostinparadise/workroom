@@ -110,6 +110,21 @@ class GitHubPagesDeployTests(unittest.TestCase):
         saved = json.loads(Path(proposal["proposal_path"]).read_text(encoding="utf-8"))
         self.assertEqual(proposal["proposal_ref"], saved["proposal_ref"])
 
+    def test_prepare_github_pages_deploy_proposal_rejects_path_like_run_id(self) -> None:
+        workspace_path = self.temp_root() / "workspace"
+        artifact, report = self.create_passing_qa_bundle(workspace_path)
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            prepare_github_pages_deploy_proposal_files(
+                workspace_path=workspace_path,
+                run_id="../escape",
+                github_pages_task=self.make_github_pages_task(),
+                landing_artifact_ref=str(artifact["artifact_ref"]),
+                qa_report_ref=str(report["report_ref"]),
+            )
+
+        self.assertFalse((workspace_path.parent / "escape").exists())
+
     def test_prepare_github_pages_deploy_proposal_files_rejects_non_github_pages_task(self) -> None:
         workspace_path = self.temp_root() / "workspace"
         artifact, report = self.create_passing_qa_bundle(workspace_path)

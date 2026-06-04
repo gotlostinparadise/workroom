@@ -7,7 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from agency_workroom.landing_artifact import create_landing_artifact_files
-from agency_workroom.models import TaskState
+from agency_workroom.models import TaskState, WorkroomModelError
 
 
 class LandingArtifactTests(unittest.TestCase):
@@ -51,6 +51,27 @@ class LandingArtifactTests(unittest.TestCase):
         self.assertEqual("run_abc", metadata["run_id"])
         self.assertEqual(task.task_ref, metadata["task_ref"])
         self.assertEqual(artifact["artifact_ref"], metadata["artifact_ref"])
+
+    def test_create_landing_artifact_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+        task = TaskState(
+            task_ref="workroom-item://abc",
+            role_id="landing_builder",
+            category="landing_page",
+            title="Create landing page plan",
+            status="planned",
+        )
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_landing_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                goal="Validate Workroom demand",
+                task=task,
+                plan={},
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_create_landing_artifact_files_reads_run_context_variables(self) -> None:
         root = self.temp_root()

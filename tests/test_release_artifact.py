@@ -87,6 +87,19 @@ class ReleaseArtifactTests(unittest.TestCase):
             metadata["release_variables"],
         )
 
+    def test_create_release_checklist_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_release_checklist_artifact_files(
+                workspace_path=root / "workspace",
+                run_id="../escape",
+                task=self.release_task(),
+                plan=self.release_plan(),
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_release_checklist_artifact_files_is_idempotent(self) -> None:
         root = self.temp_root()
         kwargs = {

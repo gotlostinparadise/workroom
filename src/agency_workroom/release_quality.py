@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class ReleaseQualityError(RuntimeError):
@@ -22,12 +23,13 @@ def create_release_quality_gate_report_files(
 ) -> dict[str, object]:
     if task.category != "quality_gates":
         raise WorkroomModelError("task must be a quality_gates task")
-    clean_checklist_ref = _checklist_ref_for_run(run_id, checklist_ref)
+    clean_run_id = safe_run_id(run_id)
+    clean_checklist_ref = _checklist_ref_for_run(clean_run_id, checklist_ref)
     task_hash = hashlib.sha256(task.task_ref.encode("utf-8")).hexdigest()[:16]
     report_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "release_hardening"
         / task_hash
@@ -35,11 +37,11 @@ def create_release_quality_gate_report_files(
     report_path = report_dir / "quality_gate_report.json"
     metadata_path = report_dir / "metadata.json"
     report_ref = (
-        f"workroom-artifact://runs/{run_id}/release_hardening/"
+        f"workroom-artifact://runs/{clean_run_id}/release_hardening/"
         f"{task_hash}/quality_gate_report.json"
     )
     metadata_ref = (
-        f"workroom-artifact://runs/{run_id}/release_hardening/{task_hash}/"
+        f"workroom-artifact://runs/{clean_run_id}/release_hardening/{task_hash}/"
         "metadata.json"
     )
     release_variables = _release_variables(plan)
@@ -48,7 +50,7 @@ def create_release_quality_gate_report_files(
     report_payload = {
         "schema_version": "release-quality-gate-report.v1",
         "report_ref": report_ref,
-        "run_id": run_id,
+        "run_id": clean_run_id,
         "task_ref": task.task_ref,
         "task_title": task.title,
         "checklist_ref": clean_checklist_ref,
@@ -72,7 +74,7 @@ def create_release_quality_gate_report_files(
             "report_path": str(report_path),
             "metadata_ref": metadata_ref,
             "metadata_path": str(metadata_path),
-            "run_id": run_id,
+            "run_id": clean_run_id,
             "task_ref": task.task_ref,
             "task_title": task.title,
             "checklist_ref": clean_checklist_ref,

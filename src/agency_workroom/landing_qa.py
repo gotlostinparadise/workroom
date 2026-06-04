@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .models import TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class LandingQaError(RuntimeError):
@@ -20,9 +21,10 @@ def create_landing_qa_report_file(
 ) -> dict[str, object]:
     if testing_task.category != "testing":
         raise WorkroomModelError("task must be a testing task")
+    clean_run_id = safe_run_id(run_id)
     artifact_paths = _landing_artifact_paths(
         workspace_path=workspace_path,
-        run_id=run_id,
+        run_id=clean_run_id,
         artifact_ref=artifact_ref,
     )
     metadata = _load_landing_metadata(artifact_paths["metadata_path"])
@@ -37,13 +39,15 @@ def create_landing_qa_report_file(
     report_dir = (
         Path(workspace_path)
         / "runs"
-        / run_id
+        / clean_run_id
         / "artifacts"
         / "landing_qa"
         / task_hash
     )
     report_path = report_dir / "qa_report.json"
-    report_ref = f"workroom-artifact://runs/{run_id}/landing_qa/{task_hash}/qa_report.json"
+    report_ref = (
+        f"workroom-artifact://runs/{clean_run_id}/landing_qa/{task_hash}/qa_report.json"
+    )
     report: dict[str, object] = {
         "report_ref": report_ref,
         "report_path": str(report_path),

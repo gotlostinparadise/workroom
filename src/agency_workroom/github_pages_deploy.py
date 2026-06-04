@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 
 from .models import GitHubPagesDeployProposal, TaskState, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class GitHubPagesDeployError(RuntimeError):
@@ -40,7 +41,7 @@ def prepare_github_pages_deploy_proposal_files(
 ) -> dict[str, object]:
     if github_pages_task.category != "github_pages":
         raise WorkroomModelError("task must be a github_pages task")
-    clean_run_id = _required_text("run_id", run_id)
+    clean_run_id = safe_run_id(run_id)
     clean_landing_artifact_ref = _required_text(
         "landing_artifact_ref",
         landing_artifact_ref,

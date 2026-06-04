@@ -12,6 +12,7 @@ from agency_workroom.devops_operations import (
     execute_github_pages_deploy_plan_files,
     prepare_github_pages_deploy_execution_plan_files,
 )
+from agency_workroom.models import WorkroomModelError
 
 
 class DevOpsOperationTests(unittest.TestCase):
@@ -148,6 +149,24 @@ class DevOpsOperationTests(unittest.TestCase):
             capability_protocol["metadata"]["target_repo_full_name"],
         )
         self.assertTrue(Path(plan["plan_path"]).exists())
+
+    def test_prepare_plan_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+        workspace = root / "workspace"
+        proposal = self.make_deploy_proposal(workspace)
+        target_repo = self.init_target_repo(root)
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            prepare_github_pages_deploy_execution_plan_files(
+                workspace_path=workspace,
+                run_id="../escape",
+                proposal_ref=proposal["proposal_ref"],
+                target_repo_full_name="owner/site-target",
+                target_repo_path=target_repo,
+                target_branch="main",
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_prepare_plan_rejects_missing_target_repo_full_name(self) -> None:
         root = self.temp_root()

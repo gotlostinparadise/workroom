@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from .models import DevOpsExecutionEvidence, DevOpsOperationPlan, WorkroomModelError
+from .session_store import safe_run_id
 
 
 class DevOpsOperationError(RuntimeError):
@@ -30,7 +31,7 @@ def prepare_github_pages_deploy_execution_plan_files(
     target_branch: str = "",
     publish_path: str = "",
 ) -> dict[str, object]:
-    clean_run_id = _required_text("run_id", run_id)
+    clean_run_id = safe_run_id(run_id)
     clean_proposal_ref = _required_text("proposal_ref", proposal_ref)
     clean_target_repo = _target_repo_full_name(target_repo_full_name)
     root = Path(workspace_path)
@@ -134,7 +135,7 @@ def execute_github_pages_deploy_plan_files(
     plan_ref: str,
     approval_phrase: str,
 ) -> dict[str, object]:
-    clean_run_id = _required_text("run_id", run_id)
+    clean_run_id = safe_run_id(run_id)
     clean_plan_ref = _required_text("plan_ref", plan_ref)
     root = Path(workspace_path)
     plan_path = _plan_path_for_ref(
