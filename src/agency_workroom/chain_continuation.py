@@ -20,6 +20,7 @@ def recommend_chain_continuation_from_report_path(
     path = Path(chain_report_path)
     if not str(path).strip():
         raise ChainContinuationError("chain_report_path is required")
+    _validate_chain_report_path(path)
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
@@ -29,6 +30,17 @@ def recommend_chain_continuation_from_report_path(
     if not isinstance(payload, Mapping):
         raise ChainContinuationError("chain report must be a JSON object")
     return recommend_chain_continuation_from_report_payload(payload)
+
+
+def _validate_chain_report_path(path: Path) -> None:
+    parts = path.parts
+    if len(parts) < 3:
+        raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
+    if path.name != "company_evidence_chain_report.json":
+        raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
+    if path.parent.name.startswith("chain_") and path.parent.parent.name == "evidence_chains":
+        return
+    raise ChainContinuationError("chain_report_path must be a Workroom evidence-chain report")
 
 
 def recommend_chain_continuation_from_report_payload(

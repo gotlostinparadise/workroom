@@ -5432,7 +5432,13 @@ class AgentSessionTests(unittest.TestCase):
 
     def test_recommend_chain_continuation_loads_chain_report(self) -> None:
         root = self.temp_root()
-        report_path = root / "company_evidence_chain_report.json"
+        report_path = (
+            root
+            / "evidence_chains"
+            / "chain_session"
+            / "company_evidence_chain_report.json"
+        )
+        report_path.parent.mkdir(parents=True)
         report_path.write_text(
             json.dumps(
                 {

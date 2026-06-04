@@ -56,7 +56,13 @@ class ChainContinuationTests(unittest.TestCase):
     def test_path_wrapper_loads_chain_report(self) -> None:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)
-        report_path = Path(temp_dir.name) / "company_evidence_chain_report.json"
+        report_path = (
+            Path(temp_dir.name)
+            / "evidence_chains"
+            / "chain_test"
+            / "company_evidence_chain_report.json"
+        )
+        report_path.parent.mkdir(parents=True)
         report_path.write_text(
             json.dumps(self.chain_payload(missing=("design_review",))),
             encoding="utf-8",
@@ -66,6 +72,21 @@ class ChainContinuationTests(unittest.TestCase):
 
         self.assertEqual("start_company_goal", recommendation["recommended_tool"])
         self.assertEqual("design_review", recommendation["arguments"]["company_spec_id"])
+
+    def test_path_wrapper_rejects_non_workroom_report_path_before_reading(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        report_path = Path(temp_dir.name) / "company_evidence_chain_report.json"
+        report_path.write_text(
+            json.dumps(self.chain_payload(missing=("design_review",))),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            ChainContinuationError,
+            "Workroom evidence-chain report",
+        ):
+            recommend_chain_continuation_from_report_path(report_path)
 
     def chain_payload(self, *, missing: tuple[str, ...]) -> dict[str, object]:
         stages = (
