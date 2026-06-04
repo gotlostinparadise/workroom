@@ -18,6 +18,10 @@ authors = [
 license = "LicenseRef-Proprietary"
 license-files = ["LICENSE"]
 
+[project.urls]
+Repository = "https://github.com/gotlostinparadise/workroom"
+Issues = "https://github.com/gotlostinparadise/workroom/issues"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["agency_workroom*"]

@@ -52,6 +52,7 @@ Scope:
 - Package metadata release contract gate for project identity, version, README,
   Python requirement, license, Kernel dependency, and MCP dependency.
 - Package license-file declaration and proprietary license notice gate.
+- Package project URL metadata gate for release repository traceability.
 - Python generated-artifact ignore policy gate for build, bytecode, cache,
   coverage, and wheel metadata outputs.
 - Release-candidate audit manual gate consistency readiness gate.
@@ -142,10 +143,13 @@ Release-candidate audit result:
   `true`
 - Top-level proprietary LICENSE exists and is declared through
   `project.license-files`: `true`
+- Package project URLs include the release Repository URL and audit readiness
+  gates missing required project URLs: `true`
 - Python generated-artifact ignore policy covers release validation outputs:
   `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
-  `kernel_dependency_scope_unknown`, `package_identity_mismatch`
+  `kernel_dependency_scope_unknown`, `package_identity_mismatch`,
+  `package_url_missing`
 - Markdown findings render `severity`, `code`, and `message`.
 - Finding order: `error`, `warning`, `info`, then unknown severities.
 - Empty Markdown findings render `none`.
@@ -168,7 +172,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 593 tests in 9.434s
+Ran 594 tests in 9.375s
 OK
 ```
 
@@ -179,7 +183,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 593 tests in 9.813s
+Ran 594 tests in 9.580s
 OK
 ```
 
@@ -189,6 +193,7 @@ Installed package license metadata probe:
 License-Expression: LicenseRef-Proprietary
 License-File: LICENSE
 License file installed: True
+Project-URL: ['Repository, https://github.com/gotlostinparadise/workroom', 'Issues, https://github.com/gotlostinparadise/workroom/issues']
 ```
 
 Installed MCP smoke:

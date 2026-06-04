@@ -44,6 +44,13 @@ class PackageImportTests(unittest.TestCase):
         self.assertEqual(">=3.11", project["requires-python"])
         self.assertEqual("LicenseRef-Proprietary", project["license"])
         self.assertEqual(["LICENSE"], project["license-files"])
+        self.assertEqual(
+            {
+                "Repository": "https://github.com/gotlostinparadise/workroom",
+                "Issues": "https://github.com/gotlostinparadise/workroom/issues",
+            },
+            pyproject["project"]["urls"],
+        )
         self.assertIn(
             "External Workroom workflow layer",
             project["description"],

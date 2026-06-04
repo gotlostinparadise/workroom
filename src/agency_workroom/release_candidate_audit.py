@@ -27,6 +27,7 @@ REQUIRED_RELEASE_TOOLS = (
     "recommend_chain_continuation",
 )
 EXPECTED_MCP_MANIFEST_SCHEMA_VERSION = "workroom-mcp-tool-manifest.v1"
+REQUIRED_PACKAGE_URLS = ("Repository",)
 REQUIRED_MANUAL_GATE_IDS = (
     "source_suite",
     "fresh_editable_install_suite",
@@ -219,6 +220,8 @@ def _package_surface() -> dict[str, object]:
         "project_name": str(project.get("name", "")),
         "project_version": str(project.get("version", "")),
         "requires_python": str(project.get("requires-python", "")),
+        "project_urls": _project_urls(project.get("urls")),
+        "required_project_urls": list(REQUIRED_PACKAGE_URLS),
         "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
         "kernel_dependency_mode": kernel_dependency_mode,
         "distribution_scope": _distribution_scope(kernel_dependency_mode),
@@ -237,6 +240,8 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
             "project_name": "",
             "project_version": "",
             "requires_python": "",
+            "project_urls": {},
+            "required_project_urls": list(REQUIRED_PACKAGE_URLS),
             "kernel_dependency": "",
             "kernel_dependency_mode": "unknown",
             "distribution_scope": "unknown",
@@ -257,10 +262,31 @@ def _installed_package_surface(pyproject_path: Path) -> dict[str, object]:
         "project_name": str(package_metadata.get("Name", "")),
         "project_version": str(package_metadata.get("Version", "")),
         "requires_python": str(package_metadata.get("Requires-Python", "")),
+        "project_urls": _installed_project_urls(package_metadata),
+        "required_project_urls": list(REQUIRED_PACKAGE_URLS),
         "kernel_dependency": _redacted_dependency_reference(kernel_dependency),
         "kernel_dependency_mode": kernel_dependency_mode,
         "distribution_scope": _distribution_scope(kernel_dependency_mode),
     }
+
+
+def _project_urls(value: object) -> dict[str, str]:
+    return {
+        str(name): str(url)
+        for name, url in sorted(_mapping(value).items())
+        if str(name) and str(url)
+    }
+
+
+def _installed_project_urls(
+    metadata: importlib_metadata.PackageMetadata,
+) -> dict[str, str]:
+    urls: dict[str, str] = {}
+    for project_url in metadata.get_all("Project-URL", ()):
+        name, separator, url = project_url.partition(",")
+        if separator and name.strip() and url.strip():
+            urls[name.strip()] = url.strip()
+    return dict(sorted(urls.items()))
 
 
 def _dependency_name(dependency: str) -> str:
@@ -410,6 +436,16 @@ def _audit_findings(
                 "message": "package identity is not agency-workroom",
             }
         )
+    project_urls = _mapping(package_surface.get("project_urls"))
+    for required_url_name in _string_list(package_surface.get("required_project_urls")):
+        if not str(project_urls.get(required_url_name, "")):
+            findings.append(
+                {
+                    "severity": "error",
+                    "code": "package_url_missing",
+                    "message": f"package project URL is missing: {required_url_name}",
+                }
+            )
     for tool_name in _string_list(export_surface.get("missing_mcp_tool_exports")):
         findings.append(
             {
@@ -828,6 +864,15 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     )
     lines.append(
         "- "
+        f"Project URLs: {_render_key_value_mapping(package_surface.get('project_urls'))}"
+    )
+    lines.append(
+        "- "
+        f"Required project URLs: "
+        f"{_render_string_list(package_surface.get('required_project_urls'))}"
+    )
+    lines.append(
+        "- "
         f"Pyproject readable: "
         f"{_single_line(package_surface.get('pyproject_readable', False))}"
     )
@@ -957,6 +1002,16 @@ def _render_string_list(value: object) -> str:
     if not items:
         return "none"
     return ", ".join(_single_line(item) for item in items)
+
+
+def _render_key_value_mapping(value: object) -> str:
+    items = _mapping(value)
+    if not items:
+        return "none"
+    return ", ".join(
+        f"{_single_line(name)}={_single_line(url)}"
+        for name, url in sorted(items.items())
+    )
 
 
 __all__ = [

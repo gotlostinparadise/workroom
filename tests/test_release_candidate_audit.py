@@ -136,6 +136,17 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "local_file_dependency",
             payload["package_surface"]["distribution_scope"],
         )
+        self.assertEqual(
+            {
+                "Issues": "https://github.com/gotlostinparadise/workroom/issues",
+                "Repository": "https://github.com/gotlostinparadise/workroom",
+            },
+            payload["package_surface"]["project_urls"],
+        )
+        self.assertEqual(
+            ["Repository"],
+            payload["package_surface"]["required_project_urls"],
+        )
         self.assertIn(
             "submit_goal_intake_result",
             release_candidate_audit.REQUIRED_RELEASE_TOOLS,
@@ -229,6 +240,12 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Smoke findings count: 0", markdown)
         self.assertIn("Smoke findings empty: True", markdown)
         self.assertIn("Requires Python:", markdown)
+        self.assertIn(
+            "Project URLs: Issues=https://github.com/gotlostinparadise/workroom/issues, "
+            "Repository=https://github.com/gotlostinparadise/workroom",
+            markdown,
+        )
+        self.assertIn("Required project URLs: Repository", markdown)
         self.assertIn("Pyproject readable: True", markdown)
         self.assertIn("Installed metadata readable: False", markdown)
         self.assertIn("Kernel dependency: kernel @ file://", markdown)
@@ -770,6 +787,39 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
 
         self.assertEqual(["package_identity_mismatch"], [findings[0]["code"]])
+        self.assertEqual("error", findings[0]["severity"])
+
+    def test_audit_findings_flags_missing_required_package_url(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "project_name": "agency-workroom",
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "file",
+                "project_urls": {"Issues": "https://github.com/example/issues"},
+                "required_project_urls": ["Repository"],
+            },
+            release_smoke={
+                "valid": True,
+                "runbook_id_matches_expected": True,
+                "ready": True,
+                "status_matches_ready": True,
+                "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
+                "smoke_findings_empty": True,
+            },
+        )
+
+        self.assertEqual(["package_url_missing"], [findings[0]["code"]])
         self.assertEqual("error", findings[0]["severity"])
 
     def test_release_candidate_audit_markdown_renders_finding_severity(self) -> None:

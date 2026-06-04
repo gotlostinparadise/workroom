@@ -509,6 +509,11 @@ These milestones are complete enough to be treated as foundation:
     `project.license-files = ["LICENSE"]`, preserving installed package
     license-file metadata for release candidates.
 
+92. Package Project URL Metadata Gate v1.
+    Package metadata now declares release-facing Repository and Issues URLs,
+    while release-candidate audit JSON, Markdown, and findings gate missing
+    required project URL metadata.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2443,6 +2448,29 @@ Exit criteria:
 - Existing package metadata gates, README front-door checks, release-audit
   package-surface checks, MCP manifest gates, and Kernel boundary remain
   unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 82. Package Project URL Metadata Gate v1
+
+Status: Done.
+
+Goal: make installed and source package metadata traceable to the public
+release repository without relying on operator memory or local Git remotes.
+
+Exit criteria:
+
+- `pyproject.toml` declares `Repository` and `Issues` under `[project.urls]`.
+- Package import tests assert the expected project URL metadata.
+- Release-candidate audit package surface records project URLs from source
+  `pyproject.toml` and installed package metadata.
+- Release-candidate audit Markdown renders project URLs without local
+  filesystem paths.
+- Release-candidate audit findings include `package_url_missing` when a
+  required project URL is absent.
+- Existing package identity gates, license-file metadata gates, README
+  front-door checks, MCP manifest gates, and Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
