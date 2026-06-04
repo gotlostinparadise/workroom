@@ -200,7 +200,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             for gate in payload["manual_verification_gates"]
         }
         self.assertIn(
-            "rm -rf /tmp/workroom-release-candidate-venv",
+            "rm -rf .workroom-release-readiness-venv",
             gate_commands["fresh_editable_install_suite"],
         )
         self.assertIn(
@@ -299,7 +299,7 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("External API calls expected: False", markdown)
         self.assertIn(
             "installed_mcp_stdio_smoke: `timeout 5s "
-            "/tmp/workroom-release-candidate-venv/bin/python "
+            ".workroom-release-readiness-venv/bin/python "
             "-m agency_workroom.mcp_server </dev/null`",
             markdown,
         )

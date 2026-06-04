@@ -143,6 +143,13 @@ Recommended first calls:
     runbook fixture chain exists
 12. `create_release_candidate_audit` with `run_ids_json` before
     release-candidate review
+13. Optional deterministic release-check command:
+
+    `PYTHONPATH=src:/path/to/Kernel/src python -m agency_workroom.release_readiness_gate --keep-workspace --workspace /tmp/workroom-release-readiness`
+
+    or after install:
+
+    `workroom-release-readiness --keep-workspace --workspace /tmp/workroom-release-readiness`
 
 This interface is local and stdio-based. It does not run background agents,
 push to GitHub, post to Threads, create repositories, delete repositories, or

@@ -26,3 +26,6 @@ Issues = "https://github.com/gotlostinparadise/workroom/issues"
 where = ["src"]
 include = ["agency_workroom*"]
 namespaces = false
+
+[project.scripts]
+workroom-release-readiness = "agency_workroom.release_readiness_gate:_main"
