@@ -43,6 +43,9 @@ Scope:
 - Runbook, run, product, spec, and report artifact identifier validation.
 - Runbook `run_ids_json` argument validation for malformed JSON, non-array
   shapes, duplicate normalized IDs, and path-like run IDs.
+- Runbook closeout packet, release-readiness smoke, and release-candidate audit
+  run ID validation now share the same safe identifier primitive as persisted
+  run state.
 - Chain-continuation report path validation for Workroom evidence-chain report
   layout, safe chain IDs, and symlink rejection before file reads.
 - Source checkout test suite.
@@ -138,7 +141,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 583 tests in 9.413s
+Ran 586 tests in 8.922s
 OK
 ```
 
@@ -149,7 +152,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 583 tests in 9.145s
+Ran 586 tests in 8.994s
 OK
 ```
 

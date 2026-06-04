@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .company_runbooks import DEFAULT_RUNBOOK_ID, normalize_runbook_id
 from .runbook_progress_report import create_runbook_progress_report_files
-from .session_store import load_company_goal_run
+from .session_store import load_company_goal_run, safe_run_id
 
 
 class RunbookCloseoutPacketError(RuntimeError):
@@ -277,7 +277,7 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
 def _required_run_id(run_id: object) -> str:
     if not isinstance(run_id, str) or not run_id.strip():
         raise ValueError("run ids are required")
-    return run_id.strip()
+    return safe_run_id(run_id)
 
 
 def _mapping(value: object) -> Mapping[str, object]:

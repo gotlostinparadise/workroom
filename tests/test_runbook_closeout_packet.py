@@ -6,7 +6,14 @@ import unittest
 from pathlib import Path
 
 import agency_workroom.runbook_closeout_packet as runbook_closeout_packet
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 from agency_workroom.runbook_closeout_packet import create_runbook_closeout_packet_files
 from agency_workroom.runbook_progress_report import create_runbook_progress_report_files
 from agency_workroom.session_store import save_company_goal_run
@@ -89,6 +96,17 @@ class RunbookCloseoutPacketTests(unittest.TestCase):
                 workspace_path=root,
                 run_ids=("run_design", "run_design"),
             )
+
+    def test_create_runbook_closeout_packet_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_runbook_closeout_packet_files(
+                workspace_path=root,
+                run_ids=("../escape",),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_runbook_closeout_packet_module_has_no_runtime_primitives(self) -> None:
         source = Path(runbook_closeout_packet.__file__).read_text(encoding="utf-8")

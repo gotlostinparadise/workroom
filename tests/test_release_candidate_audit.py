@@ -7,7 +7,14 @@ from pathlib import Path
 
 import agency_workroom.release_candidate_audit as release_candidate_audit
 from agency_workroom import mcp_server
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 from agency_workroom.release_candidate_audit import create_release_candidate_audit_files
 from agency_workroom.runbook_closeout_packet import create_runbook_closeout_packet_files
 from agency_workroom.runbook_operating_packet import create_runbook_operating_packet_files
@@ -296,6 +303,17 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
                 workspace_path=root,
                 run_ids=("run_design", "run_design"),
             )
+
+    def test_create_release_candidate_audit_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_release_candidate_audit_files(
+                workspace_path=root,
+                run_ids=("../escape",),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_create_release_candidate_audit_flags_smoke_runbook_mismatch(self) -> None:
         root = self.temp_root()

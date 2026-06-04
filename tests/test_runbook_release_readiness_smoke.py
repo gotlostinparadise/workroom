@@ -6,7 +6,14 @@ import unittest
 from pathlib import Path
 
 import agency_workroom.runbook_release_readiness_smoke as runbook_release_readiness_smoke
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 from agency_workroom.runbook_closeout_packet import create_runbook_closeout_packet_files
 from agency_workroom.runbook_operating_packet import create_runbook_operating_packet_files
 from agency_workroom.runbook_progress_report import create_runbook_progress_report_files
@@ -123,6 +130,19 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
                 workspace_path=root,
                 run_ids=("run_design", "run_design"),
             )
+
+    def test_create_runbook_release_readiness_smoke_rejects_path_like_run_id(
+        self,
+    ) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_runbook_release_readiness_smoke_files(
+                workspace_path=root,
+                run_ids=("../escape",),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_create_runbook_release_readiness_smoke_flags_run_id_mismatch(self) -> None:
         root = self.temp_root()
