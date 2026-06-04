@@ -1,14 +1,14 @@
 # Release Readiness Polishing Handoff — 2026-06-05 (v6)
 
 Status note: current polished handoff snapshot for this date (PR-polished branch state).
-Latest verified Workroom commit: `689c333` (`docs: update v6 release handoff for node24 runtime polish commit`).
+Latest verified Workroom commit: `629f55f` (`docs: sync v6 handoff snapshots to latest polishing commit`).
 
 - Recent polish delta since previous snapshot:
   - Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to both release workflows to enforce current JS runtime in GitHub-hosted Actions.
 
 ## Verification Snapshot
 
-- Workroom status: `## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh [ahead 1]` (clean).
+- Workroom status: `## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh [ahead 4]` (clean).
 - Kernel status: `## master...origin/master` (clean).
 - `release_readiness_gate` run:
   - Workspace: `/tmp/workroom-readiness-polish-v6-final`
