@@ -45,6 +45,8 @@ Scope:
 - Release-candidate audit local dependency and manual-command redaction gate.
 - README source-checkout Kernel path redaction gate.
 - Package metadata Kernel dependency path redaction gate.
+- Package metadata release contract gate for project identity, version, README,
+  Python requirement, license, Kernel dependency, and MCP dependency.
 - Release-candidate audit manual gate consistency readiness gate.
 - Release-candidate audit manual gate command-presence readiness gate.
 - Release-candidate audit boundary expectation readiness gate.
@@ -125,6 +127,8 @@ Release-candidate audit result:
 - Persisted release-candidate audit JSON and Markdown omit user-home paths:
   `true`
 - README source-tree command uses `PYTHONPATH=src:../Kernel/src`: `true`
+- Package metadata release contract matches the local release-audit assumptions:
+  `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -149,7 +153,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 587 tests in 9.241s
+Ran 588 tests in 9.588s
 OK
 ```
 
@@ -160,7 +164,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 587 tests in 9.463s
+Ran 588 tests in 9.636s
 OK
 ```
 

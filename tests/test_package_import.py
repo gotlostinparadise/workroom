@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib.metadata import version
 import inspect
 from pathlib import Path
+import tomllib
 import unittest
 
 import agency_workroom
@@ -11,6 +12,22 @@ from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
 class PackageImportTests(unittest.TestCase):
+    def test_pyproject_release_metadata_contract(self) -> None:
+        pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+        project = pyproject["project"]
+
+        self.assertEqual("agency-workroom", project["name"])
+        self.assertEqual("0.1.0", project["version"])
+        self.assertEqual("README.md", project["readme"])
+        self.assertEqual(">=3.11", project["requires-python"])
+        self.assertEqual("LicenseRef-Proprietary", project["license"])
+        self.assertIn(
+            "External Workroom workflow layer",
+            project["description"],
+        )
+        self.assertIn("kernel @ file:../Kernel", project["dependencies"])
+        self.assertIn("mcp>=1.27,<2", project["dependencies"])
+
     def test_readme_uses_relative_kernel_source_command(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
 

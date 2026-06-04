@@ -486,6 +486,11 @@ These milestones are complete enough to be treated as foundation:
     The release-candidate audit now gates Kernel-boundary and external-effect
     expectation booleans so readiness cannot survive boundary drift.
 
+87. Package Metadata Release Contract Gate v1.
+    Package import tests now lock the release-critical `pyproject.toml`
+    metadata used by install and audit evidence: project identity, version,
+    README, Python requirement, license, Kernel dependency, and MCP dependency.
+
 ## Milestone Plan
 
 ### 1. Company Start Contract and Registry v1
@@ -2313,6 +2318,29 @@ Exit criteria:
   behavior, MCP manifest gates, export-surface checks, release-smoke gates,
   runbook/run-ID checks, boundary Markdown rendering, README path redaction, and
   Kernel boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 77. Package Metadata Release Contract Gate v1
+
+Status: Done.
+
+Goal: prevent release readiness from silently drifting when package metadata
+changes away from the local install and release-audit assumptions.
+
+Exit criteria:
+
+- Package import tests assert the Workroom distribution name.
+- Package import tests assert the current release version.
+- Package import tests assert the README metadata entry.
+- Package import tests assert the Python requirement.
+- Package import tests assert the proprietary license marker.
+- Package import tests assert the sibling Kernel dependency.
+- Package import tests assert the supported MCP dependency range.
+- Existing package install behavior, release-audit package-surface behavior,
+  README path redaction, MCP manifest gates, export-surface checks, boundary
+  assertions, and Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.
