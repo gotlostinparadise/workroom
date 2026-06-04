@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v65.
+Status: Canonical plan v66.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -461,6 +461,10 @@ These milestones are complete enough to be treated as foundation:
 80. Release Audit Local Dependency Redaction v1.
     The release-candidate audit now redacts raw local Kernel dependency URIs
     and uses relative Kernel manual-gate commands instead of user-home paths.
+
+81. README Kernel Path Redaction v1.
+    The README front-door source checkout command now uses the sibling
+    `../Kernel/src` path instead of a user-home absolute Kernel path.
 
 ## Milestone Plan
 
@@ -2152,6 +2156,27 @@ Exit criteria:
   source labels, MCP manifest gates, export-surface checks, release-smoke
   gates, runbook/run-ID checks, boundary assertions, and manual gate rendering
   remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 71. README Kernel Path Redaction v1
+
+Status: Done.
+
+Goal: keep current operator-facing README instructions aligned with the
+release-candidate audit's path-neutral Kernel commands.
+
+Exit criteria:
+
+- The README describes Kernel as a sibling standalone package instead of a
+  user-home absolute path.
+- The README source-tree test command uses `PYTHONPATH=src:../Kernel/src`.
+- Tests prevent the README from reintroducing the current user's absolute
+  Kernel path in the front-door operator instructions.
+- Existing package dependency behavior, release-audit redaction, MCP manifest
+  gates, export-surface checks, release-smoke gates, runbook/run-ID checks,
+  boundary assertions, and manual gate rendering remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

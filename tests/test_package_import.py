@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 import inspect
+from pathlib import Path
 import unittest
 
 import agency_workroom
@@ -10,6 +11,13 @@ from tests.kernel_dependency_assertions import assert_external_kernel_dependency
 
 
 class PackageImportTests(unittest.TestCase):
+    def test_readme_uses_relative_kernel_source_command(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+
+        self.assertIn("PYTHONPATH=src:../Kernel/src", readme)
+        self.assertNotIn("/home/bm/Work/Projects/AGENTS/Agency/Kernel/src", readme)
+        self.assertNotIn("/home/bm/Work/Projects/AGENTS/Agency/Kernel", readme)
+
     def test_imports_use_external_kernel_dependency(self) -> None:
         self.assertEqual("agency_workroom", agency_workroom.__name__)
         assert_external_kernel_dependency(self)

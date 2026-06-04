@@ -2,10 +2,9 @@
 
 Workroom is the workflow layer for an AI company run by agents.
 
-It is an external consumer of the standalone `kernel` package at
-`/home/bm/Work/Projects/AGENTS/Agency/Kernel`. Workroom owns company workflow,
-local modules, and product behavior. Kernel owns authority, grants, redemption,
-ledger, replay, and audit.
+It is an external consumer of the standalone sibling `kernel` package. Workroom
+owns company workflow, local modules, and product behavior. Kernel owns
+authority, grants, redemption, ledger, replay, and audit.
 
 For the project doctrine and long-term operating model, read
 [`docs/WORKROOM_DOCTRINE.md`](docs/WORKROOM_DOCTRINE.md). For the canonical
@@ -30,7 +29,7 @@ python -m unittest discover -s tests -v
 For source-tree development without installing first:
 
 ```bash
-PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
+PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
 ```
 
 The core integration path is covered by

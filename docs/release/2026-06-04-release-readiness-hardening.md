@@ -35,6 +35,7 @@ Scope:
 - Release-candidate audit runbook release-smoke consistency readiness gate.
 - Release-candidate audit persisted JSON path-redaction gate.
 - Release-candidate audit local dependency and manual-command redaction gate.
+- README source-checkout Kernel path redaction gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -99,6 +100,7 @@ Release-candidate audit result:
   metadata source labels instead of local filesystem paths: `true`
 - Persisted release-candidate audit JSON and Markdown omit user-home paths:
   `true`
+- README source-tree command uses `PYTHONPATH=src:../Kernel/src`: `true`
 - Package scope readiness gates: `package_metadata_unreadable`,
   `kernel_dependency_scope_unknown`, `package_identity_mismatch`
 - Markdown findings render `severity`, `code`, and `message`.
@@ -117,18 +119,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 544 tests in 8.971s
+Ran 545 tests in 9.032s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-release-local-redaction-venv
-python -m venv /tmp/workroom-release-local-redaction-venv
-/tmp/workroom-release-local-redaction-venv/bin/python -m pip install -e .
-/tmp/workroom-release-local-redaction-venv/bin/python -m unittest discover -s tests -v
-Ran 544 tests in 8.976s
+rm -rf /tmp/workroom-readme-kernel-path-venv
+python -m venv /tmp/workroom-readme-kernel-path-venv
+/tmp/workroom-readme-kernel-path-venv/bin/python -m pip install -e .
+/tmp/workroom-readme-kernel-path-venv/bin/python -m unittest discover -s tests -v
+Ran 545 tests in 9.065s
 OK
 ```
 
