@@ -61,4 +61,18 @@ jobs:
         env:
           PYTHONPATH: "${{ github.workspace }}/workroom/src:${{ github.workspace }}/Kernel/src"
         run: |
-          python -m agency_workroom.release_readiness_gate --keep-workspace --kernel-checkout ../Kernel
+          rm -rf .workroom-release-readiness
+          python -m agency_workroom.release_readiness_gate \
+            --workspace .workroom-release-readiness \
+            --kernel-checkout ../Kernel
+
+      - name: Upload release readiness artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workroom-release-readiness-artifacts
+          path: |
+            workroom/.workroom-release-readiness/release_readiness_gate_result.json
+            workroom/.workroom-release-readiness/runbooks/complex_codex_delivery/*.json
+            workroom/.workroom-release-readiness/runbooks/complex_codex_delivery/*.md
+          if-no-files-found: error

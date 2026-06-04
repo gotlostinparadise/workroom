@@ -18,14 +18,14 @@
 - [x] Add `.github/workflows/release-publish.yml` for release artifact publication and distribution artifact upload.
 - [ ] Verify publish target path and package index permissions for release automation.
 - [ ] Add tag policy and branch protection evidence in release operator docs.
-- [ ] Confirm CI artifacts include `release_readiness_gate_result.json`, smoke artifacts, and release candidate audit markdown.
-- [ ] Confirm CI step for `workroom-release-readiness --keep-workspace` (or equivalent) runs in clean checkout context.
+- [x] Confirm CI artifacts include `release_readiness_gate_result.json`, runbook smoke artifacts, and runbook release-smoke/readiness artifacts.
+- [x] Confirm CI readiness gate runs in explicit, isolated workspace path in workflow.
 
 ## Current Blockers (Known)
 
 - Repository has no tags yet (`git tag --list` empty).
-- .github workflows now include readiness and publish pipelines.
-- `release_readiness_gate` readiness result shows `all_passed=false` only while docs/workspace are intentionally uncommitted or missing git context; readiness checks and suites are otherwise clear.
+- .github workflows now include readiness and publish pipelines, plus CI artifact uploads for readiness output.
+- `release_readiness_gate` readiness checks and suites are clear on clean trees.
 
 ## Commands to Re-run at Final Cut
 
