@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v5)
 
-- Workroom source branch: `chore/release-readiness-venv-fix`
-- Workroom commit: `878a0fb` (`test: fix fresh editable install suite for modern pip behavior`)
+- Workroom source branch: `master` (local tip `41519a0`), with merge pending on PR #3.
+- Workroom commit: `41519a0` (`fix: harden release candidate mcp smoke gate setup`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v5`
 - `release_readiness_gate` result: `all_passed = true`
 
@@ -37,7 +37,7 @@
 
 Workroom is at a polished release-readiness checkpoint. This release is intended for
 operator-led rollout after one more governance review and a verified branch-protection
-check in repository settings.
+check in repository settings. Merge is blocked by branch-protection review policy while PR #3 remains open.
 
 ## Suggested Next Checks Before Public Release
 
