@@ -39,6 +39,7 @@ Scope:
 - Package metadata Kernel dependency path redaction gate.
 - Release-candidate audit manual gate consistency readiness gate.
 - Release-candidate audit manual gate command-presence readiness gate.
+- Release-candidate audit boundary expectation readiness gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -83,6 +84,7 @@ Release-candidate audit result:
 - Manual gate required IDs complete: `true`
 - Manual gate required commands present: `true`
 - Manual gate commands omit user-home paths: `true`
+- Boundary expectation drift blocks readiness: `true`
 - Kernel dependency: `kernel @ file://<local-kernel>`
 - Kernel dependency mode: `file`
 - Distribution scope: `local_file_dependency`
@@ -121,6 +123,9 @@ Release-candidate audit result:
 - Manual gate readiness finding codes: `missing_manual_verification_gate`,
   `manual_verification_gate_command_missing`,
   `manual_verification_gate_path_leak`
+- Boundary readiness finding codes: `kernel_repo_changes_expected`,
+  `kernel_workflow_behavior_expected`, `hidden_loops_expected`,
+  `implicit_deploys_expected`, `external_api_calls_expected`
 
 ## Verification
 
@@ -128,18 +133,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 547 tests in 8.998s
+Ran 548 tests in 9.099s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-manual-gate-command-venv
-python -m venv /tmp/workroom-manual-gate-command-venv
-/tmp/workroom-manual-gate-command-venv/bin/python -m pip install -e .
-/tmp/workroom-manual-gate-command-venv/bin/python -m unittest discover -s tests -v
-Ran 547 tests in 8.937s
+rm -rf /tmp/workroom-boundary-expectation-venv
+python -m venv /tmp/workroom-boundary-expectation-venv
+/tmp/workroom-boundary-expectation-venv/bin/python -m pip install -e .
+/tmp/workroom-boundary-expectation-venv/bin/python -m unittest discover -s tests -v
+Ran 548 tests in 9.120s
 OK
 ```
 

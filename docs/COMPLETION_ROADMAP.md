@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v70.
+Status: Canonical plan v71.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -481,6 +481,10 @@ These milestones are complete enough to be treated as foundation:
 85. Release Audit Manual Gate Command Presence v1.
     The release-candidate audit now gates whether each required manual
     verification gate has a non-empty command.
+
+86. Release Audit Boundary Expectation Gate v1.
+    The release-candidate audit now gates Kernel-boundary and external-effect
+    expectation booleans so readiness cannot survive boundary drift.
 
 ## Milestone Plan
 
@@ -2284,6 +2288,31 @@ Exit criteria:
   behavior, MCP manifest gates, export-surface checks, release-smoke gates,
   runbook/run-ID checks, boundary assertions, README path redaction, and Kernel
   boundary remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 76. Release Audit Boundary Expectation Gate v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when the audit payload itself expects
+Kernel changes, Kernel workflow behavior, hidden loops, implicit deploys, or
+external API calls.
+
+Exit criteria:
+
+- Kernel boundary expectation values are passed through the release-audit
+  finding path.
+- External-effect boundary expectation values are passed through the
+  release-audit finding path.
+- Any expected Kernel repo change, Kernel workflow behavior, hidden loop,
+  implicit deploy, or external API call produces a finding and blocks readiness.
+- Tests cover clean generated output and synthetic boundary drift.
+- Existing manual gate checks, path-redaction checks, package metadata
+  behavior, MCP manifest gates, export-surface checks, release-smoke gates,
+  runbook/run-ID checks, boundary Markdown rendering, README path redaction, and
+  Kernel boundary remain unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

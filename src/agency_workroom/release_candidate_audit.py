@@ -105,6 +105,8 @@ def _audit_payload(
     package_surface = _package_surface()
     manual_gates = _manual_verification_gates()
     manual_gate_checks = _manual_gate_checks(manual_gates)
+    kernel_boundary = _kernel_boundary()
+    external_effect_boundary = _external_effect_boundary()
     release_smoke_payload = _release_smoke_payload(
         run_ids=run_ids,
         runbook_id=runbook_id,
@@ -117,6 +119,8 @@ def _audit_payload(
         package_surface=package_surface,
         release_smoke=release_smoke_payload,
         manual_gate_checks=manual_gate_checks,
+        kernel_boundary=kernel_boundary,
+        external_effect_boundary=external_effect_boundary,
     )
     return {
         "schema_version": "workroom-release-candidate-audit.v1",
@@ -130,16 +134,8 @@ def _audit_payload(
         "runbook_release_smoke": release_smoke_payload,
         "manual_verification_gates": manual_gates,
         "manual_verification_gate_checks": manual_gate_checks,
-        "kernel_boundary": {
-            "kernel_repo_changes_expected": False,
-            "workflow_behavior_expected_in_kernel": False,
-            "verification": "check Kernel git status before release",
-        },
-        "external_effect_boundary": {
-            "hidden_loops_expected": False,
-            "implicit_deploys_expected": False,
-            "external_api_calls_expected": False,
-        },
+        "kernel_boundary": kernel_boundary,
+        "external_effect_boundary": external_effect_boundary,
         "audit_findings": findings,
         "audit_ref": audit_ref,
         "markdown_ref": markdown_ref,
@@ -346,9 +342,13 @@ def _audit_findings(
     package_surface: Mapping[str, object],
     release_smoke: Mapping[str, object],
     manual_gate_checks: Mapping[str, object] | None = None,
+    kernel_boundary: Mapping[str, object] | None = None,
+    external_effect_boundary: Mapping[str, object] | None = None,
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     manual_gate_checks = _mapping(manual_gate_checks)
+    kernel_boundary = _mapping(kernel_boundary)
+    external_effect_boundary = _mapping(external_effect_boundary)
     if not bool(mcp_surface.get("manifest_matches_server")):
         findings.append(
             {
@@ -512,6 +512,46 @@ def _audit_findings(
                 "message": "manual verification gate command contains a user-home path",
             }
         )
+    if bool(kernel_boundary.get("kernel_repo_changes_expected", False)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "kernel_repo_changes_expected",
+                "message": "release audit expects Kernel repository changes",
+            }
+        )
+    if bool(kernel_boundary.get("workflow_behavior_expected_in_kernel", False)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "kernel_workflow_behavior_expected",
+                "message": "release audit expects workflow behavior in Kernel",
+            }
+        )
+    if bool(external_effect_boundary.get("hidden_loops_expected", False)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "hidden_loops_expected",
+                "message": "release audit expects hidden loops",
+            }
+        )
+    if bool(external_effect_boundary.get("implicit_deploys_expected", False)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "implicit_deploys_expected",
+                "message": "release audit expects implicit deploys",
+            }
+        )
+    if bool(external_effect_boundary.get("external_api_calls_expected", False)):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "external_api_calls_expected",
+                "message": "release audit expects external API calls",
+            }
+        )
     return sorted(
         findings,
         key=_finding_sort_key,
@@ -578,6 +618,22 @@ def _manual_verification_gates() -> list[dict[str, object]]:
             "command": "git -C ../Kernel status --short --branch",
         },
     ]
+
+
+def _kernel_boundary() -> dict[str, object]:
+    return {
+        "kernel_repo_changes_expected": False,
+        "workflow_behavior_expected_in_kernel": False,
+        "verification": "check Kernel git status before release",
+    }
+
+
+def _external_effect_boundary() -> dict[str, object]:
+    return {
+        "hidden_loops_expected": False,
+        "implicit_deploys_expected": False,
+        "external_api_calls_expected": False,
+    }
 
 
 def _manual_gate_checks(

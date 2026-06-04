@@ -232,6 +232,17 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             "Verification: check Kernel git status before release",
             markdown,
         )
+        self.assertFalse(payload["kernel_boundary"]["kernel_repo_changes_expected"])
+        self.assertFalse(
+            payload["kernel_boundary"]["workflow_behavior_expected_in_kernel"]
+        )
+        self.assertFalse(payload["external_effect_boundary"]["hidden_loops_expected"])
+        self.assertFalse(
+            payload["external_effect_boundary"]["implicit_deploys_expected"]
+        )
+        self.assertFalse(
+            payload["external_effect_boundary"]["external_api_calls_expected"]
+        )
         self.assertIn("Hidden loops expected: False", markdown)
         self.assertIn("Implicit deploys expected: False", markdown)
         self.assertIn("External API calls expected: False", markdown)
@@ -474,6 +485,61 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
             [finding["code"] for finding in findings],
         )
         self.assertEqual("unknown", release_candidate_audit._distribution_scope("missing"))
+
+    def test_audit_findings_flag_boundary_drift(self) -> None:
+        findings = release_candidate_audit._audit_findings(
+            run_ids=("run_design",),
+            mcp_surface={
+                "manifest_matches_server": True,
+                "manifest_schema_matches_expected": True,
+                "manifest_count_matches_tools": True,
+                "missing_required_tools": [],
+            },
+            export_surface={
+                "missing_mcp_tool_exports": [],
+                "missing_session_public_function_exports": [],
+            },
+            package_surface={
+                "pyproject_readable": True,
+                "installed_metadata_readable": False,
+                "kernel_dependency_mode": "file",
+                "project_name": "agency-workroom",
+            },
+            release_smoke={
+                "valid": True,
+                "runbook_id_matches_expected": True,
+                "ready": True,
+                "status_matches_ready": True,
+                "run_ids": ["run_design"],
+                "run_ids_match_requested": True,
+                "smoke_findings_empty": True,
+            },
+            manual_gate_checks={
+                "missing_required_gate_ids": [],
+                "missing_command_gate_ids": [],
+                "commands_omit_user_home": True,
+            },
+            kernel_boundary={
+                "kernel_repo_changes_expected": True,
+                "workflow_behavior_expected_in_kernel": True,
+            },
+            external_effect_boundary={
+                "hidden_loops_expected": True,
+                "implicit_deploys_expected": True,
+                "external_api_calls_expected": True,
+            },
+        )
+
+        self.assertEqual(
+            [
+                "external_api_calls_expected",
+                "hidden_loops_expected",
+                "implicit_deploys_expected",
+                "kernel_repo_changes_expected",
+                "kernel_workflow_behavior_expected",
+            ],
+            [finding["code"] for finding in findings],
+        )
 
     def test_audit_findings_flags_missing_export_surface(self) -> None:
         findings = release_candidate_audit._audit_findings(
