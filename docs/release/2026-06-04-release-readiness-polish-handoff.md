@@ -2,7 +2,7 @@
 
 ## Verification Snapshot
 
-- Workroom commit: `1be291a` (pushed to `origin/master`).
+- Workroom commit: `fca1a22` (pushed to `origin/master`).
 - Worktree status:
   - Workroom: `## master...origin/master` (clean).
   - Kernel: `## master...origin/master` (clean).
