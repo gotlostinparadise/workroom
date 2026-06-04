@@ -4,7 +4,9 @@ from collections.abc import Mapping, Sequence
 from importlib import metadata as importlib_metadata
 import inspect
 import json
+import shlex
 from pathlib import Path
+import os
 import tomllib
 
 from ._version import __version__
@@ -746,8 +748,38 @@ def _manual_gate_checks(
         "missing_command_gate_ids": sorted(
             set(REQUIRED_MANUAL_GATE_IDS) - gate_ids_with_commands
         ),
-        "commands_omit_user_home": all("/home/" not in command for command in commands),
+        "commands_omit_user_home": all(
+            not _command_leaks_user_home(command) for command in commands
+        ),
     }
+
+
+def _command_leaks_user_home(command: str) -> bool:
+    normalized = str(command).replace("\\", "/")
+    home = os.path.expanduser("~").replace("\\", "/")
+    if not home:
+        return False
+
+    def _token_leaks_home(token: str) -> bool:
+        stripped = token.strip().strip("\"'")
+        if not stripped:
+            return False
+        candidate = stripped.replace("\\", "/")
+        if candidate == home or candidate.startswith(f"{home}/"):
+            return True
+        expanded = os.path.expanduser(candidate)
+        if expanded != candidate:
+            expanded = expanded.replace("\\", "/")
+            if expanded == home or expanded.startswith(f"{home}/"):
+                return True
+        return False
+
+    try:
+        tokens = shlex.split(normalized, posix=True)
+    except ValueError:
+        tokens = normalized.split()
+
+    return any(_token_leaks_home(token) for token in tokens)
 
 
 def _optional_json_file(path: Path) -> Mapping[str, object]:

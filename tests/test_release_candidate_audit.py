@@ -562,6 +562,28 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         )
         self.assertEqual("unknown", release_candidate_audit._distribution_scope("missing"))
 
+    def test_command_leaks_user_home_detects_home_path(self) -> None:
+        home = Path.home().as_posix()
+        if home:
+            self.assertTrue(
+                release_candidate_audit._command_leaks_user_home(f"echo {home}/artifact.txt")
+            )
+            self.assertTrue(
+                release_candidate_audit._command_leaks_user_home(
+                    "echo "
+                    + home.replace("/", "\\")
+                    + "\\artifact.txt"
+                )
+            )
+            self.assertTrue(
+                release_candidate_audit._command_leaks_user_home("echo ~/artifact.txt")
+            )
+        self.assertFalse(
+            release_candidate_audit._command_leaks_user_home(
+                "git status --short --branch"
+            )
+        )
+
     def test_audit_findings_flag_boundary_drift(self) -> None:
         findings = release_candidate_audit._audit_findings(
             run_ids=("run_design",),
