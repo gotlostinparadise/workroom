@@ -69,6 +69,9 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
 
         self.assertEqual("runbook-release-readiness-smoke.v1", smoke["schema_version"])
         self.assertEqual("runbook-release-readiness-smoke.v1", payload["schema_version"])
+        self.assertNotIn("smoke_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertEqual(list(run_ids), payload["run_ids"])
         self.assertEqual("ready", payload["smoke_status"])

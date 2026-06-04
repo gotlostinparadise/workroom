@@ -38,8 +38,6 @@ def create_runbook_smoke_example_files(
     payload = _smoke_payload(
         packet=packet,
         packet_payload=packet_payload,
-        example_path=example_path,
-        markdown_path=markdown_path,
         example_ref=example_ref,
         markdown_ref=markdown_ref,
         example_goal=example_goal,
@@ -79,8 +77,6 @@ def _smoke_payload(
     *,
     packet: Mapping[str, object],
     packet_payload: Mapping[str, object],
-    example_path: Path,
-    markdown_path: Path,
     example_ref: str,
     markdown_ref: str,
     example_goal: str,
@@ -104,13 +100,9 @@ def _smoke_payload(
         "missing_tools": missing_tools,
         "manifest_validation_passed": not missing_tools,
         "packet_ref": str(packet.get("packet_ref", "")),
-        "packet_path": str(packet.get("packet_path", "")),
         "packet_markdown_ref": str(packet.get("markdown_ref", "")),
-        "packet_markdown_path": str(packet.get("markdown_path", "")),
         "example_ref": example_ref,
-        "example_path": str(example_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
         "stop_rules": _string_list(packet_payload.get("stop_rules")),
     }
 

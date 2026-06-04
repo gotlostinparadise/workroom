@@ -47,6 +47,9 @@ class RunbookProgressReportTests(unittest.TestCase):
 
         self.assertEqual("runbook-progress-report.v1", report["schema_version"])
         self.assertEqual("runbook-progress-report.v1", payload["schema_version"])
+        self.assertNotIn("progress_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertEqual(["run_design", "run_quality"], payload["run_ids"])
         self.assertEqual("review_recommended", payload["progress_status"])

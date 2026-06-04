@@ -9,6 +9,8 @@ Scope:
   signatures.
 - README operator path for runbook reporting and release-candidate audit.
 - Runbook fixture-chain generation in a temporary local workspace.
+- Runbook fixture-chain persisted JSON path-redaction gates while preserving
+  caller return paths.
 - Release-candidate audit over persisted local fixtures.
 - Release-candidate audit startup-handshake and package-scope hardening.
 - Release-candidate audit package metadata fallback for non-editable installs.
@@ -145,7 +147,7 @@ Source suite:
 
 ```text
 PYTHONPATH=src:../Kernel/src python -m unittest discover -s tests -v
-Ran 587 tests in 8.947s
+Ran 587 tests in 9.194s
 OK
 ```
 
@@ -156,7 +158,7 @@ rm -rf /tmp/workroom-review-venv
 python -m venv /tmp/workroom-review-venv
 /tmp/workroom-review-venv/bin/python -m pip install -e .
 /tmp/workroom-review-venv/bin/python -m unittest discover -s tests -v
-Ran 587 tests in 8.915s
+Ran 587 tests in 9.215s
 OK
 ```
 

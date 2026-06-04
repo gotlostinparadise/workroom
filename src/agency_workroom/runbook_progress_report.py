@@ -46,8 +46,6 @@ def create_runbook_progress_report_files(
         runbook=runbook,
         runs=runs,
         run_ids=clean_run_ids,
-        progress_path=progress_path,
-        markdown_path=markdown_path,
         progress_ref=progress_ref,
         markdown_ref=markdown_ref,
     )
@@ -76,8 +74,6 @@ def _progress_payload(
     runbook: Mapping[str, object],
     runs: tuple[CompanyGoalRun, ...],
     run_ids: tuple[str, ...],
-    progress_path: Path,
-    markdown_path: Path,
     progress_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -119,9 +115,7 @@ def _progress_payload(
             missing_stage_ids=missing_stage_ids,
         ),
         "progress_ref": progress_ref,
-        "progress_path": str(progress_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

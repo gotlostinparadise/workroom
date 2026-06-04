@@ -51,8 +51,6 @@ def create_runbook_closeout_packet_files(
         runs=runs,
         progress=progress,
         progress_payload=progress_payload,
-        packet_path=packet_path,
-        markdown_path=markdown_path,
         packet_ref=packet_ref,
         markdown_ref=markdown_ref,
     )
@@ -84,8 +82,6 @@ def _packet_payload(
     runs: tuple[object, ...],
     progress: Mapping[str, object],
     progress_payload: Mapping[str, object],
-    packet_path: Path,
-    markdown_path: Path,
     packet_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -105,7 +101,6 @@ def _packet_payload(
         "ready_for_release": not readiness_findings,
         "progress_report": {
             "ref": str(progress.get("progress_ref", "")),
-            "path": str(progress.get("progress_path", "")),
             "status": str(progress_payload.get("progress_status", "")),
         },
         "completed_stage_ids": _string_list(progress_payload.get("completed_stage_ids")),
@@ -120,9 +115,7 @@ def _packet_payload(
         "run_reviews": run_reviews,
         "readiness_findings": readiness_findings,
         "packet_ref": packet_ref,
-        "packet_path": str(packet_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

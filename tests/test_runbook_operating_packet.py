@@ -25,6 +25,9 @@ class RunbookOperatingPacketTests(unittest.TestCase):
         markdown = Path(packet["markdown_path"]).read_text(encoding="utf-8")
 
         self.assertEqual("runbook-operating-packet.v1", payload["schema_version"])
+        self.assertNotIn("packet_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertEqual(
             [

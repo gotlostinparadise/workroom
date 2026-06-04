@@ -37,8 +37,6 @@ def create_runbook_release_readiness_smoke_files(
         workspace_path=Path(workspace_path),
         runbook_id=clean_runbook_id,
         run_ids=clean_run_ids,
-        smoke_path=smoke_path,
-        markdown_path=markdown_path,
         smoke_ref=smoke_ref,
         markdown_ref=markdown_ref,
     )
@@ -69,8 +67,6 @@ def _smoke_payload(
     workspace_path: Path,
     runbook_id: str,
     run_ids: tuple[str, ...],
-    smoke_path: Path,
-    markdown_path: Path,
     smoke_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -157,9 +153,7 @@ def _smoke_payload(
         "progress_status": str(progress_payload.get("progress_status", "")),
         "smoke_findings": smoke_findings,
         "smoke_ref": smoke_ref,
-        "smoke_path": str(smoke_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

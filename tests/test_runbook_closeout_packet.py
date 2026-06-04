@@ -47,6 +47,10 @@ class RunbookCloseoutPacketTests(unittest.TestCase):
 
         self.assertEqual("runbook-closeout-packet.v1", packet["schema_version"])
         self.assertEqual("runbook-closeout-packet.v1", payload["schema_version"])
+        self.assertNotIn("packet_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn("path", payload["progress_report"])
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertEqual(["run_design", "run_plan"], payload["run_ids"])
         self.assertEqual("review_required", payload["closeout_status"])

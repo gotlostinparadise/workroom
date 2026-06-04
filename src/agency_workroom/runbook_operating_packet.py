@@ -35,8 +35,6 @@ def create_runbook_operating_packet_files(
     )
     payload = _packet_payload(
         runbook=runbook,
-        packet_path=packet_path,
-        markdown_path=markdown_path,
         packet_ref=packet_ref,
         markdown_ref=markdown_ref,
     )
@@ -71,8 +69,6 @@ def _runbook_by_id(runbook_id: str) -> Mapping[str, object]:
 def _packet_payload(
     *,
     runbook: Mapping[str, object],
-    packet_path: Path,
-    markdown_path: Path,
     packet_ref: str,
     markdown_ref: str,
 ) -> dict[str, object]:
@@ -115,9 +111,7 @@ def _packet_payload(
             "do not deploy, push, post, call external APIs, or run shell commands",
         ],
         "packet_ref": packet_ref,
-        "packet_path": str(packet_path),
         "markdown_ref": markdown_ref,
-        "markdown_path": str(markdown_path),
     }
 
 

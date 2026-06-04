@@ -23,14 +23,17 @@ class RunbookSmokeExampleTests(unittest.TestCase):
 
         payload = json.loads(Path(example["example_path"]).read_text(encoding="utf-8"))
         markdown = Path(example["markdown_path"]).read_text(encoding="utf-8")
-        packet_path = Path(payload["packet_path"])
 
         self.assertEqual("runbook-smoke-example.v1", payload["schema_version"])
+        self.assertNotIn("example_path", payload)
+        self.assertNotIn("markdown_path", payload)
+        self.assertNotIn("packet_path", payload)
+        self.assertNotIn("packet_markdown_path", payload)
+        self.assertNotIn(str(root), json.dumps(payload, sort_keys=True))
         self.assertEqual("complex_codex_delivery", payload["runbook_id"])
         self.assertTrue(Path(example["example_path"]).exists())
         self.assertTrue(Path(example["markdown_path"]).exists())
-        self.assertTrue(packet_path.exists())
-        self.assertTrue(Path(payload["packet_markdown_path"]).exists())
+        self.assertTrue(Path(example["packet_path"]).exists())
         self.assertTrue(payload["manifest_validation_passed"])
         self.assertEqual([], payload["missing_tools"])
         self.assertEqual(
