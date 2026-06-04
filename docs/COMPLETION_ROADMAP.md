@@ -1,6 +1,6 @@
 # Workroom Completion Roadmap
 
-Status: Canonical plan v62.
+Status: Canonical plan v63.
 
 This document is the plan of record for taking Workroom from the current
 Business Validation reference workflow to a fuller, reusable goal-company
@@ -448,6 +448,10 @@ These milestones are complete enough to be treated as foundation:
 77. Runbook Smoke Fixture Runbook Gate v1.
     The runbook release-readiness smoke now gates whether every fixture belongs
     to the requested runbook.
+
+78. Release Audit Smoke Consistency Gate v1.
+    The release-candidate audit now gates whether persisted release-readiness
+    smoke status, readiness, and findings are internally consistent.
 
 ## Milestone Plan
 
@@ -2060,6 +2064,36 @@ Exit criteria:
 - Existing fixture schema checks, run-ID checks, closeout readiness checks,
   follow-up tool recommendations, release-audit gates, MCP surface, public tool
   shape, and path-redaction behavior remain unchanged.
+- No Kernel changes, hidden loops, company startup, supervisor advancement,
+  shell execution, deploys, pushes, posts, external API calls, or new external
+  effects are added.
+
+### 68. Release Audit Smoke Consistency Gate v1
+
+Status: Done.
+
+Goal: prevent release-candidate readiness when a persisted
+runbook release-readiness smoke file claims readiness while its status or
+findings still require review.
+
+Exit criteria:
+
+- The release-candidate audit payload records whether release-smoke status is
+  exactly `ready`.
+- The release-candidate audit payload records release-smoke finding count and
+  whether release-smoke findings are empty.
+- A valid release-smoke file with `smoke_status` other than `ready` produces a
+  finding and blocks release-candidate readiness.
+- A valid release-smoke file with non-empty `smoke_findings` produces a finding
+  and blocks release-candidate readiness.
+- Markdown renders release-smoke status match, findings count, and findings
+  emptiness.
+- Tests cover generated clean release-smoke output and an inconsistent persisted
+  release-smoke payload that claims `ready_for_release_review`.
+- Existing MCP manifest gates, export-surface checks, package-surface checks,
+  release-smoke schema/readiness checks, runbook/run-ID checks, boundary
+  assertions, manual gates, and artifact-context path redaction remain
+  unchanged.
 - No Kernel changes, hidden loops, company startup, supervisor advancement,
   shell execution, deploys, pushes, posts, external API calls, or new external
   effects are added.

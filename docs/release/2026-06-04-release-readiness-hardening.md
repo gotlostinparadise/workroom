@@ -32,6 +32,7 @@ Scope:
 - Release-candidate audit runbook release-smoke run IDs readiness gate.
 - Runbook release-readiness smoke progress/closeout run IDs readiness gate.
 - Runbook release-readiness smoke fixture runbook readiness gate.
+- Release-candidate audit runbook release-smoke consistency readiness gate.
 - Source checkout test suite.
 - Fresh editable install test suite.
 - Workroom and Kernel git cleanliness.
@@ -87,6 +88,8 @@ Release-candidate audit result:
   IDs to match requested run IDs: `true`
 - Runbook release-readiness smoke requires all fixtures to match the requested
   runbook: `true`
+- Release-candidate audit requires release-smoke status to be ready and smoke
+  findings to be empty: `true`
 - Markdown audit artifact context renders requested run IDs and Workroom
   artifact refs without local filesystem paths.
 - Package scope readiness gates: `package_metadata_unreadable`,
@@ -107,18 +110,18 @@ Source suite:
 
 ```text
 PYTHONPATH=src:/home/bm/Work/Projects/AGENTS/Agency/Kernel/src python -m unittest discover -s tests -v
-Ran 543 tests in 9.053s
+Ran 544 tests in 8.915s
 OK
 ```
 
 Fresh editable install suite:
 
 ```text
-rm -rf /tmp/workroom-runbook-smoke-fixture-runbook-gate-venv
-python -m venv /tmp/workroom-runbook-smoke-fixture-runbook-gate-venv
-/tmp/workroom-runbook-smoke-fixture-runbook-gate-venv/bin/python -m pip install -e .
-/tmp/workroom-runbook-smoke-fixture-runbook-gate-venv/bin/python -m unittest discover -s tests -v
-Ran 543 tests in 9.018s
+rm -rf /tmp/workroom-release-smoke-consistency-gate-venv
+python -m venv /tmp/workroom-release-smoke-consistency-gate-venv
+/tmp/workroom-release-smoke-consistency-gate-venv/bin/python -m pip install -e .
+/tmp/workroom-release-smoke-consistency-gate-venv/bin/python -m unittest discover -s tests -v
+Ran 544 tests in 9.060s
 OK
 ```
 

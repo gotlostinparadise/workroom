@@ -307,6 +307,8 @@ def _release_smoke_payload(
         "runbook_release_readiness_smoke.json"
     )
     persisted_run_ids = _string_list(payload.get("run_ids"))
+    status = str(payload.get("smoke_status", ""))
+    smoke_findings = _mapping_list(payload.get("smoke_findings"))
     return {
         "ref": expected_ref,
         "path": str(path),
@@ -315,12 +317,15 @@ def _release_smoke_payload(
         "expected_runbook_id": runbook_id,
         "runbook_id_matches_expected": str(payload.get("runbook_id", ""))
         == runbook_id,
-        "status": str(payload.get("smoke_status", "")),
+        "status": status,
+        "status_matches_ready": status == "ready",
         "ready": bool(payload.get("ready_for_release_review", False)),
         "valid": payload.get("schema_version") == "runbook-release-readiness-smoke.v1",
         "run_ids": persisted_run_ids,
         "expected_run_ids": list(run_ids),
         "run_ids_match_requested": persisted_run_ids == list(run_ids),
+        "smoke_findings_count": len(smoke_findings),
+        "smoke_findings_empty": not smoke_findings,
     }
 
 
@@ -450,6 +455,26 @@ def _audit_findings(
                 "severity": "warning",
                 "code": "run_ids_mismatch",
                 "message": "release-smoke run IDs do not match requested run IDs",
+            }
+        )
+    if bool(release_smoke.get("valid")) and not bool(
+        release_smoke.get("status_matches_ready")
+    ):
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "runbook_release_smoke_status_mismatch",
+                "message": "runbook release readiness smoke status is not ready",
+            }
+        )
+    if bool(release_smoke.get("valid")) and not bool(
+        release_smoke.get("smoke_findings_empty")
+    ):
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "runbook_release_smoke_findings_present",
+                "message": "runbook release readiness smoke contains findings",
             }
         )
     return sorted(
@@ -633,6 +658,11 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
     )
     lines.append(
         "- "
+        f"Status matches ready: "
+        f"{_single_line(release_smoke.get('status_matches_ready', False))}"
+    )
+    lines.append(
+        "- "
         f"Ready: {_single_line(release_smoke.get('ready', False))}"
     )
     lines.append(
@@ -652,6 +682,16 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
         "- "
         f"Run IDs match requested: "
         f"{_single_line(release_smoke.get('run_ids_match_requested', False))}"
+    )
+    lines.append(
+        "- "
+        f"Smoke findings count: "
+        f"{_single_line(release_smoke.get('smoke_findings_count', 0))}"
+    )
+    lines.append(
+        "- "
+        f"Smoke findings empty: "
+        f"{_single_line(release_smoke.get('smoke_findings_empty', False))}"
     )
     package_surface = _mapping(payload.get("package_surface"))
     export_surface = _mapping(payload.get("export_surface"))
