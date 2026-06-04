@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 import json
 from pathlib import Path
 
-from .company_runbooks import DEFAULT_RUNBOOK_ID
+from .company_runbooks import DEFAULT_RUNBOOK_ID, normalize_runbook_id
 
 
 class RunbookReleaseReadinessSmokeError(RuntimeError):
@@ -17,9 +17,7 @@ def create_runbook_release_readiness_smoke_files(
     run_ids: Sequence[str],
     runbook_id: str = DEFAULT_RUNBOOK_ID,
 ) -> dict[str, object]:
-    clean_runbook_id = runbook_id.strip() if isinstance(runbook_id, str) else ""
-    if not clean_runbook_id:
-        clean_runbook_id = DEFAULT_RUNBOOK_ID
+    clean_runbook_id = normalize_runbook_id(runbook_id)
     clean_run_ids = tuple(_required_run_id(run_id) for run_id in run_ids)
     if len(set(clean_run_ids)) != len(clean_run_ids):
         raise ValueError("run ids must be unique")

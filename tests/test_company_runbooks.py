@@ -5,6 +5,7 @@ import unittest
 from agency_workroom.company_runbooks import (
     DEFAULT_RUNBOOK_ID,
     list_company_runbook_templates,
+    normalize_runbook_id,
 )
 
 
@@ -84,6 +85,16 @@ class CompanyRunbookTests(unittest.TestCase):
             self.assertIn("evaluate_company_goal_run", stage["inspection_tools"])
             self.assertIn("create_goal_run_report", stage["inspection_tools"])
             self.assertFalse(stage["starts_automatically"])
+
+    def test_normalize_runbook_id_defaults_empty_values(self) -> None:
+        self.assertEqual(DEFAULT_RUNBOOK_ID, normalize_runbook_id(""))
+        self.assertEqual(DEFAULT_RUNBOOK_ID, normalize_runbook_id("   "))
+
+    def test_normalize_runbook_id_rejects_path_like_values(self) -> None:
+        for runbook_id in ("../escape", "nested/runbook", r"nested\runbook", ".", ".."):
+            with self.subTest(runbook_id=runbook_id):
+                with self.assertRaises(ValueError):
+                    normalize_runbook_id(runbook_id)
 
 
 if __name__ == "__main__":

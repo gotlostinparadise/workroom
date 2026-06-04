@@ -86,6 +86,18 @@ class RunbookReleaseReadinessSmokeTests(unittest.TestCase):
         self.assertIn("recommend_chain_continuation", payload["follow_up_tools"])
         self.assertIn("Runbook Release Readiness Smoke", markdown)
 
+    def test_release_readiness_smoke_rejects_path_like_runbook_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaises(ValueError):
+            create_runbook_release_readiness_smoke_files(
+                workspace_path=root,
+                run_ids=(),
+                runbook_id="../escape",
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_runbook_release_readiness_smoke_module_has_no_runtime_primitives(self) -> None:
         source = Path(runbook_release_readiness_smoke.__file__).read_text(
             encoding="utf-8"

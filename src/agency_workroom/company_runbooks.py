@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from string import Formatter
 
 from .company_registry import get_company_spec
@@ -7,6 +8,7 @@ from .models import CompanySpec
 
 
 DEFAULT_RUNBOOK_ID = "complex_codex_delivery"
+_RUNBOOK_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 COMPLEX_CODEX_DELIVERY_STAGES = (
     {
@@ -64,6 +66,17 @@ def list_company_runbook_templates() -> dict[str, object]:
         "calls_external_services": False,
         "runbooks": [_complex_codex_delivery_runbook()],
     }
+
+
+def normalize_runbook_id(runbook_id: str) -> str:
+    clean_runbook_id = runbook_id.strip() if isinstance(runbook_id, str) else ""
+    if not clean_runbook_id:
+        return DEFAULT_RUNBOOK_ID
+    if clean_runbook_id in {".", ".."} or not _RUNBOOK_ID_PATTERN.fullmatch(
+        clean_runbook_id
+    ):
+        raise ValueError("runbook id must be a single artifact-safe path segment")
+    return clean_runbook_id
 
 
 def _complex_codex_delivery_runbook() -> dict[str, object]:

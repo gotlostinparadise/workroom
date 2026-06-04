@@ -4,7 +4,11 @@ from collections.abc import Mapping
 from pathlib import Path
 import json
 
-from .company_runbooks import DEFAULT_RUNBOOK_ID, list_company_runbook_templates
+from .company_runbooks import (
+    DEFAULT_RUNBOOK_ID,
+    list_company_runbook_templates,
+    normalize_runbook_id,
+)
 
 
 class RunbookOperatingPacketError(RuntimeError):
@@ -16,9 +20,7 @@ def create_runbook_operating_packet_files(
     workspace_path: str | Path,
     runbook_id: str = DEFAULT_RUNBOOK_ID,
 ) -> dict[str, object]:
-    clean_runbook_id = runbook_id.strip() if isinstance(runbook_id, str) else ""
-    if not clean_runbook_id:
-        clean_runbook_id = DEFAULT_RUNBOOK_ID
+    clean_runbook_id = normalize_runbook_id(runbook_id)
     runbook = _runbook_by_id(clean_runbook_id)
     packet_dir = Path(workspace_path) / "runbooks" / clean_runbook_id
     packet_path = packet_dir / "runbook_operating_packet.json"

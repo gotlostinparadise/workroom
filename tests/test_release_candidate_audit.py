@@ -260,6 +260,18 @@ class ReleaseCandidateAuditTests(unittest.TestCase):
         self.assertIn("Commands omit user-home paths: True", markdown)
         self.assertIn("## Findings\n\n- none", markdown)
 
+    def test_create_release_candidate_audit_rejects_path_like_runbook_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaises(ValueError):
+            create_release_candidate_audit_files(
+                workspace_path=root,
+                run_ids=(),
+                runbook_id="../escape",
+            )
+
+        self.assertFalse((root / "escape").exists())
+
     def test_create_release_candidate_audit_flags_missing_release_smoke(self) -> None:
         root = self.temp_root()
 
