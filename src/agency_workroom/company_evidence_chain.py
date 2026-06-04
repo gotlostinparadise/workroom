@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .models import CompanyGoalRun
+from .session_store import safe_run_id
 
 
 EXPECTED_STAGE_SPECS = (
@@ -32,7 +33,7 @@ def create_company_evidence_chain_report_files(
         raise ValueError("runs are required")
     if len(clean_runs) != len(tuple(inspections)):
         raise ValueError("runs and inspections must have the same length")
-    run_ids = tuple(run.run_id for run in clean_runs)
+    run_ids = tuple(safe_run_id(run.run_id) for run in clean_runs)
     if len(set(run_ids)) != len(run_ids):
         raise ValueError("run ids must be unique")
     chain_id = _chain_id(run_ids)
@@ -49,6 +50,7 @@ def create_company_evidence_chain_report_files(
     )
     payload = _report_payload(
         runs=clean_runs,
+        run_ids=run_ids,
         inspections=tuple(inspections),
         chain_id=chain_id,
         chain_ref=chain_ref,
@@ -79,6 +81,7 @@ def create_company_evidence_chain_report_files(
 def _report_payload(
     *,
     runs: tuple[CompanyGoalRun, ...],
+    run_ids: tuple[str, ...],
     inspections: tuple[Mapping[str, object], ...],
     chain_id: str,
     chain_ref: str,
@@ -86,20 +89,21 @@ def _report_payload(
     markdown_ref: str,
     markdown_path: Path,
 ) -> dict[str, object]:
-    coverage = _stage_coverage(runs)
+    coverage = _stage_coverage(runs=runs, run_ids=run_ids)
     run_summaries = [
-        _run_summary(run=run, inspection=inspection)
-        for run, inspection in zip(runs, inspections, strict=True)
+        _run_summary(run=run, run_id=run_id, inspection=inspection)
+        for run, run_id, inspection in zip(runs, run_ids, inspections, strict=True)
     ]
     findings = _chain_findings(
         coverage=coverage,
         runs=runs,
+        run_ids=run_ids,
         inspections=inspections,
     )
     return {
         "schema_version": "company-evidence-chain-report.v1",
         "chain_id": chain_id,
-        "run_ids": [run.run_id for run in runs],
+        "run_ids": list(run_ids),
         "chain_status": _chain_status(findings),
         "expected_stage_coverage": coverage,
         "runs": run_summaries,
@@ -118,11 +122,15 @@ def _chain_id(run_ids: Iterable[str]) -> str:
     return f"chain_{hashlib.sha256(joined.encode('utf-8')).hexdigest()[:16]}"
 
 
-def _stage_coverage(runs: tuple[CompanyGoalRun, ...]) -> dict[str, dict[str, object]]:
+def _stage_coverage(
+    *,
+    runs: tuple[CompanyGoalRun, ...],
+    run_ids: tuple[str, ...],
+) -> dict[str, dict[str, object]]:
     specs_to_run_ids: dict[str, list[str]] = {spec: [] for spec in EXPECTED_STAGE_SPECS}
-    for run in runs:
+    for run, run_id in zip(runs, run_ids, strict=True):
         if run.company_spec_id in specs_to_run_ids:
-            specs_to_run_ids[run.company_spec_id].append(run.run_id)
+            specs_to_run_ids[run.company_spec_id].append(run_id)
     return {
         spec: {
             "present": bool(run_ids),
@@ -135,6 +143,7 @@ def _stage_coverage(runs: tuple[CompanyGoalRun, ...]) -> dict[str, dict[str, obj
 def _run_summary(
     *,
     run: CompanyGoalRun,
+    run_id: str,
     inspection: Mapping[str, object],
 ) -> dict[str, object]:
     summary = _mapping(inspection.get("summary"))
@@ -144,7 +153,7 @@ def _run_summary(
     recommendation = _mapping(inspection.get("recommendation"))
     status_counts = _mapping(summary.get("status_counts"))
     return {
-        "run_id": run.run_id,
+        "run_id": run_id,
         "company_spec_id": run.company_spec_id,
         "company_spec_version": run.company_spec_version,
         "goal": run.goal,
@@ -167,6 +176,7 @@ def _chain_findings(
     *,
     coverage: Mapping[str, Mapping[str, object]],
     runs: tuple[CompanyGoalRun, ...],
+    run_ids: tuple[str, ...],
     inspections: tuple[Mapping[str, object], ...],
 ) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
@@ -183,7 +193,7 @@ def _chain_findings(
                     "stage": spec,
                 }
             )
-    for run, inspection in zip(runs, inspections, strict=True):
+    for run, run_id, inspection in zip(runs, run_ids, inspections, strict=True):
         audit = _mapping(inspection.get("audit"))
         if audit.get("passed") is False:
             findings.append(
@@ -191,7 +201,7 @@ def _chain_findings(
                     "severity": "error",
                     "code": "run_audit_failed",
                     "message": "run audit failed",
-                    "run_ids": [run.run_id],
+                    "run_ids": [run_id],
                     "refs": [],
                     "stage": run.company_spec_id,
                 }
@@ -206,7 +216,7 @@ def _chain_findings(
                         "severity": "warning",
                         "code": "pending_decision",
                         "message": "run has a pending or prepared decision",
-                        "run_ids": [run.run_id],
+                        "run_ids": [run_id],
                         "refs": [ref] if ref else [],
                         "stage": run.company_spec_id,
                     }

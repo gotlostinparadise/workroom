@@ -28,6 +28,7 @@ def create_goal_run_report_files(
     payload = _report_payload(
         workspace_path=Path(workspace_path),
         run=run,
+        run_id=clean_run_id,
         summary=summary,
         report_ref=report_ref,
         markdown_ref=markdown_ref,
@@ -57,6 +58,7 @@ def _report_payload(
     *,
     workspace_path: Path,
     run: CompanyGoalRun,
+    run_id: str,
     summary: Mapping[str, object],
     report_ref: str,
     markdown_ref: str,
@@ -66,7 +68,7 @@ def _report_payload(
     task_status_counts = dict(Counter(task.status for task in run.tasks))
     return {
         "schema_version": "goal-run-report.v1",
-        "run_id": run.run_id,
+        "run_id": run_id,
         "company_spec_id": run.company_spec_id,
         "company_spec_version": run.company_spec_version,
         "goal": run.goal,
@@ -90,31 +92,31 @@ def _report_payload(
         "task_artifact_refs": _task_artifact_refs(run),
         "supervisor_turn_refs": _artifact_refs_from_json_dir(
             workspace_path=workspace_path,
-            run_id=run.run_id,
+            run_id=run_id,
             relative_dir="supervisor/turns",
             ref_key="turn_ref",
         ),
         "handoff_refs": _artifact_refs_from_json_dir(
             workspace_path=workspace_path,
-            run_id=run.run_id,
+            run_id=run_id,
             relative_dir="handoffs",
             ref_key="handoff_ref",
         ),
         "decision_refs": _artifact_refs_from_json_dir(
             workspace_path=workspace_path,
-            run_id=run.run_id,
+            run_id=run_id,
             relative_dir="decisions",
             ref_key="decision_ref",
         ),
         "role_work_request_refs": _artifact_refs_from_json_dir(
             workspace_path=workspace_path,
-            run_id=run.run_id,
+            run_id=run_id,
             relative_dir="role_work/requests",
             ref_key="request_ref",
         ),
         "role_work_result_refs": _artifact_refs_from_json_dir(
             workspace_path=workspace_path,
-            run_id=run.run_id,
+            run_id=run_id,
             relative_dir="role_work/results",
             ref_key="result_ref",
         ),

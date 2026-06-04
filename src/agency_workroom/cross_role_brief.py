@@ -34,6 +34,7 @@ def create_cross_role_run_brief_files(
     )
     payload = _brief_payload(
         run=run,
+        run_id=clean_run_id,
         summary=summary,
         replay=replay,
         audit=audit,
@@ -66,6 +67,7 @@ def create_cross_role_run_brief_files(
 def _brief_payload(
     *,
     run: CompanyGoalRun,
+    run_id: str,
     summary: Mapping[str, object],
     replay: Mapping[str, object],
     audit: Mapping[str, object],
@@ -78,7 +80,7 @@ def _brief_payload(
 ) -> dict[str, object]:
     return {
         "schema_version": "cross-role-run-brief.v1",
-        "run_id": run.run_id,
+        "run_id": run_id,
         "company_spec_id": run.company_spec_id,
         "company_spec_version": run.company_spec_version,
         "goal": run.goal,

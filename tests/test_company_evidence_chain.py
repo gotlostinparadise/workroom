@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import json
 import tempfile
@@ -9,7 +10,14 @@ from pathlib import Path
 from agency_workroom.company_evidence_chain import (
     create_company_evidence_chain_report_files,
 )
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 
 
 class CompanyEvidenceChainTests(unittest.TestCase):
@@ -83,6 +91,50 @@ class CompanyEvidenceChainTests(unittest.TestCase):
                 runs=(run, run),
                 inspections=(self.inspection_for(run), self.inspection_for(run)),
             )
+
+    def test_create_company_evidence_chain_report_uses_normalized_run_ids(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        clean_runs = (
+            self.run_for_spec("run_design", "design_review"),
+            self.run_for_spec("run_quality", "implementation_plan_quality"),
+        )
+        runs = tuple(replace(run, run_id=f" {run.run_id} ") for run in clean_runs)
+        inspections = tuple(self.inspection_for(run) for run in clean_runs)
+        expected_chain_id = self.expected_chain_id(("run_design", "run_quality"))
+
+        report = create_company_evidence_chain_report_files(
+            workspace_path=root,
+            runs=runs,
+            inspections=inspections,
+        )
+
+        payload = json.loads(Path(report["chain_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(expected_chain_id, report["chain_id"])
+        self.assertEqual(["run_design", "run_quality"], report["run_ids"])
+        self.assertEqual(["run_design", "run_quality"], payload["run_ids"])
+        self.assertEqual("run_design", payload["runs"][0]["run_id"])
+        self.assertEqual(
+            ["run_design"],
+            payload["expected_stage_coverage"]["design_review"]["run_ids"],
+        )
+
+    def test_create_company_evidence_chain_report_rejects_path_like_run_id(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        clean_run = self.run_for_spec("run_design", "design_review")
+        run = replace(clean_run, run_id="../escape")
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_company_evidence_chain_report_files(
+                workspace_path=root,
+                runs=(run,),
+                inspections=(self.inspection_for(clean_run),),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def run_for_spec(self, run_id: str, spec_id: str) -> CompanyGoalRun:
         team = TeamBlueprint(

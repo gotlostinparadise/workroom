@@ -226,6 +226,23 @@ class GoalRunReportTests(unittest.TestCase):
 
         self.assertFalse((root / "escape").exists())
 
+    def test_create_goal_run_report_uses_normalized_run_id_in_payload(self) -> None:
+        root = self.temp_root()
+        workspace_path = root / "workspace"
+        run = replace(self.make_run(), run_id=" run_report ")
+        self.seed_workspace(workspace_path, run)
+
+        report = create_goal_run_report_files(
+            workspace_path=workspace_path,
+            run=run,
+            summary={"run_id": "run_report"},
+        )
+
+        payload = json.loads(Path(report["report_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("run_report", report["run_id"])
+        self.assertEqual("run_report", payload["run_id"])
+        self.assertIn("/runs/run_report/reports/", report["report_ref"])
+
     def test_goal_run_report_module_has_no_process_network_or_loop_primitives(
         self,
     ) -> None:

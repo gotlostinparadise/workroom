@@ -88,6 +88,28 @@ class RunbookContextTransferTests(unittest.TestCase):
 
         self.assertFalse((root / "escape").exists())
 
+    def test_create_runbook_context_transfer_uses_normalized_source_run_id(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = replace(self.source_run(), run_id=" run_design ")
+
+        result = create_runbook_context_transfer_files(
+            workspace_path=root,
+            source_run=run,
+            target_company_spec_id="implementation_planning",
+            inspection=self.inspection(),
+        )
+
+        payload = json.loads(Path(result["transfer_path"]).read_text(encoding="utf-8"))
+        context = json.loads(
+            str(payload["recommended_start_arguments"]["context_json"])
+        )
+        self.assertEqual("run_design", result["source_run_id"])
+        self.assertEqual("run_design", payload["source_run_id"])
+        self.assertEqual(["run_design"], context["prior_run_ids"])
+        self.assertIn("/runs/run_design/reports/", result["transfer_ref"])
+
     def source_run(self) -> CompanyGoalRun:
         team = TeamBlueprint(
             name="Design Review Team",

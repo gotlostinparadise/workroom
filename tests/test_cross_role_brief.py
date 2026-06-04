@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import inspect
 import json
 from pathlib import Path
@@ -125,6 +126,43 @@ class CrossRoleBriefTests(unittest.TestCase):
             Path(first["brief_path"]).read_text(encoding="utf-8"),
             Path(second["brief_path"]).read_text(encoding="utf-8"),
         )
+
+    def test_create_cross_role_run_brief_uses_normalized_run_id_in_payload(
+        self,
+    ) -> None:
+        run, workspace_path, recommendation = self._approval_gated_run()
+        clean_run = replace(run, run_id=f" {run.run_id} ")
+        summary = summarize_run(run_id=run.run_id, workspace_path=workspace_path)
+        replay = replay_company_goal_run_files(
+            workspace_path=workspace_path,
+            run=run,
+            recommendation=recommendation,
+        )
+        audit = audit_company_goal_run_files(
+            workspace_path=workspace_path,
+            replay=replay,
+        )
+        evaluation = evaluate_company_goal_run_files(
+            workspace_path=workspace_path,
+            run=run,
+            summary=summary,
+            recommendation=recommendation,
+        )
+
+        brief = create_cross_role_run_brief_files(
+            workspace_path=workspace_path,
+            run=clean_run,
+            summary=summary,
+            replay=replay,
+            audit=audit,
+            evaluation=evaluation,
+            recommendation=recommendation,
+        )
+
+        payload = json.loads(Path(brief["brief_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(run.run_id, brief["run_id"])
+        self.assertEqual(run.run_id, payload["run_id"])
+        self.assertIn(f"/runs/{run.run_id}/reports/", brief["brief_ref"])
 
     def test_cross_role_brief_module_has_no_process_network_or_loop_primitives(
         self,

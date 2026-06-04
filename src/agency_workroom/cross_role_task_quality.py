@@ -36,6 +36,7 @@ def create_cross_role_task_quality_report_files(
     )
     payload = _report_payload(
         run=run,
+        run_id=clean_run_id,
         replay=replay,
         audit=audit,
         evaluation=evaluation,
@@ -69,6 +70,7 @@ def create_cross_role_task_quality_report_files(
 def _report_payload(
     *,
     run: CompanyGoalRun,
+    run_id: str,
     replay: Mapping[str, object],
     audit: Mapping[str, object],
     evaluation: Mapping[str, object],
@@ -96,7 +98,7 @@ def _report_payload(
         finding_counts.setdefault(severity, 0)
     return {
         "schema_version": "cross-role-task-quality-report.v1",
-        "run_id": run.run_id,
+        "run_id": run_id,
         "company_spec_id": run.company_spec_id,
         "company_spec_version": run.company_spec_version,
         "goal": run.goal,

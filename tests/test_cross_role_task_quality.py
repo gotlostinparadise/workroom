@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import tempfile
 import unittest
@@ -123,6 +124,32 @@ class CrossRoleTaskQualityTests(unittest.TestCase):
         )
 
         self.assertEqual(first, second)
+
+    def test_create_cross_role_task_quality_uses_normalized_run_id_in_payload(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = replace(self.quality_run(), run_id=" run_quality ")
+
+        report = create_cross_role_task_quality_report_files(
+            workspace_path=root,
+            run=run,
+            replay=self.replay_payload(self.quality_run()),
+            audit={"passed": True, "findings": []},
+            evaluation={"overall_status": "in_progress", "phase": "planning"},
+            recommendation={
+                "recommended_tool": "",
+                "arguments": {},
+                "reason": "no local recommended tool call is available",
+                "will_mutate_state": False,
+                "blocked": False,
+            },
+        )
+
+        payload = json.loads(Path(report["report_path"]).read_text(encoding="utf-8"))
+        self.assertEqual("run_quality", report["run_id"])
+        self.assertEqual("run_quality", payload["run_id"])
+        self.assertIn("/runs/run_quality/reports/", report["report_ref"])
 
     def quality_run(self) -> CompanyGoalRun:
         team = TeamBlueprint(

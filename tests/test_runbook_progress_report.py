@@ -6,7 +6,14 @@ import unittest
 from pathlib import Path
 
 import agency_workroom.runbook_progress_report as runbook_progress_report
-from agency_workroom.models import CompanyGoalRun, Department, TaskState, TeamBlueprint, TeamRole
+from agency_workroom.models import (
+    CompanyGoalRun,
+    Department,
+    TaskState,
+    TeamBlueprint,
+    TeamRole,
+    WorkroomModelError,
+)
 from agency_workroom.runbook_progress_report import create_runbook_progress_report_files
 from agency_workroom.session_store import save_company_goal_run
 
@@ -91,6 +98,35 @@ class RunbookProgressReportTests(unittest.TestCase):
                 workspace_path=root,
                 run_ids=("run_design", "run_design"),
             )
+
+    def test_create_runbook_progress_report_normalizes_run_ids_in_payload(
+        self,
+    ) -> None:
+        root = self.temp_root()
+        run = self.run_for_spec("run_design", "design_review")
+        save_company_goal_run(root, run)
+
+        report = create_runbook_progress_report_files(
+            workspace_path=root,
+            run_ids=(" run_design ",),
+        )
+
+        payload = json.loads(Path(report["progress_path"]).read_text(encoding="utf-8"))
+        stages = {stage["stage_id"]: stage for stage in payload["stages"]}
+        self.assertEqual(["run_design"], report["run_ids"])
+        self.assertEqual(["run_design"], payload["run_ids"])
+        self.assertEqual(["run_design"], stages["design_review"]["run_ids"])
+
+    def test_create_runbook_progress_report_rejects_path_like_run_id(self) -> None:
+        root = self.temp_root()
+
+        with self.assertRaisesRegex(WorkroomModelError, "run_id"):
+            create_runbook_progress_report_files(
+                workspace_path=root,
+                run_ids=("../escape",),
+            )
+
+        self.assertFalse((root / "escape").exists())
 
     def test_runbook_progress_report_module_has_no_runtime_primitives(self) -> None:
         source = Path(runbook_progress_report.__file__).read_text(encoding="utf-8")

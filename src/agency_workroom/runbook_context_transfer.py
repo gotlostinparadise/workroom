@@ -37,6 +37,7 @@ def create_runbook_context_transfer_files(
     )
     payload = _payload(
         source_run=source_run,
+        source_run_id=clean_source_run_id,
         target_spec=target_spec,
         inspection=inspection,
         transfer_path=transfer_path,
@@ -68,6 +69,7 @@ def create_runbook_context_transfer_files(
 def _payload(
     *,
     source_run: CompanyGoalRun,
+    source_run_id: str,
     target_spec: CompanySpec,
     inspection: Mapping[str, object],
     transfer_path: Path,
@@ -80,11 +82,12 @@ def _payload(
     target_variables = _required_context_variables_for(target_spec)
     context = _context_scaffold(
         source_run=source_run,
+        source_run_id=source_run_id,
         target_variables=target_variables,
     )
     return {
         "schema_version": "runbook-context-transfer.v1",
-        "source_run_id": source_run.run_id,
+        "source_run_id": source_run_id,
         "source_company_spec_id": source_run.company_spec_id,
         "source_company_spec_version": source_run.company_spec_version,
         "source_goal": source_run.goal,
@@ -114,12 +117,13 @@ def _payload(
 def _context_scaffold(
     *,
     source_run: CompanyGoalRun,
+    source_run_id: str,
     target_variables: tuple[str, ...],
 ) -> dict[str, object]:
     context: dict[str, object] = {name: "" for name in target_variables}
     if "objective" in context:
         context["objective"] = source_run.goal
-    context["prior_run_ids"] = [source_run.run_id]
+    context["prior_run_ids"] = [source_run_id]
     return context
 
 

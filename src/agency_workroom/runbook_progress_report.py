@@ -10,7 +10,7 @@ from .company_runbooks import (
     normalize_runbook_id,
 )
 from .models import CompanyGoalRun
-from .session_store import load_company_goal_run
+from .session_store import load_company_goal_run, safe_run_id
 
 
 class RunbookProgressReportError(RuntimeError):
@@ -132,6 +132,7 @@ def _stage_progress(
 ) -> dict[str, object]:
     spec_id = str(stage.get("company_spec_id", ""))
     stage_runs = tuple(run for run in runs if run.company_spec_id == spec_id)
+    stage_run_ids = tuple(safe_run_id(run.run_id) for run in stage_runs)
     status = _stage_status(stage_runs)
     return {
         "stage_id": str(stage.get("stage_id", "")),
@@ -141,7 +142,7 @@ def _stage_progress(
         "predecessor_stage_id": str(stage.get("predecessor_stage_id", "")),
         "expected_evidence_kind": str(stage.get("expected_evidence_kind", "")),
         "stage_status": status,
-        "run_ids": [run.run_id for run in stage_runs],
+        "run_ids": list(stage_run_ids),
         "open_blockers": _open_blockers(stage_runs),
         "required_context_variables": _string_list(
             stage.get("required_context_variables")
@@ -162,12 +163,13 @@ def _stage_status(runs: tuple[CompanyGoalRun, ...]) -> str:
 def _open_blockers(runs: tuple[CompanyGoalRun, ...]) -> list[dict[str, object]]:
     blockers: list[dict[str, object]] = []
     for run in runs:
+        clean_run_id = safe_run_id(run.run_id)
         for task in run.tasks:
             if task.status != "blocked":
                 continue
             blockers.append(
                 {
-                    "run_id": run.run_id,
+                    "run_id": clean_run_id,
                     "task_ref": task.task_ref,
                     "category": task.category,
                     "blocker_summary": task.blocker_summary,
@@ -282,7 +284,7 @@ def _render_markdown(payload: Mapping[str, object]) -> str:
 def _required_run_id(run_id: object) -> str:
     if not isinstance(run_id, str) or not run_id.strip():
         raise ValueError("run ids are required")
-    return run_id.strip()
+    return safe_run_id(run_id)
 
 
 def _mapping(value: object) -> Mapping[str, object]:
