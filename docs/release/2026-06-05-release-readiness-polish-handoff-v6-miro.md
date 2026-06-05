@@ -2,12 +2,12 @@
 
 ## Card 1 — Status
 
-- Scope: Workroom release readiness polish checkpoint for `chore/release-readiness-v6-doc-refresh` commit `131ef69`.
+- Scope: Workroom release readiness polish checkpoint for `chore/release-readiness-v6-doc-refresh` commit `487372e`.
 - Gate summary: `all_passed = true`
 - Test count: `627` in source and fresh editable install suites.
 - Workroom status at verification: clean (`## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh`).
 - Kernel status at verification: clean (`## master...origin/master`).
-- Scope verified from PR-polished state on commit `131ef69`.
+- Scope verified from PR-polished state on commit `487372e`.
 - Verified gates: `source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`.
 
 ## Card 2 — Evidence

@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `131ef69`).
-- Workroom commit: `131ef69` (`docs: finalize v6 release pointers to current passing SHA`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `487372e`).
+- Workroom commit: `487372e` (`docs: pin v6 snapshot to latest passing commit`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
