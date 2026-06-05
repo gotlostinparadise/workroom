@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `93f8207`).
-- Workroom commit: `93f8207` (`docs: refresh v6 evidence pointers to current head`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `3c917e3`).
+- Workroom commit: `3c917e3` (`docs: align v6 release docs with latest passing commit`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
