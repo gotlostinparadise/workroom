@@ -4,13 +4,13 @@
 
 - PR: https://github.com/gotlostinparadise/workroom/pull/5 (`chore: refresh v6 release docs snapshot`)
 - Branch: `chore/release-readiness-v6-doc-refresh`
-- Current branch head: `4c70f39`
+- Current branch head: `4ce42d8`
 - Merge state: `BLOCKED`
 - Review decision: `REVIEW_REQUIRED`
 
 ## Evidence
 
-- `Release Readiness Gate` check passed (run: `https://github.com/gotlostinparadise/workroom/actions/runs/26987220623`).
+- `Release Readiness Gate` check passed (run: `https://github.com/gotlostinparadise/workroom/actions/runs/26987359366`).
 - Workroom source: clean.
 - Workroom: `## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh`
 - Kernel: `## master...origin/master`
