@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `e766b1d`).
-- Workroom commit: `e766b1d` (`docs: sync v6 release artifacts with final passing run`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `385435c`).
+- Workroom commit: `385435c` (`docs: sync v6 release artifacts with final passing run`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
