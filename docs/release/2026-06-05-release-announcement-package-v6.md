@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `1a76126`).
-- Workroom commit: `1a76126` (`docs: refresh v6 governance run reference to latest pass`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh`.
+- CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
