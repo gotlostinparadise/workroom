@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `456461a`).
-- Workroom commit: `456461a` (`docs: bump v6 readiness artifacts to latest run`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `9826646`).
+- Workroom commit: `9826646` (`docs: align v6 governance pointers to latest PR run`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
