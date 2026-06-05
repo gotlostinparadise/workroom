@@ -1,7 +1,8 @@
 # Release Readiness Polishing Handoff — 2026-06-05 (v6)
 
 Status note: current polished handoff snapshot for this date (PR-polished branch state).
-CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`).
+Baseline CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`).
+Current PR-head readiness source of truth: PR #5 `Release Readiness Gate`.
 
 - Recent polish delta since previous snapshot:
   - Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to both release workflows to enforce current JS runtime in GitHub-hosted Actions.

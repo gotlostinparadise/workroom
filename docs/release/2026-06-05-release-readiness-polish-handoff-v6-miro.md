@@ -7,7 +7,8 @@
 - Test count: `627` in source and fresh editable install suites.
 - Workroom status at verification: clean (`## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh`).
 - Kernel status at verification: clean (`## master...origin/master`).
-- Scope verified from PR-polished evidence commit `9959300`.
+- Scope verified from baseline PR-polished evidence commit `9959300`.
+- Current PR-head readiness source of truth: PR #5 `Release Readiness Gate`.
 - Verified gates: `source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`.
 
 ## Card 2 — Evidence

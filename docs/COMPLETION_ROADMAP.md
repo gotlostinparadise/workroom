@@ -2606,8 +2606,10 @@ Do not change this roadmap merely because a different task is more interesting.
 
 ## Current Next Action
 
-Prepare the final release governance checkpoint for publication:
-run the repository-level policy and tag publish-readiness review against the
-v6 handoff snapshots, then proceed to explicit release sign-off if clean.
+Complete the release branch-protection gate:
+obtain one required approving review for PR #5, merge the
+`chore/release-readiness-v6-doc-refresh` branch after the Release Readiness Gate
+passes on the current PR head, then run the final post-merge release
+readiness/tag publish-readiness check on `master`.
 Keep the no-loop, no-external-effect, and Kernel-boundary floors until release
-governance is complete.
+governance and tag publication are complete.

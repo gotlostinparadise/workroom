@@ -3,7 +3,8 @@
 ## Release Candidate Snapshot (v6)
 
 - Workroom branch: `chore/release-readiness-v6-doc-refresh`.
-- CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`)
+- Baseline CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`)
+- Current PR-head readiness source of truth: PR #5 `Release Readiness Gate`
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 

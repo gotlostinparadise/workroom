@@ -4,13 +4,15 @@
 
 - PR: https://github.com/gotlostinparadise/workroom/pull/5 (`chore: refresh v6 release docs snapshot`)
 - Branch: `chore/release-readiness-v6-doc-refresh`
-- CI-verified evidence head: `9959300`
+- Baseline CI-verified evidence commit: `9959300`
+- Current PR-head status source of truth: PR #5 `Release Readiness Gate`
 - Merge state: `BLOCKED`
 - Review decision: `REVIEW_REQUIRED`
 
 ## Evidence
 
-- `Release Readiness Gate` check passed for the evidence head (run: `https://github.com/gotlostinparadise/workroom/actions/runs/26989207780`).
+- `Release Readiness Gate` passed for the baseline evidence commit (run: `https://github.com/gotlostinparadise/workroom/actions/runs/26989207780`).
+- The current PR head must keep the same `Release Readiness Gate` passing before merge.
 - Workroom source: clean.
 - Workroom: `## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh`
 - Kernel: `## master...origin/master`
