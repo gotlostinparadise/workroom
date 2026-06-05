@@ -1,7 +1,7 @@
 # Release Readiness Polishing Handoff — 2026-06-05 (v6)
 
 Status note: current polished handoff snapshot for this date (PR-polished branch state).
-Latest verified Workroom commit: `8f1c07e` (`docs: stamp v6 handoff snapshots with current head`).
+Latest verified Workroom commit: `1e40be0` (`docs: refresh v6 handoff commit references to latest head`).
 
 - Recent polish delta since previous snapshot:
   - Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to both release workflows to enforce current JS runtime in GitHub-hosted Actions.
