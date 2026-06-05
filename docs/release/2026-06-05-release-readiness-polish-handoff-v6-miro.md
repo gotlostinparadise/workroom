@@ -2,29 +2,31 @@
 
 ## Card 1 — Status
 
-- Scope: Workroom release readiness polish checkpoint for `master` commit `41d1e4b`.
+- Scope: Workroom release readiness polish checkpoint for `chore/release-readiness-v6-doc-refresh`.
 - Gate summary: `all_passed = true`
 - Test count: `627` in source and fresh editable install suites.
-- Workroom status at verification: clean (`## master...origin/master`).
+- Workroom status at verification: clean (`## chore/release-readiness-v6-doc-refresh...origin/chore/release-readiness-v6-doc-refresh`).
 - Kernel status at verification: clean (`## master...origin/master`).
+- Scope verified from baseline PR-polished evidence commit `9959300`.
+- Current PR-head readiness source of truth: PR #5 `Release Readiness Gate`.
 - Verified gates: `source_suite`, `fresh_editable_install_suite`, `installed_mcp_stdio_smoke`, `workroom_git_status`, `kernel_git_status`.
 
 ## Card 2 — Evidence
 
 - `release_readiness_gate_result.json`:
-  `/tmp/workroom-readiness-polish-v6/release_readiness_gate_result.json`
+  `/tmp/workroom-readiness-polish-v6-final/release_readiness_gate_result.json`
 - `runbook_operating_packet.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_operating_packet.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_operating_packet.json`
 - `runbook_smoke_example.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_smoke_example.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_smoke_example.json`
 - `runbook_progress_report.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_progress_report.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_progress_report.json`
 - `runbook_closeout_packet.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
 - `runbook_release_readiness_smoke.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
 - `release_candidate_audit.json`:
-  `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/release_candidate_audit.json`
+  `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/release_candidate_audit.json`
 - `dist/agency_workroom-0.1.0.tar.gz`, `dist/agency_workroom-0.1.0-py3-none-any.whl`
 
 ## Card 3 — Findings

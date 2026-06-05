@@ -2,9 +2,10 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom source branch: `master` (local tip `41d1e4b`), fully merged and cleaned to `origin/master`.
-- Workroom commit: `41d1e4b` (`fix: harden release candidate MCP smoke gate setup (#3)`)
-- Release candidate workspace: `/tmp/workroom-readiness-polish-v6`
+- Workroom branch: `chore/release-readiness-v6-doc-refresh`.
+- Baseline CI-verified evidence commit: `9959300` (`docs: align v6 handoff docs with latest PR head and check`)
+- Current PR-head readiness source of truth: PR #5 `Release Readiness Gate`
+- Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
 ## Verification Summary
@@ -18,15 +19,22 @@
 
 ## Evidence Artifacts
 
-- `/tmp/workroom-readiness-polish-v6/release_readiness_gate_result.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_operating_packet.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_smoke_example.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_progress_report.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
-- `/tmp/workroom-readiness-polish-v6/runbooks/complex_codex_delivery/release_candidate_audit.json`
+- `/tmp/workroom-readiness-polish-v6-final/release_readiness_gate_result.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_operating_packet.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_smoke_example.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_progress_report.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_closeout_packet.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/runbook_release_readiness_smoke.json`
+- `/tmp/workroom-readiness-polish-v6-final/runbooks/complex_codex_delivery/release_candidate_audit.json`
 - `dist/agency_workroom-0.1.0.tar.gz`
 - `dist/agency_workroom-0.1.0-py3-none-any.whl`
+
+## Polishing Delta Since Prior Snapshot
+
+- Added runtime-hygiene pin in release workflows:
+  - `.github/workflows/release-readiness.yml`
+  - `.github/workflows/release-publish.yml`
+  - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` in each job env.
 
 ## Public Feature Summary
 
@@ -38,10 +46,9 @@
 ## Draft External Notes
 
 Workroom is at a polished release-readiness checkpoint. This release is intended for
-operator-led rollout after one more governance review and a verified publish/policy check.
+operator-led rollout after final release governance completion.
 
 ## Suggested Next Checks Before Public Release
 
-1. Confirm branch-protection and publish policy in repository settings.
-2. Approve/reconfirm tag `v0.1.0` in repo policy and create/verify release candidate mapping.
-3. Confirm CI publish workflow artifacts are present for the approved tag (`release-publish`).
+1. Approve/reconfirm tag `v0.1.0` in repo policy and create/verify release candidate mapping.
+2. Confirm CI publish workflow artifacts are present for the approved tag (`release-publish`).
