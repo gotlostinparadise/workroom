@@ -2,8 +2,8 @@
 
 ## Release Candidate Snapshot (v6)
 
-- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `1801875`).
-- Workroom commit: `1801875` (`docs: align v6 handoff docs to abbab4a`)
+- Workroom branch: `chore/release-readiness-v6-doc-refresh` (head `8f1c07e`).
+- Workroom commit: `8f1c07e` (`docs: stamp v6 handoff snapshots with current head`)
 - Release candidate workspace: `/tmp/workroom-readiness-polish-v6-final`
 - `release_readiness_gate` result: `all_passed = true`
 
